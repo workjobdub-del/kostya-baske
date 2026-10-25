@@ -54,6 +54,21 @@ function formatPlusMinus(value) {
   return `${sign}${formatPlain(num)}`;
 }
 
+const PLUS_MINUS_HINT =
+  "+/− — на сколько очков команда выиграла или проиграла, пока Костя был на площадке";
+
+function plusMinusClass(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num === 0) return "is-even";
+  return num > 0 ? "is-pos" : "is-neg";
+}
+
+function formatPlusMinusCell(value) {
+  if (value == null) return "—";
+  const cls = plusMinusClass(value);
+  return `<span class="plus-minus ${cls}">${formatPlusMinus(value)}</span>`;
+}
+
 function normOppName(text) {
   return String(text || "").toLowerCase().replace(/ё/g, "е").trim();
 }
@@ -110,8 +125,8 @@ function objectTable(columns, rows, extraClass) {
           const extra = column.key === "scored" || column.key === "conceded" ? " col-extra" : "";
           let value;
           if (column.key === "score") value = scoreHtml(row[column.key]);
-          else if (column.key === "plusMinus") value = formatPlusMinus(row[column.key]);
-          else if (column.key === "kpi") value = row[column.key] == null ? "—" : formatPlain(row[column.key]);
+          else if (column.key === "plusMinus" || column.key === "plusMinusPerGame") value = formatPlusMinusCell(row[column.key]);
+          else if (column.key === "kpi" || column.key === "kpiPerGame") value = row[column.key] == null ? "—" : formatPlain(row[column.key]);
           else value = formatCell(row[column.key], column.average);
           const mvp =
             column.key === "opponent" && isMvpMatch(row) ? ` ${mvpBadgeHtml()}` : "";
@@ -890,12 +905,24 @@ function renderSeasonCards() {
           <li><b>${formatAvg(season.steals)}</b> ${term("Перехв")}</li>
           <li><b>${formatAvg(season.turnovers)}</b> ${term("Потери")}</li>
           ${season.kpiPerGame != null ? `<li><b>${formatPlain(season.kpiPerGame)}</b> ${term("КПИ")}</li>` : ""}
+          ${season.plusMinusPerGame != null ? `<li>${formatPlusMinusCell(season.plusMinusPerGame)} <span class="plus-minus-label">${term("+/−")}</span></li>` : ""}
         </ul>
         <small class="shoot-lines">${shotPhrase("2-очк.", season.fg2)}${shotPhrase("3-очк.", season.fg3)}${shotPhrase("Штраф", season.ft)}</small>
       </article>`;
     })
     .join("");
   return `<div class="season-grid">${cards}</div>`;
+}
+
+function careerSeasonColumns() {
+  const cols = (data.tournamentStats.averageColumns || []).slice();
+  if (!cols.some((column) => column.key === "kpiPerGame")) {
+    cols.push({ key: "kpiPerGame", label: "КПИ", average: true });
+  }
+  if (!cols.some((column) => column.key === "plusMinusPerGame")) {
+    cols.push({ key: "plusMinusPerGame", label: "+/−", average: true });
+  }
+  return cols;
 }
 
 function renderMeters() {
@@ -905,22 +932,31 @@ function renderMeters() {
     { key: "rebounds", label: "Подборы" },
     { key: "assists", label: "Передачи" },
     { key: "steals", label: "Перехваты" },
+    { key: "plusMinusPerGame", label: "+/−", signed: true },
   ];
   return metrics
     .map((metric) => {
-      const max = Math.max(...seasons.map((season) => Number(season[metric.key])));
+      const values = seasons.map((season) => Number(season[metric.key]));
+      const max = metric.signed
+        ? Math.max(...values.map((value) => (Number.isFinite(value) ? Math.abs(value) : 0)), 0.1)
+        : Math.max(...values.filter((value) => Number.isFinite(value)), 0.1);
       const lines = seasons
         .map((season) => {
           const value = Number(season[metric.key]);
-          const width = max > 0 ? Math.max(6, (value / max) * 100) : 0;
+          const safe = Number.isFinite(value) ? value : 0;
+          const width = max > 0 ? Math.max(safe === 0 && !metric.signed ? 0 : 6, (Math.abs(safe) / max) * 100) : 0;
+          const valueHtml = metric.signed ? formatPlusMinusCell(season[metric.key]) : `<b>${formatAvg(safe)}</b>`;
+          const barClass = metric.signed
+            ? `meter ${plusMinusClass(safe)} ${season.highlight ? "is-current" : ""}`
+            : `meter ${season.highlight ? "is-current" : ""}`;
           return `<div class="meter-line">
             <span title="${esc(season.name)}">${esc(season.name)}</span>
-            <span class="meter ${season.highlight ? "is-current" : ""}"><span style="width:${width.toFixed(1)}%"></span></span>
-            <b>${formatAvg(value)}</b>
+            <span class="${barClass}"><span style="width:${width.toFixed(1)}%"></span></span>
+            ${metric.signed ? valueHtml : `<b>${formatAvg(safe)}</b>`}
           </div>`;
         })
         .join("");
-      return `<section class="meter-block"><h3>${esc(metric.label)}</h3>${lines}</section>`;
+      return `<section class="meter-block"><h3>${term(metric.label, metric.label)}</h3>${lines}</section>`;
     })
     .join("");
 }
@@ -979,12 +1015,13 @@ function renderCareerPage() {
     </section>
     <section class="block" id="seasons">
       <h2>Турниры</h2>
-      <p class="caption">${esc(data.tournamentStats.caption)}</p>
+      <p class="caption">${esc(data.tournamentStats.caption)} ${esc(PLUS_MINUS_HINT)}</p>
       ${renderSeasonCards()}
+      ${objectTable(careerSeasonColumns(), data.tournamentStats.seasons, "only-desk career-season-table")}
     </section>
     <section class="block" id="meters">
       <h2>Сравнение средних</h2>
-      <p class="caption">Полоска — доля от лучшего среднего в этих трёх турнирах. Это не оценка от 0 до 99.</p>
+      <p class="caption">Полоска — доля от лучшего среднего в этих турнирах (для +/− — от наибольшего по модулю). Это не оценка от 0 до 99.</p>
       <div class="meter-grid">${renderMeters()}</div>
     </section>
     <section class="block" id="badges">

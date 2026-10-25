@@ -331,7 +331,9 @@
         "turnovers": 3.5,
         "fg2": "18/73, 25%",
         "fg3": "0/1",
-        "ft": "3/6, 50%"
+        "ft": "3/6, 50%",
+        "plusMinusPerGame": -16.4,
+        "plusMinusTotal": -164
       },
       {
         "name": "2025/26, МЛБЛ-Дети U12 (1-й дивизион), Росток",
@@ -347,7 +349,9 @@
         "fg3": "2/4",
         "ft": "9/15, 60%",
         "highlight": true,
-        "kpiPerGame": 1.9
+        "kpiPerGame": 1.9,
+        "plusMinusPerGame": -3.3,
+        "plusMinusTotal": -23
       },
       {
         "name": "2025/26, Первенство Москвы, Росток-2014",
@@ -362,7 +366,9 @@
         "fg2": "5/21, 24%",
         "fg3": "0/1",
         "ft": "0/0",
-        "kpiPerGame": 0.0
+        "kpiPerGame": 0.0,
+        "plusMinusPerGame": -11.0,
+        "plusMinusTotal": -11
       }
     ],
     "paragraphs": [
