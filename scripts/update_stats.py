@@ -701,7 +701,9 @@ def review_games(data, notes, ask=None):
             notes.append("разбор: личного протокола ещё нет, шаблон на месте")
         attach_review(data)
         return
-    targets = [rows[-1]] if force else [row for row in rows if not row.get("aiReview") or not row.get("aiMama")]
+    if force and rows[-1].get("aiReview") and rows[-1].get("aiMama"):
+        notes.append("разбор: у последней игры уже есть текст, не перезаписываю")
+    targets = [row for row in rows if not row.get("aiReview") or not row.get("aiMama")]
     if not targets:
         attach_review(data)
         return
@@ -786,8 +788,8 @@ def apply_protocols(data, stats, notes):
     seasons = data["tournamentStats"]["seasons"]
     for item in seasons:
         if item.get("id") == "mos2627" or str(item.get("name", "")).startswith("2026/27"):
-            item.clear()
-            item.update(season)
+            for key, value in season.items():
+                item[key] = value
             break
     else:
         seasons.append(season)
@@ -828,6 +830,7 @@ def apply_protocols(data, stats, notes):
         have.add(stat["date"])
     mama.sort(key=lambda item: parse_ru_date(item.get("date") or "") or date.min, reverse=True)
     del mama[5:]
+    attach_review(data)
     return {stat["date"] for stat in stats}
 
 
@@ -925,9 +928,15 @@ def update_basket(data, notes):
     if rows is not None and rows != data["season"]["standings"]["rows"]:
         data["season"]["standings"]["rows"] = rows
         ours = next(row for row in rows if row["highlight"])
-        data["season"]["caption"] = (
-            f"На {long_date(now)}. В таблице группы у «Ростка» {ours['wins']} побед и {ours['losses']} поражений."
-        )
+        plaque = plaque_for(rows, matches or old_matches)
+        if int(ours["played"]) == 0 and plaque:
+            data["season"]["caption"] = (
+                f"Официальная таблица ещё не обновилась. Первая игра — {plaque.split(': ', 1)[-1]} (по новости клуба)."
+            )
+        else:
+            data["season"]["caption"] = (
+                f"На {long_date(now)}. В таблице группы у «Ростка» {ours['wins']} побед и {ours['losses']} поражений."
+            )
         notes.append("таблица: обновлена")
     elif rows is not None:
         notes.append("таблица: без изменений")
@@ -1302,7 +1311,79 @@ def self_test():
         review_games(basket, [], ask=fake_ask)
     finally:
         os.environ.pop("AI_REGEN", None)
-    assert len(calls) == 2
+    assert len(calls) == 1
+    kept_old = basket["gameLogs"]["tournaments"][0]["rows"][0]["aiReview"]
+    kept_u12 = "Разбор U12 остаётся при обновлении протокола и достаточно длинный."
+    basket["mama"] = {"seasonSummary": "KEEP", "games": [{"date": "01.01.26", "plus": "старое"}]}
+    basket["glossary"] = [{"term": "Мин", "text": "минуты"}]
+    basket["achievements"] = [{"value": "3", "label": "Место", "detail": "Росток U12, 2025/26"}]
+    basket["tournamentStats"]["seasons"][0]["place"] = "3"
+    basket["gameLogs"]["tournaments"].append(
+        {
+            "id": "u12",
+            "rows": [
+                {
+                    "date": "21.02.26",
+                    "opponent": "Тимирязевская",
+                    "score": "52:31, победа",
+                    "points": 1,
+                    "key": "u12-9",
+                    "place": 3,
+                    "aiReview": kept_u12,
+                    "aiMama": "Тёплая фраза про бронзу.",
+                }
+            ],
+        }
+    )
+    new_stat = {
+        "date": "25.10.26",
+        "when": date(2026, 10, 25),
+        "opponent": "Соперник",
+        "our": 40,
+        "their": 30,
+        "our_name": "Росток-2014",
+        "started": True,
+        "minutes": "12:00",
+        "points": 4,
+        "fg2": "2/4",
+        "fg3": "0/0",
+        "ft": "0/0",
+        "rebounds": 2,
+        "offRebounds": 0,
+        "assists": 1,
+        "steals": 1,
+        "turnovers": 1,
+        "fouls": 1,
+        "result": "победа",
+        "comp": "Группа А",
+        "score": "40:30, победа",
+    }
+    apply_protocols(basket, [new_stat], [])
+    u12_row = basket["gameLogs"]["tournaments"][1]["rows"][0]
+    assert u12_row["aiReview"] == kept_u12
+    assert u12_row["aiMama"] == "Тёплая фраза про бронзу."
+    assert u12_row["key"] == "u12-9" and u12_row["place"] == 3
+    assert basket["mama"]["seasonSummary"] == "KEEP"
+    assert basket["glossary"][0]["term"] == "Мин"
+    assert basket["achievements"][0]["value"] == "3"
+    season = basket["tournamentStats"]["seasons"][0]
+    assert season["place"] == "3" and season["id"] == "mos2627"
+    old_row = next(row for row in basket["gameLogs"]["tournaments"][0]["rows"] if row["date"] == "18.01.26")
+    assert old_row["aiReview"] == kept_old and old_row["aiMama"] == "Уже есть."
+    added = next(row for row in basket["gameLogs"]["tournaments"][0]["rows"] if row["date"] == "25.10.26")
+    assert "aiReview" not in added and added["score"].startswith("40:30")
+    match = next(item["value"] for item in basket["lastMatch"]["facts"] if item["label"] == "Матч")
+    assert match.startswith("Росток-2014 — Соперник, 40:30")
+    review_games(basket, [], ask=fake_ask)
+    assert old_row["aiReview"] == kept_old
+    assert added["aiReview"].startswith("Костя") and added["aiMama"].startswith("Восемь")
+    assert u12_row["aiReview"] == kept_u12
+    again = json.loads(json.dumps(basket, ensure_ascii=False))
+    assert again["mama"]["seasonSummary"] == "KEEP"
+    assert again["glossary"][0]["text"] == "минуты"
+    assert again["achievements"][0]["label"] == "Место"
+    assert again["gameLogs"]["tournaments"][1]["rows"][0]["aiReview"] == kept_u12
+    assert again["tournamentStats"]["seasons"][0]["place"] == "3"
     os.environ.pop("PERPLEXITY_API_KEY", None)
     assert ask_perplexity("тест") is None
 
