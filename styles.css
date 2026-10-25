@@ -18,7 +18,10 @@
 
 * { box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  overflow-x: clip;
+}
 
 body {
   margin: 0;
@@ -41,14 +44,28 @@ body {
 
 .skip {
   position: absolute;
-  left: -999px;
-  top: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip:focus {
+  left: 0.6rem;
+  top: 0.6rem;
+  width: auto;
+  height: auto;
+  margin: 0;
+  clip: auto;
+  overflow: visible;
   background: white;
   padding: 0.4rem 0.7rem;
   z-index: 40;
 }
-
-.skip:focus { left: 0.6rem; top: 0.6rem; }
 
 .topbar {
   position: sticky;
@@ -143,10 +160,10 @@ body {
 .hero::after {
   content: "";
   position: absolute;
-  width: 210px;
-  height: 210px;
-  right: -48px;
-  top: -70px;
+  width: 160px;
+  height: 160px;
+  right: 16px;
+  top: -72px;
   border: 2px solid rgba(255, 255, 255, 0.16);
   border-radius: 50%;
   pointer-events: none;
@@ -155,10 +172,10 @@ body {
 .hero::before {
   content: "";
   position: absolute;
-  width: 120px;
-  height: 120px;
-  right: -2px;
-  top: -24px;
+  width: 92px;
+  height: 92px;
+  right: 50px;
+  top: -28px;
   border: 2px solid rgba(255, 255, 255, 0.12);
   border-radius: 50%;
   pointer-events: none;
@@ -271,6 +288,7 @@ body {
 .prose p { margin: 0.7rem 0 0; }
 
 .table-scroll {
+  max-width: 100%;
   overflow-x: auto;
   margin: 0.2rem 0 0.85rem;
   border: 1px solid var(--line);
@@ -377,6 +395,7 @@ tbody tr.highlight:hover { background: #ffe8d6; }
 }
 
 .chart-scroll {
+  max-width: 100%;
   overflow-x: auto;
   margin: 0.15rem 0 0.85rem;
   -webkit-overflow-scrolling: touch;
@@ -388,9 +407,9 @@ tbody tr.highlight:hover { background: #ffe8d6; }
   height: auto;
 }
 
-.chart-scroll svg.points { min-width: 680px; }
+.chart-scroll svg.points { min-width: 640px; }
 
-.chart-scroll svg.groups { min-width: 520px; }
+.chart-scroll svg.groups { min-width: 0; }
 
 .legend {
   display: flex;
@@ -473,10 +492,8 @@ tbody tr.highlight:hover { background: #ffe8d6; }
 .callout-lead {
   margin: 0 0 0.25rem;
   color: var(--orange-dark);
-  font-size: 0.78rem;
+  font-size: 0.92rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .callout p:last-child { margin: 0; }

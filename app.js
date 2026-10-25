@@ -153,9 +153,13 @@ function pointsChart(tournament) {
 }
 
 function groupedChart(view) {
-  const width = 720;
-  const height = 300;
-  const pad = { top: 32, right: 16, bottom: 46, left: 42 };
+  const host = document.getElementById("trend");
+  const available = Math.max(300, (host ? host.clientWidth : 720) - 36);
+  const width = Math.round(Math.min(760, available));
+  const height = width < 480 ? 248 : 300;
+  const pad = { top: 28, right: 12, bottom: width < 480 ? 40 : 46, left: 36 };
+  const valueSize = width < 480 ? 10 : 11;
+  const labelSize = width < 480 ? 11 : 13;
   const plotH = height - pad.top - pad.bottom;
   const plotW = width - pad.left - pad.right;
   const categories = view.categories;
@@ -189,9 +193,9 @@ function groupedChart(view) {
         const radius = Math.min(5, barW / 2, barH);
         shapes += `<path d="M${x} ${y + barH} V${y + radius} Q${x} ${y} ${x + radius} ${y} H${x + barW - radius} Q${x + barW} ${y} ${x + barW} ${y + radius} V${y + barH} Z" fill="${color}"></path>`;
       }
-      shapes += `<text x="${x + barW / 2}" y="${Math.max(14, y - 6)}" text-anchor="middle" fill="#142033" font-size="11" font-weight="700" font-family="${FONT}">${formatAvg(safe)}</text>`;
+      shapes += `<text x="${x + barW / 2}" y="${Math.max(12, y - 6)}" text-anchor="middle" fill="#142033" font-size="${valueSize}" font-weight="700" font-family="${FONT}">${formatAvg(safe)}</text>`;
     });
-    shapes += `<text x="${groupX + groupW / 2}" y="${height - 16}" text-anchor="middle" fill="#142033" font-size="13" font-family="${FONT}">${esc(category)}</text>`;
+    shapes += `<text x="${groupX + groupW / 2}" y="${height - 14}" text-anchor="middle" fill="#142033" font-size="${labelSize}" font-family="${FONT}">${esc(category)}</text>`;
   });
 
   const summary = series
