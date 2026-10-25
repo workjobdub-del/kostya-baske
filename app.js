@@ -1,7 +1,7 @@
 "use strict";
 
-const SERIES_COLORS = ["#1f3a5f", "#e85d04"];
-const FONT = "system-ui, Segoe UI, sans-serif";
+const SERIES_COLORS = ["#b7beca", "#e8b84a"];
+const FONT = "Barlow Condensed, Arial Narrow, Segoe UI, sans-serif";
 
 const state = { game: null, trend: null };
 let data = null;
@@ -130,9 +130,9 @@ function pointsChart(tournament) {
 
   for (let tick = 0; tick <= top + 0.001; tick += step) {
     const y = pad.top + plotH - (tick / top) * plotH;
-    const grid = tick === 0 ? "#d9d1c7" : "#eee6dc";
+    const grid = tick === 0 ? "#3a3f4b" : "#2c313c";
     shapes += `<line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="${grid}"></line>`;
-    shapes += `<text x="${pad.left - 8}" y="${y + 4}" text-anchor="end" fill="#5c6775" font-size="12" font-family="${FONT}">${formatTick(tick)}</text>`;
+    shapes += `<text x="${pad.left - 8}" y="${y + 4}" text-anchor="end" fill="#c8c2b6" font-size="12" font-family="${FONT}">${formatTick(tick)}</text>`;
   }
 
   points.forEach((point, index) => {
@@ -142,10 +142,10 @@ function pointsChart(tournament) {
     const y = pad.top + plotH - barH;
     if (barH > 0) {
       const radius = Math.min(5, barW / 2, barH);
-      shapes += `<path d="M${x} ${y + barH} V${y + radius} Q${x} ${y} ${x + radius} ${y} H${x + barW - radius} Q${x + barW} ${y} ${x + barW} ${y + radius} V${y + barH} Z" fill="#e85d04"></path>`;
+      shapes += `<path d="M${x} ${y + barH} V${y + radius} Q${x} ${y} ${x + radius} ${y} H${x + barW - radius} Q${x + barW} ${y} ${x + barW} ${y + radius} V${y + barH} Z" fill="#e8b84a"></path>`;
     }
-    shapes += `<text x="${x + barW / 2}" y="${Math.max(14, y - 6)}" text-anchor="middle" fill="#142033" font-size="12" font-weight="700" font-family="${FONT}">${esc(point.display)}</text>`;
-    shapes += `<text x="${x + barW / 2}" y="${height - 14}" text-anchor="middle" fill="#5c6775" font-size="12" font-family="${FONT}">${esc(point.label)}</text>`;
+    shapes += `<text x="${x + barW / 2}" y="${Math.max(14, y - 6)}" text-anchor="middle" fill="#f4efe4" font-size="12" font-weight="700" font-family="${FONT}">${esc(point.display)}</text>`;
+    shapes += `<text x="${x + barW / 2}" y="${height - 14}" text-anchor="middle" fill="#c8c2b6" font-size="12" font-family="${FONT}">${esc(point.label)}</text>`;
   });
 
   const summary = points.map((point) => `${point.label}: ${point.display}`).join(", ");
@@ -173,9 +173,9 @@ function groupedChart(view) {
 
   for (let tick = 0; tick <= top + 0.001; tick += step) {
     const y = pad.top + plotH - (tick / top) * plotH;
-    const grid = tick === 0 ? "#d9d1c7" : "#eee6dc";
+    const grid = tick === 0 ? "#3a3f4b" : "#2c313c";
     shapes += `<line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="${grid}"></line>`;
-    shapes += `<text x="${pad.left - 8}" y="${y + 4}" text-anchor="end" fill="#5c6775" font-size="12" font-family="${FONT}">${formatTick(tick)}</text>`;
+    shapes += `<text x="${pad.left - 8}" y="${y + 4}" text-anchor="end" fill="#c8c2b6" font-size="12" font-family="${FONT}">${formatTick(tick)}</text>`;
   }
 
   categories.forEach((category, categoryIndex) => {
@@ -193,9 +193,9 @@ function groupedChart(view) {
         const radius = Math.min(5, barW / 2, barH);
         shapes += `<path d="M${x} ${y + barH} V${y + radius} Q${x} ${y} ${x + radius} ${y} H${x + barW - radius} Q${x + barW} ${y} ${x + barW} ${y + radius} V${y + barH} Z" fill="${color}"></path>`;
       }
-      shapes += `<text x="${x + barW / 2}" y="${Math.max(12, y - 6)}" text-anchor="middle" fill="#142033" font-size="${valueSize}" font-weight="700" font-family="${FONT}">${formatAvg(safe)}</text>`;
+      shapes += `<text x="${x + barW / 2}" y="${Math.max(12, y - 6)}" text-anchor="middle" fill="#f4efe4" font-size="${valueSize}" font-weight="700" font-family="${FONT}">${formatAvg(safe)}</text>`;
     });
-    shapes += `<text x="${groupX + groupW / 2}" y="${height - 14}" text-anchor="middle" fill="#142033" font-size="${labelSize}" font-family="${FONT}">${esc(category)}</text>`;
+    shapes += `<text x="${groupX + groupW / 2}" y="${height - 14}" text-anchor="middle" fill="#f4efe4" font-size="${labelSize}" font-family="${FONT}">${esc(category)}</text>`;
   });
 
   const summary = series
@@ -230,19 +230,240 @@ function segmented(options, current, attr, label) {
   return `<div class="segmented" role="group" aria-label="${esc(label)}">${buttons}</div>`;
 }
 
+function profileValue(label) {
+  const item = data.profile.items.find((entry) => entry.label === label);
+  return item ? item.value : "";
+}
+
+function firstNumber(text) {
+  const match = String(text).match(/\d+/);
+  return match ? match[0] : "";
+}
+
 function renderNav() {
-  document.getElementById("nav").innerHTML = data.nav
+  const nav = document.getElementById("nav");
+  if (!nav) return;
+  if (document.body.dataset.page !== "profile") {
+    nav.hidden = true;
+    return;
+  }
+  nav.hidden = false;
+  nav.innerHTML = data.nav
     .map((item) => `<a href="#${esc(item.id)}">${esc(item.label)}</a>`)
     .join("");
 }
 
 function renderHero() {
   const player = data.player;
-  return `<section class="hero" id="top">
-    <h1>${esc(player.name)}</h1>
-    <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
-    <p class="summary">${esc(player.summary)}</p>
+  const height = firstNumber(profileValue("Рост и вес"));
+  const year = profileValue("Год рождения");
+  const shield = height
+    ? `<div class="shield"><strong>${esc(height)}</strong><em>рост, см</em></div>`
+    : "";
+  return `<section class="player-card" id="top">
+    <p class="kicker">Карточка игрока${year ? ` · ${esc(year)}` : ""}</p>
+    <div class="player-card-main">
+      ${shield}
+      <div class="player-card-copy">
+        <h1>${esc(player.name)}</h1>
+        <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
+        <p class="summary">${esc(player.summary)}</p>
+        <p class="card-link"><a href="career.html">Карьера и достижения</a></p>
+      </div>
+    </div>
   </section>`;
+}
+
+function collectCareer() {
+  let games = 0;
+  let points = 0;
+  let best = null;
+  data.gameLogs.tournaments.forEach((tournament) => {
+    tournament.rows.forEach((row) => {
+      const value = Number(row.points);
+      if (!Number.isFinite(value)) return;
+      games += 1;
+      points += value;
+      if (!best || value > best.points) {
+        best = {
+          points: value,
+          opponent: row.opponent || "",
+          tournament: tournament.label,
+          when: row.date || row.stage || "",
+        };
+      }
+    });
+  });
+  const seasons = data.tournamentStats.seasons;
+  const peakPoints = seasons.reduce((bestSeason, season) =>
+    season.points > bestSeason.points ? season : bestSeason
+  );
+  const peakSteals = seasons.reduce((bestSeason, season) =>
+    season.steals > bestSeason.steals ? season : bestSeason
+  );
+  const latest = seasons.find((season) => season.highlight) || seasons[seasons.length - 1];
+  const placeFact = data.lastMatch.facts.find((fact) => fact.label === "Результат");
+  const placeMatch = placeFact ? String(placeFact.value).match(/(\d+)-е/) : null;
+  return { games, points, best, peakPoints, peakSteals, latest, placeFact, place: placeMatch ? placeMatch[1] : "" };
+}
+
+function trendValue(viewId, category, seriesName) {
+  const view = data.trend.views.find((item) => item.id === viewId);
+  if (!view) return null;
+  const index = view.categories.indexOf(category);
+  const series = view.series.find((item) => item.name === seriesName);
+  if (index < 0 || !series) return null;
+  return series.values[index];
+}
+
+function kpiCard(value, label, detail) {
+  return `<article class="kpi">
+    <b>${esc(value)}</b>
+    <span>${esc(label)}</span>
+    ${detail ? `<small>${esc(detail)}</small>` : ""}
+  </article>`;
+}
+
+function renderCareerCards(career) {
+  const assistsThen = trendValue("avg", "Передачи", "2024/25");
+  const reboundsThen = trendValue("avg", "Подборы", "2024/25");
+  const bestDetail = [career.best.opponent, career.best.when, career.best.tournament]
+    .filter(Boolean)
+    .join(" · ");
+  const cards = [
+    kpiCard(String(career.games), "Игры в журналах", "Сумма строк трёх турниров"),
+    kpiCard(String(career.points), "Очки", "Сумма очков по тем же строкам"),
+    kpiCard(String(career.best.points), "Лучшая игра", bestDetail),
+    kpiCard(career.place || "—", "Место", career.placeFact ? career.placeFact.value : ""),
+    kpiCard(formatAvg(career.peakPoints.points), "Макс. очки за игру", career.peakPoints.name),
+    kpiCard(formatAvg(career.peakSteals.steals), "Макс. перехваты", career.peakSteals.name),
+    kpiCard(
+      formatAvg(career.latest.rebounds),
+      "Подборы, 2025/26",
+      reboundsThen === null ? career.latest.name : `В 2024/25 было ${formatAvg(reboundsThen)}`
+    ),
+    kpiCard(
+      formatAvg(career.latest.assists),
+      "Передачи, 2025/26",
+      assistsThen === null ? career.latest.name : `В 2024/25 было ${formatAvg(assistsThen)}`
+    ),
+  ];
+  return `<div class="kpi-grid">${cards.join("")}</div>`;
+}
+
+function renderSeasonCards() {
+  const cards = data.tournamentStats.seasons
+    .map((season) => {
+      return `<article class="season-card${season.highlight ? " is-current" : ""}">
+        <p>${esc(season.name)}</p>
+        <strong>${formatAvg(season.points)}</strong>
+        <span>очка за игру · ${esc(season.games)} · ${esc(season.minutes)}</span>
+        <ul>
+          <li><b>${formatAvg(season.rebounds)}</b> подб</li>
+          <li><b>${formatAvg(season.assists)}</b> пер</li>
+          <li><b>${formatAvg(season.steals)}</b> перехв</li>
+          <li><b>${formatAvg(season.turnovers)}</b> потери</li>
+        </ul>
+        <small>${esc(season.fg2)} 2-очк. · ${esc(season.fg3)} 3-очк. · ${esc(season.ft)} штраф</small>
+      </article>`;
+    })
+    .join("");
+  return `<div class="season-grid">${cards}</div>`;
+}
+
+function renderMeters() {
+  const seasons = data.tournamentStats.seasons;
+  const metrics = [
+    { key: "points", label: "Очки" },
+    { key: "rebounds", label: "Подборы" },
+    { key: "assists", label: "Передачи" },
+    { key: "steals", label: "Перехваты" },
+  ];
+  return metrics
+    .map((metric) => {
+      const max = Math.max(...seasons.map((season) => Number(season[metric.key])));
+      const lines = seasons
+        .map((season) => {
+          const value = Number(season[metric.key]);
+          const width = max > 0 ? Math.max(6, (value / max) * 100) : 0;
+          return `<div class="meter-line">
+            <span title="${esc(season.name)}">${esc(season.name)}</span>
+            <span class="meter ${season.highlight ? "is-current" : ""}"><span style="width:${width.toFixed(1)}%"></span></span>
+            <b>${formatAvg(value)}</b>
+          </div>`;
+        })
+        .join("");
+      return `<section class="meter-block"><h3>${esc(metric.label)}</h3>${lines}</section>`;
+    })
+    .join("");
+}
+
+function renderBadges() {
+  const pros = data.notes.pros.map((item) => `<li>${esc(item)}</li>`).join("");
+  const cons = data.notes.cons.map((item) => `<li>${esc(item)}</li>`).join("");
+  return `<div class="split">
+    <section class="panel good">
+      <h3>${esc(data.notes.prosHeading)}</h3>
+      <ul class="badges">${pros}</ul>
+    </section>
+    <section class="panel work">
+      <h3>${esc(data.notes.consHeading)}</h3>
+      <ul class="badges">${cons}</ul>
+    </section>
+  </div>`;
+}
+
+function renderCareerPage() {
+  const player = data.player;
+  const career = collectCareer();
+  if (!career.best) {
+    career.best = { points: 0, opponent: "", tournament: "", when: "" };
+  }
+  const year = profileValue("Год рождения");
+  const bio = data.profile.items
+    .map(
+      (item) =>
+        `<li><span>${esc(item.label)}</span><strong>${esc(item.value)}</strong></li>`
+    )
+    .join("");
+  document.getElementById("app").innerHTML = `<section class="player-card" id="top">
+      <p class="kicker">Карьера${year ? ` · ${esc(year)}` : ""}</p>
+      <div class="player-card-main">
+        <div class="shield"><strong>${esc(String(career.best.points))}</strong><em>лучшая игра</em></div>
+        <div class="player-card-copy">
+          <h1>${esc(player.name)}</h1>
+          <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
+          <p class="summary">${esc(player.summary)}</p>
+        </div>
+      </div>
+    </section>
+    <section class="block" id="kpis">
+      <h2>Достижения</h2>
+      <p class="caption">Карточки собраны из журналов и средних в data.json. Отдельный рейтинг не выдумывается.</p>
+      ${renderCareerCards(career)}
+    </section>
+    <section class="block" id="bio">
+      <h2>Карточка</h2>
+      <ul class="bio-strip">${bio}</ul>
+    </section>
+    <section class="block" id="seasons">
+      <h2>Турниры</h2>
+      <p class="caption">${esc(data.tournamentStats.caption)}</p>
+      ${renderSeasonCards()}
+    </section>
+    <section class="block" id="meters">
+      <h2>Сравнение средних</h2>
+      <p class="caption">Длина полосы — доля от лучшего среднего в этих трёх турнирах, не шкала до 99.</p>
+      <div class="meter-grid">${renderMeters()}</div>
+    </section>
+    <section class="block" id="badges">
+      <h2>${esc(heading("notes"))}</h2>
+      ${renderBadges()}
+      <aside class="callout">
+        <p class="callout-lead">${esc(data.notes.conclusionLead)}</p>
+        <p>${esc(data.notes.conclusion)}</p>
+      </aside>
+    </section>`;
 }
 
 function renderLast() {
@@ -383,22 +604,29 @@ function renderTrendPanel(restoreFocus) {
 }
 
 function render() {
-  document.title = `${data.player.name} — профиль игрока`;
+  const career = document.body.dataset.page === "career";
+  document.title = career
+    ? `${data.player.name} — карьера`
+    : `${data.player.name} — профиль игрока`;
   document.getElementById("brand-name").textContent = data.player.name;
   renderNav();
-  document.getElementById("app").innerHTML = [
-    renderHero(),
-    renderLast(),
-    renderProfile(),
-    renderSeason(),
-    renderStats(),
-    renderGamesSection(),
-    renderTrendSection(),
-    renderNotes(),
-    renderSources(),
-  ].join("");
-  renderGamePanel(false);
-  renderTrendPanel(false);
+  if (career) {
+    renderCareerPage();
+  } else {
+    document.getElementById("app").innerHTML = [
+      renderHero(),
+      renderLast(),
+      renderProfile(),
+      renderSeason(),
+      renderStats(),
+      renderGamesSection(),
+      renderTrendSection(),
+      renderNotes(),
+      renderSources(),
+    ].join("");
+    renderGamePanel(false);
+    renderTrendPanel(false);
+  }
   document.getElementById("load-state").hidden = true;
   document.getElementById("app").hidden = false;
   updateActiveNav();
@@ -406,7 +634,7 @@ function render() {
 }
 
 function updateActiveNav() {
-  if (!data) return;
+  if (!data || document.body.dataset.page !== "profile") return;
   const offset = 78;
   let current = data.nav[0].id;
   data.nav.forEach((item) => {
