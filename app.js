@@ -563,6 +563,7 @@ function renderNav() {
   }
   nav.hidden = false;
   nav.innerHTML = data.nav
+    .filter((item) => item.id !== "season")
     .map((item) => `<a href="#${esc(item.id)}">${esc(item.short || item.label)}</a>`)
     .join("");
 }
@@ -833,7 +834,7 @@ function renderCareerPage() {
           <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
           <p class="summary">${esc(ruCount(career.games, "игра", "игры", "игр"))}, ${esc(ruCount(career.points, "очко", "очка", "очков"))}. Ниже — лучшие матчи и средние из этих журналов.</p>
           ${updatedLine()}
-          <p class="card-link"><a href="#kpis">Достижения</a><a href="#seasons">Турниры</a><a href="#badges">Оценка</a><a href="#news">Новости</a><a href="index.html#glossary">Что значат цифры?</a><a href="mama.html">Для мамы</a></p>
+          <p class="card-link"><a href="#kpis">Достижения</a><a href="#seasons">Турниры</a><a href="#badges">Оценка</a><a href="team.html#news">Новости</a><a href="index.html#glossary">Что значат цифры?</a><a href="mama.html">Для мамы</a></p>
         </div>
       </div>
     </section>
@@ -864,8 +865,11 @@ function renderCareerPage() {
         <p class="callout-lead">${esc(data.notes.conclusionLead)}</p>
         <p>${esc(data.notes.conclusion)}</p>
       </aside>
-    </section>
-    ${renderNewsSection()}`;
+    </section>`;
+}
+
+function renderTeamPage() {
+  document.getElementById("app").innerHTML = `${renderSeason()}${renderNewsSection()}`;
   renderNewsPanel(false);
 }
 
@@ -994,7 +998,7 @@ function renderMamaPage() {
       <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
       <p class="summary">${esc(mama.summary)}</p>
       ${updatedLine()}
-      <p class="card-link"><a href="#path">Весь путь</a><a href="#recent">Игры</a><a href="#mama-notes">Что видно</a><a href="#news">Новости</a><a href="index.html#glossary">Что значат цифры?</a></p>
+      <p class="card-link"><a href="#path">Весь путь</a><a href="#recent">Игры</a><a href="#mama-notes">Что видно</a><a href="team.html#news">Новости</a><a href="index.html#glossary">Что значат цифры?</a></p>
     </section>
     <section class="block" id="path">
       <h2>Весь путь</h2>
@@ -1025,9 +1029,7 @@ function renderMamaPage() {
         </section>
       </div>
       <aside class="callout"><p>${esc(mama.closing)}</p></aside>
-    </section>
-    ${renderNewsSection()}`;
-  renderNewsPanel(false);
+    </section>`;
 }
 
 function renderLast() {
@@ -1203,21 +1205,22 @@ function render() {
   const titles = {
     career: `${data.player.name} — карьера`,
     mama: `${data.player.name} — для мамы`,
+    team: `${data.player.team} — команда`,
   };
   document.title = titles[page] || `${data.player.name} — профиль`;
-  document.getElementById("brand-name").textContent = data.player.name;
   renderNav();
   if (page === "career") {
     renderCareerPage();
   } else if (page === "mama") {
     renderMamaPage();
+  } else if (page === "team") {
+    renderTeamPage();
   } else {
     document.getElementById("app").innerHTML = [
       renderHero(),
       renderLast(),
       renderGuard(),
       renderProfile(),
-      renderSeason(),
       renderStats(),
       renderGamesSection(),
       renderTrendSection(),

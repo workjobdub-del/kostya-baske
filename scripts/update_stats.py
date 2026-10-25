@@ -1906,7 +1906,7 @@ def deliver_pushes(data, news, before_games, before_news, notes, sender=None):
         else:
             notes.append(f"пуш: протокол {game_key(row)} не ушёл, повторю в следующий раз")
     for post in fresh_news:
-        result = sender("Новость команды", news_push_text(post), f"{SITE}mama.html#news", "news")
+        result = sender("Новость команды", news_push_text(post), f"{SITE}team.html#news", "news")
         if result == "no-key":
             notes.append("пуш: секрет ONESIGNAL_REST_API_KEY не задан, отправку пропустил")
             return
