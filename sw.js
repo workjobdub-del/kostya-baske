@@ -2,7 +2,7 @@ importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 
 "use strict";
 
-const VERSION = "2026-10-25-2";
+const VERSION = "2026-10-25-3";
 const STATIC = `kostya-static-${VERSION}`;
 const DATA = "kostya-data";
 
@@ -43,15 +43,21 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  if (url.pathname.endsWith("/sw.js")) return;
+  const freshCode = /\.(?:html|js)$/.test(url.pathname) || url.pathname.endsWith("/");
   if (/\/(?:data|news)\.json$/.test(url.pathname)) {
-    event.respondWith(networkFirst(request));
+    event.respondWith(networkFirst(request, DATA));
+    return;
+  }
+  if (freshCode) {
+    event.respondWith(networkFirst(request, STATIC));
     return;
   }
   event.respondWith(staleWhileRevalidate(event, request));
 });
 
-async function networkFirst(request) {
-  const cache = await caches.open(DATA);
+async function networkFirst(request, cacheName) {
+  const cache = await caches.open(cacheName);
   try {
     const fresh = await fetch(request);
     if (fresh && fresh.ok) await cache.put(request, fresh.clone());

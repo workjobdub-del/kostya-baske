@@ -1250,28 +1250,6 @@ function notifyNote(text) {
   note.textContent = text || "";
 }
 
-function setupNotifications() {
-  if (!window.OneSignalDeferred) window.OneSignalDeferred = [];
-  window.OneSignalDeferred.push(async (OneSignal) => {
-    const target = workerTarget();
-    try {
-      await OneSignal.init({
-        appId: ONESIGNAL_APP_ID,
-        serviceWorkerPath: target.path,
-        serviceWorkerParam: { scope: target.scope },
-        notifyButton: { enable: false },
-        welcomeNotification: { disable: true },
-        promptOptions: { slidedown: { prompts: [{ type: "push", autoPrompt: false }] } },
-      });
-      window.oneSignal = OneSignal;
-      OneSignal.User.PushSubscription.addEventListener("change", () => renderNotify());
-    } catch (error) {
-      window.oneSignal = null;
-    }
-    renderNotify();
-  });
-}
-
 document.addEventListener("change", (event) => {
   const input = event.target.closest("[data-tag]");
   if (!input || !window.oneSignal || !window.oneSignal.User.PushSubscription.optedIn) return;
@@ -1302,57 +1280,113 @@ document.addEventListener("click", (event) => {
     .catch(() => notifyNote("Не удалось включить уведомления."));
 });
 
+function genuineWaiting(reg) {
+  const waiting = reg && reg.waiting;
+  if (!waiting || !navigator.serviceWorker.controller) return null;
+  const active = reg.active && reg.active.scriptURL;
+  if (active && active.includes("appId=") && !waiting.scriptURL.includes("appId=")) return null;
+  return waiting;
+}
+
 function showUpdateBanner(reg) {
-  if (document.getElementById("update-banner")) return;
+  if (document.getElementById("update-banner") || !genuineWaiting(reg)) return;
   const bar = document.createElement("div");
   bar.id = "update-banner";
   bar.className = "update-banner";
   bar.setAttribute("role", "status");
   bar.innerHTML = `<p>Доступно обновление</p><button type="button">Обновить</button>`;
   bar.querySelector("button").addEventListener("click", () => {
-    if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+    const waiting = genuineWaiting(reg) || reg.waiting;
+    if (!waiting) {
+      bar.remove();
+      return;
+    }
+    let done = false;
+    const reloadOnce = () => {
+      if (done) return;
+      done = true;
+      const token = waiting.scriptURL;
+      if (sessionStorage.getItem("kostya-sw-reload") === token) return;
+      sessionStorage.setItem("kostya-sw-reload", token);
+      location.reload();
+    };
+    navigator.serviceWorker.addEventListener("controllerchange", reloadOnce, { once: true });
+    waiting.postMessage({ type: "SKIP_WAITING" });
+    window.setTimeout(reloadOnce, 1200);
   });
   document.body.appendChild(bar);
-  window.setTimeout(() => {
-    if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
-  }, 4000);
 }
 
-function watchUpdates() {
-  if (!("serviceWorker" in navigator)) return Promise.resolve();
-  const hadController = Boolean(navigator.serviceWorker.controller);
-  let reloaded = false;
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (!hadController || reloaded) return;
-    reloaded = true;
-    location.reload();
+async function attachUpdateWatch() {
+  if (!("serviceWorker" in navigator) || window.__kostyaSwWatch) return;
+  const scopeUrl = new URL(workerTarget().scope, location.origin).href;
+  let reg = null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    reg = await navigator.serviceWorker.getRegistration(scopeUrl);
+    if (reg) break;
+    await new Promise((resolve) => window.setTimeout(resolve, 200));
+  }
+  if (!reg) return;
+  window.__kostyaSwWatch = true;
+  const arm = () => showUpdateBanner(reg);
+  arm();
+  reg.addEventListener("updatefound", () => {
+    const worker = reg.installing;
+    if (!worker) return;
+    worker.addEventListener("statechange", () => {
+      if (worker.state === "installed") arm();
+    });
   });
-  return navigator.serviceWorker
-    .register("sw.js")
-    .then((reg) => {
-      const arm = () => {
-        if (reg.waiting && navigator.serviceWorker.controller) showUpdateBanner(reg);
-      };
-      arm();
-      reg.addEventListener("updatefound", () => {
-        const worker = reg.installing;
-        if (!worker) return;
-        worker.addEventListener("statechange", arm);
-      });
-      if (hadController) return reg;
+  if (!navigator.serviceWorker.controller) {
+    const worker = reg.installing || reg.waiting;
+    if (worker) {
       const kick = () => {
-        if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+        if (worker.state === "installed") worker.postMessage({ type: "SKIP_WAITING" });
       };
-      if (reg.installing) reg.installing.addEventListener("statechange", kick);
+      worker.addEventListener("statechange", kick);
       kick();
-      return navigator.serviceWorker.ready;
-    })
-    .catch(() => {});
+    }
+  }
+}
+
+function setupNotifications() {
+  if (!window.OneSignalDeferred) window.OneSignalDeferred = [];
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+    window.OneSignalDeferred.push(async (OneSignal) => {
+      const target = workerTarget();
+      try {
+        await OneSignal.init({
+          appId: ONESIGNAL_APP_ID,
+          serviceWorkerPath: target.path,
+          serviceWorkerParam: { scope: target.scope },
+          notifyButton: { enable: false },
+          welcomeNotification: { disable: true },
+          promptOptions: { slidedown: { prompts: [{ type: "push", autoPrompt: false }] } },
+        });
+        window.oneSignal = OneSignal;
+        OneSignal.User.PushSubscription.addEventListener("change", () => renderNotify());
+      } catch (error) {
+        window.oneSignal = null;
+      }
+      try {
+        await attachUpdateWatch();
+      } catch (error) {}
+      renderNotify();
+      finish();
+    });
+    window.setTimeout(finish, 4000);
+  });
 }
 
 async function init() {
   const status = document.getElementById("load-state");
-  await Promise.race([watchUpdates(), new Promise((resolve) => window.setTimeout(resolve, 2500))]);
+  await setupNotifications();
   try {
     const response = await fetch("data.json");
     if (!response.ok) throw new Error(String(response.status));
@@ -1366,7 +1400,6 @@ async function init() {
       newsData = null;
     }
     render();
-    setupNotifications();
   } catch (error) {
     status.hidden = false;
     status.classList.add("error");
