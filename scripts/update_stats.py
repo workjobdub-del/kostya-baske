@@ -320,7 +320,9 @@ def shot_percent(text):
 
 def season_token(name: str) -> str:
     low = str(name or "").lower()
-    if "u12" in low:
+    if "первенство москвы" in low:
+        return "pm25"
+    if "млбл" in low or "u12" in low:
         return "u12"
     if "быстр" in low:
         return "быстр"
@@ -370,7 +372,7 @@ def log_rows(data, season):
     token = season_token((season or {}).get("name"))
     if (season or {}).get("id") == "mos2627":
         token = "2627"
-    wanted = {"u12": "u12", "быстр": "fb", "движен": "mu", "2627": "mos2627"}.get(token)
+    wanted = {"u12": "u12", "pm25": "pm2526", "быстр": "fb", "движен": "mu", "2627": "mos2627"}.get(token)
     for tournament in (data.get("gameLogs") or {}).get("tournaments") or []:
         if tournament.get("id") == wanted:
             return tournament.get("rows") or []
@@ -1686,7 +1688,7 @@ def self_test():
         "closing": "KEEP-CLOSING",
     }
     basket["glossary"] = [{"term": "Мин", "text": "минуты"}]
-    basket["achievements"] = [{"value": "3", "label": "Место", "detail": "Росток U12, 2025/26"}]
+    basket["achievements"] = [{"value": "3", "label": "Место", "detail": "МЛБЛ-Дети U12, 2025/26"}]
     basket["tournamentStats"]["seasons"][0]["place"] = "3"
     basket["gameLogs"]["tournaments"].append(
         {
@@ -1759,11 +1761,11 @@ def self_test():
     sample = {
         "tournamentStats": {"seasons": [
             {"name": "2024/25, «Быстрый прорыв», Зоркий", "games": "10 (5)", "minutes": "18:44", "assists": 0.5, "rebounds": 2.3, "steals": 0.6, "turnovers": 3.5, "fg2": "18/73, 25%", "fg3": "0/1"},
-            {"name": "2025/26, U12(1), Росток U12", "games": "10 (3)", "minutes": "18:59", "assists": 1.2, "rebounds": 3.6, "steals": 1.1, "turnovers": 3.2, "fg2": "14/57, 25%", "fg3": "2/4", "highlight": True},
+            {"name": "2025/26, МЛБЛ-Дети U12 (1-й дивизион), Росток", "games": "10 (3)", "minutes": "18:59", "assists": 1.2, "rebounds": 3.6, "steals": 1.1, "turnovers": 3.2, "fg2": "14/57, 25%", "fg3": "2/4", "highlight": True},
         ]},
         "trend": {"views": [{"id": "ctrl", "categories": ["Потери", "Фолы", "Фолы на нём"], "series": [
             {"name": "Быстрый прорыв, 2024/25", "values": [3.5, 1.4, 1.3]},
-            {"name": "U12, 2025/26", "values": [3.2, 0.6, 1.5]},
+            {"name": "МЛБЛ-Дети U12, 2025/26", "values": [3.2, 0.6, 1.5]},
         ]}]},
         "gameLogs": {"tournaments": [{"id": "u12", "rows": [
             {"opponent": "Тринта, полуфинал", "points": 0},

@@ -490,7 +490,16 @@ function ratioLine(row) {
 function seasonFor(tournament) {
   const seasons = data.tournamentStats.seasons;
   if (!tournament) return seasons.find((season) => season.highlight) || null;
-  if (tournament.id === "u12") return seasons.find((season) => String(season.name).includes("U12")) || null;
+  if (tournament.id === "u12") {
+    return (
+      seasons.find((season) => String(season.name).includes("МЛБЛ")) ||
+      seasons.find((season) => String(season.name).includes("U12")) ||
+      null
+    );
+  }
+  if (tournament.id === "pm2526") {
+    return seasons.find((season) => season.id === "pm2526" || String(season.name).includes("Первенство Москвы")) || null;
+  }
   if (tournament.id === "fb") return seasons.find((season) => season.name.includes("Быстрый")) || null;
   if (tournament.id === "mu") return seasons.find((season) => season.name.includes("Движение")) || null;
   if (tournament.id === "mos2627") return seasons.find((season) => season.id === "mos2627") || null;
@@ -598,7 +607,7 @@ function heroStats() {
     ${updatedLine()}`;
 }
 
-const ASSET_V = "2026-10-25-14";
+const ASSET_V = "2026-10-25-13";
 
 function siteLogoMark() {
   return `<div class="player-logo"><img src="logo.png?v=${ASSET_V}" width="995" height="978" alt="DERBYSHEV 7"></div>`;
