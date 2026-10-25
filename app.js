@@ -989,6 +989,7 @@ function render() {
   document.getElementById("load-state").hidden = true;
   document.getElementById("app").hidden = false;
   animateIn();
+  renderNotify();
   syncChrome();
   scrollToHash();
 }
@@ -1176,6 +1177,131 @@ window.addEventListener("resize", () => {
   }, 150);
 });
 
+const ONESIGNAL_APP_ID = "7a9c32d2-ee00-46aa-9cfd-009842e4dab4";
+const TAG_GAMES = "Игры";
+const TAG_NEWS = "Новости команды";
+
+function workerTarget() {
+  const path = location.pathname;
+  const marker = "/kostya-baske/";
+  const scope = path.includes(marker) ? marker : path.slice(0, path.lastIndexOf("/") + 1) || "/";
+  return { path: `${scope.replace(/^\//, "")}sw.js`, scope };
+}
+
+function renderNotify() {
+  const app = document.getElementById("app");
+  if (!app || app.hidden) return;
+  let box = document.getElementById("notify");
+  if (!box) {
+    box = document.createElement("section");
+    box.id = "notify";
+    box.className = "block notify";
+    app.appendChild(box);
+  }
+  const OneSignal = window.oneSignal;
+  const opted = Boolean(OneSignal && OneSignal.User.PushSubscription.optedIn);
+  const gamesOn = box.querySelector("[data-tag='games']");
+  const newsOn = box.querySelector("[data-tag='news']");
+  const keepGames = gamesOn ? gamesOn.checked : true;
+  const keepNews = newsOn ? newsOn.checked : false;
+  const status = opted
+    ? "Уведомления включены. Игры приходят сразу, новости команды — если отметить вторую галочку."
+    : "Браузер спросит разрешение только после кнопки. Сам при первом заходе не спрашивает.";
+  box.innerHTML = `<h2>Уведомления</h2>
+    <p>${status}</p>
+    <div class="notify-options">
+      <label><input type="checkbox" data-tag="games" ${keepGames ? "checked" : ""}> Игры</label>
+      <label><input type="checkbox" data-tag="news" ${keepNews ? "checked" : ""}> Новости команды</label>
+    </div>
+    <div class="notify-actions">
+      ${
+        opted
+          ? `<button type="button" class="is-off" data-notify="off">Выключить уведомления</button>`
+          : `<button type="button" class="is-on" data-notify="on">Включить уведомления</button>`
+      }
+    </div>
+    <p class="notify-note" data-notify-note hidden></p>`;
+  if (OneSignal && opted) {
+    OneSignal.User.getTags().then((tags) => {
+      const games = box.querySelector("[data-tag='games']");
+      const news = box.querySelector("[data-tag='news']");
+      if (games) games.checked = Boolean(tags && tags[TAG_GAMES] === "1");
+      if (news) news.checked = Boolean(tags && tags[TAG_NEWS] === "1");
+    }).catch(() => {});
+  }
+}
+
+async function saveNotifyTags() {
+  const OneSignal = window.oneSignal;
+  const box = document.getElementById("notify");
+  if (!OneSignal || !box) return;
+  const games = box.querySelector("[data-tag='games']").checked;
+  const news = box.querySelector("[data-tag='news']").checked;
+  if (games) await OneSignal.User.addTag(TAG_GAMES, "1");
+  else await OneSignal.User.removeTag(TAG_GAMES);
+  if (news) await OneSignal.User.addTag(TAG_NEWS, "1");
+  else await OneSignal.User.removeTag(TAG_NEWS);
+}
+
+function notifyNote(text) {
+  const note = document.querySelector("[data-notify-note]");
+  if (!note) return;
+  note.hidden = !text;
+  note.textContent = text || "";
+}
+
+function setupNotifications() {
+  if (!window.OneSignalDeferred) window.OneSignalDeferred = [];
+  window.OneSignalDeferred.push(async (OneSignal) => {
+    const target = workerTarget();
+    try {
+      await OneSignal.init({
+        appId: ONESIGNAL_APP_ID,
+        serviceWorkerPath: target.path,
+        serviceWorkerParam: { scope: target.scope },
+        notifyButton: { enable: false },
+        welcomeNotification: { disable: true },
+        promptOptions: { slidedown: { prompts: [{ type: "push", autoPrompt: false }] } },
+      });
+      window.oneSignal = OneSignal;
+      OneSignal.User.PushSubscription.addEventListener("change", () => renderNotify());
+    } catch (error) {
+      window.oneSignal = null;
+    }
+    renderNotify();
+  });
+}
+
+document.addEventListener("change", (event) => {
+  const input = event.target.closest("[data-tag]");
+  if (!input || !window.oneSignal || !window.oneSignal.User.PushSubscription.optedIn) return;
+  saveNotifyTags().catch(() => notifyNote("Не удалось сохранить выбор тем."));
+});
+
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-notify]");
+  if (!button) return;
+  const OneSignal = window.oneSignal;
+  if (!OneSignal) {
+    notifyNote("Сервис уведомлений ещё не ответил. Откройте сайт по HTTPS и попробуйте ещё раз.");
+    return;
+  }
+  const action = button.getAttribute("data-notify");
+  if (action === "off") {
+    OneSignal.User.PushSubscription.optOut().then(() => renderNotify()).catch(() => notifyNote("Не удалось выключить."));
+    return;
+  }
+  saveNotifyTags()
+    .then(() => OneSignal.User.PushSubscription.optIn())
+    .then(() => {
+      renderNotify();
+      if (!OneSignal.User.PushSubscription.optedIn) {
+        notifyNote("Браузер не разрешил уведомления. Включите их в настройках сайта.");
+      }
+    })
+    .catch(() => notifyNote("Не удалось включить уведомления."));
+});
+
 function showUpdateBanner(reg) {
   if (document.getElementById("update-banner")) return;
   const bar = document.createElement("div");
@@ -1240,6 +1366,7 @@ async function init() {
       newsData = null;
     }
     render();
+    setupNotifications();
   } catch (error) {
     status.hidden = false;
     status.classList.add("error");

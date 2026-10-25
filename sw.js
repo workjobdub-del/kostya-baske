@@ -1,6 +1,8 @@
+importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
+
 "use strict";
 
-const VERSION = "2026-10-25-1";
+const VERSION = "2026-10-25-2";
 const STATIC = `kostya-static-${VERSION}`;
 const DATA = "kostya-data";
 

@@ -825,5 +825,13 @@
   },
   "sync": {
     "compId": 153217
+  },
+  "pushSent": {
+    "games": [],
+    "news": [
+      "https://t.me/rostokmsk/3095",
+      "https://t.me/rostokmsk/3106"
+    ],
+    "seeded": true
   }
 }

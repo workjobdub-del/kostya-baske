@@ -2,10 +2,15 @@ name: Обновление статистики и новостей
 
 on:
   schedule:
-    # Пт–пн каждые 4 часа по UTC и каждый день в 04:00 UTC (09:00 Екатеринбург).
-    - cron: "0 */4 * * 5,6,0,1"
-    - cron: "0 4 * * *"
+    # Суббота и воскресенье — каждый час, в остальные дни — каждые 3 часа. Дни и часы по UTC.
+    - cron: "0 * * * 0,6"
+    - cron: "0 */3 * * 1-5"
   workflow_dispatch:
+    inputs:
+      test_push:
+        description: "Отправить тестовое уведомление всем подписчикам"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -17,6 +22,9 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
+    env:
+      ONESIGNAL_REST_API_KEY: ${{ secrets.ONESIGNAL_REST_API_KEY }}
+      PUSH_TEST: ${{ github.event.inputs.test_push == 'true' && '1' || '0' }}
     steps:
       - name: Забрать main
         uses: actions/checkout@v4

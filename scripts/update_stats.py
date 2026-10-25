@@ -13,6 +13,7 @@ import copy
 import html
 import json
 import math
+import os
 import re
 import sys
 import time
@@ -25,6 +26,10 @@ ROOT = Path(__file__).resolve().parents[1]
 API = "https://reg.infobasket.su"
 PARENT_COMP = 142760
 TEAM_ID = 38872
+ONESIGNAL_APP_ID = "7a9c32d2-ee00-46aa-9cfd-009842e4dab4"
+SITE = "https://workjobdub-del.github.io/kostya-baske/"
+TAG_GAMES = "Игры"
+TAG_NEWS = "Новости команды"
 # Только для запроса. На сайт и в JSON игрока не попадает.
 PERSON_ID = 424578
 MSK = timezone(timedelta(hours=3))
@@ -270,7 +275,7 @@ def shots(item, key) -> str:
 
 
 def public_row(stat) -> dict:
-    return {
+    row = {
         "date": stat["date"],
         "opponent": stat["opponent"],
         "score": stat["score"],
@@ -286,6 +291,10 @@ def public_row(stat) -> dict:
         "offRebounds": stat["offRebounds"],
         "started": stat["started"],
     }
+    game_id = stat.get("gameId")
+    if isinstance(game_id, int) and game_id != PERSON_ID:
+        row["gameId"] = game_id
+    return row
 
 
 def stat_from_player(item, game):
@@ -1041,6 +1050,163 @@ def self_test():
         date(2026, 10, 25),
     )
     assert club and club[0]["date"] == "2026-09-20" and club[0]["tag"] == "клуб"
+    sample_row = {
+        "opponent": "Гольяново-2014-2",
+        "score": "62:37, победа",
+        "points": 8,
+        "rebounds": 3,
+        "gameId": 99,
+    }
+    assert game_push_text(sample_row) == "Новый протокол: Росток 62:37 Гольяново. Костя: 8 очков, 3 подбора"
+    calls = []
+
+    def fake_sender(heading, text, url, mode):
+        calls.append((heading, text, url, mode))
+        return "sent"
+
+    basket = {
+        "gameLogs": {"tournaments": [{"id": "mos2627", "rows": [sample_row]}]},
+        "pushSent": {"games": [], "news": [], "seeded": True},
+    }
+    feed = {"posts": [{"tag": "2014", "title": "Победа", "link": "https://t.me/rostokmsk/4000"}]}
+    deliver_pushes(basket, feed, [], [], [], sender=fake_sender)
+    assert len(calls) == 2 and calls[0][3] == "games" and calls[0][2].endswith("#last")
+    assert calls[1][3] == "news" and "4000" not in basket["pushSent"]["games"]
+    assert "id:99" in basket["pushSent"]["games"]
+    assert feed["posts"][0]["link"] in basket["pushSent"]["news"]
+    again = []
+    deliver_pushes(basket, feed, [], [], [], sender=lambda *args: again.append(args) or "sent")
+    assert again == []
+    assert "424578" not in game_push_text(sample_row)
+
+
+def game_key(row) -> str:
+    game_id = row.get("gameId")
+    if isinstance(game_id, int):
+        return f"id:{game_id}"
+    return f"date:{row.get('date')}:{row.get('opponent')}"
+
+
+def season_rows(data):
+    for tournament in data["gameLogs"]["tournaments"]:
+        if tournament.get("id") == "mos2627":
+            return tournament.get("rows") or []
+    return []
+
+
+def game_push_text(row) -> str:
+    pair = extract_score(str(row.get("score") or ""))
+    shown = f"{pair[0]}:{pair[1]}" if pair else str(row.get("score") or "").split(",")[0].strip()
+    opponent = str(row.get("opponent") or "соперник").split("-")[0].strip() or "соперник"
+    bits = [ru_count(row.get("points") or 0, "очко", "очка", "очков")]
+    if row.get("rebounds"):
+        bits.append(ru_count(row["rebounds"], "подбор", "подбора", "подборов"))
+    return f"Новый протокол: Росток {shown} {opponent}. Костя: {', '.join(bits)}"
+
+
+def news_push_text(post) -> str:
+    title = str(post.get("title") or "Новость команды").strip()
+    return f"Новость команды 2014: {title}"
+
+
+def send_notification(heading, text, url, mode):
+    key = os.environ.get("ONESIGNAL_REST_API_KEY", "").strip()
+    if not key:
+        return "no-key"
+    body = {
+        "app_id": ONESIGNAL_APP_ID,
+        "target_channel": "push",
+        "headings": {"en": heading, "ru": heading},
+        "contents": {"en": text, "ru": text},
+        "url": url,
+    }
+    if mode == "games":
+        body["filters"] = [{"field": "tag", "key": TAG_GAMES, "relation": "=", "value": "1"}]
+    elif mode == "news":
+        body["filters"] = [{"field": "tag", "key": TAG_NEWS, "relation": "=", "value": "1"}]
+    else:
+        body["included_segments"] = ["Total Subscriptions"]
+    raw = json.dumps(body).encode("utf-8")
+    last = None
+    for scheme in (f"Key {key}", f"Basic {key}"):
+        request = urllib.request.Request(
+            "https://api.onesignal.com/notifications",
+            data=raw,
+            headers={"Authorization": scheme, "Content-Type": "application/json", "Accept": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=20) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+            if isinstance(payload, dict) and payload.get("errors"):
+                return "failed"
+            return "sent"
+        except urllib.error.HTTPError as exc:
+            last = exc.code
+            if exc.code not in (401, 403):
+                return "failed"
+        except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError):
+            return "failed"
+    return "failed" if last else "failed"
+
+
+def deliver_pushes(data, news, before_games, before_news, notes, sender=None):
+    sender = sender or send_notification
+    sent = data.setdefault("pushSent", {"games": [], "news": [], "seeded": False})
+    sent.setdefault("games", [])
+    sent.setdefault("news", [])
+    if not sent.get("seeded"):
+        sent["games"] = sorted(set(sent["games"]) | set(before_games))
+        sent["news"] = sorted(set(sent["news"]) | set(before_news))
+        sent["seeded"] = True
+        notes.append("пуш: старые игры и новости отмечены без рассылки")
+    known_games = set(sent["games"])
+    known_news = set(sent["news"])
+    fresh_games = [row for row in season_rows(data) if game_key(row) not in known_games]
+    fresh_news = [
+        post
+        for post in news.get("posts") or []
+        if post.get("tag") == "2014" and post.get("link") not in known_news
+    ]
+    test = os.environ.get("PUSH_TEST") == "1"
+    if not fresh_games and not fresh_news and not test:
+        return
+    if sender is send_notification and not os.environ.get("ONESIGNAL_REST_API_KEY", "").strip():
+        notes.append("пуш: секрет ONESIGNAL_REST_API_KEY не задан, отправку пропустил")
+        return
+    for row in fresh_games:
+        result = sender("Новый протокол", game_push_text(row), f"{SITE}#last", "games")
+        if result == "no-key":
+            notes.append("пуш: секрет ONESIGNAL_REST_API_KEY не задан, отправку пропустил")
+            return
+        if result == "sent":
+            sent["games"].append(game_key(row))
+            notes.append(f"пуш: протокол {game_key(row)}")
+        else:
+            notes.append(f"пуш: протокол {game_key(row)} не ушёл, повторю в следующий раз")
+    for post in fresh_news:
+        result = sender("Новость команды", news_push_text(post), f"{SITE}mama.html#news", "news")
+        if result == "no-key":
+            notes.append("пуш: секрет ONESIGNAL_REST_API_KEY не задан, отправку пропустил")
+            return
+        if result == "sent":
+            sent["news"].append(post["link"])
+            notes.append("пуш: новость 2014")
+        else:
+            notes.append("пуш: новость 2014 не ушла, повторю в следующий раз")
+    if test:
+        result = sender(
+            "Проверка",
+            "Проверка уведомлений. Если вы это видите, пуши с сайта Кости работают.",
+            SITE,
+            "test",
+        )
+        if result == "sent":
+            notes.append("пуш: тестовое уведомление отправлено")
+        elif result == "no-key":
+            notes.append("пуш: секрет ONESIGNAL_REST_API_KEY не задан, тест пропущен")
+        else:
+            notes.append("пуш: тестовое уведомление не ушло")
 
 
 def load(name):
@@ -1055,18 +1221,22 @@ def main():
     dry = "--dry-run" in sys.argv
     data = load("data.json")
     news = load("news.json")
+    before_games = [game_key(row) for row in season_rows(data)]
+    before_news = [post.get("link") for post in news.get("posts") or [] if post.get("tag") == "2014"]
     u12_before = copy.deepcopy(next(item["rows"] for item in data["gameLogs"]["tournaments"] if item["id"] == "u12"))
-    data_before = canonical(data)
-    news_before = canonical(news)
     notes = []
     update_basket(data, notes)
     merge_posts(news, fetch_telegram(notes) + fetch_club(notes), notes)
+    deliver_pushes(data, news, before_games, before_news, notes)
     assert_safe(data, news, u12_before)
-    if canonical(data) != data_before or canonical(news) != news_before:
+    fresh_data = canonical(load("data.json"))
+    fresh_news = canonical(load("news.json"))
+    data_changed = canonical(data) != fresh_data
+    news_changed = canonical(news) != fresh_news
+    if data_changed or news_changed:
         data["updated"] = today().isoformat()
+        data_changed = canonical(data) != fresh_data or data.get("updated") != load("data.json").get("updated")
     assert_safe(data, news, u12_before)
-    data_changed = canonical(data) != data_before
-    news_changed = canonical(news) != news_before
     for line in notes:
         print(line, flush=True)
     if not data_changed and not news_changed:
