@@ -2,7 +2,7 @@ importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 
 "use strict";
 
-const VERSION = "2026-10-25-13";
+const VERSION = "2026-10-25-14";
 const STATIC = `kostya-static-${VERSION}`;
 const DATA = "kostya-data";
 
@@ -11,8 +11,8 @@ const PRECACHE = [
   "./index.html",
   "./career.html",
   "./mama.html",
-  "./styles.css?v=2026-10-25-13",
-  "./app.js?v=2026-10-25-13",
+  "./styles.css?v=2026-10-25-14",
+  "./app.js?v=2026-10-25-14",
   "./manifest.json",
   "./favicon.svg",
   "./logo.svg",
@@ -64,12 +64,16 @@ self.addEventListener("fetch", (event) => {
 
 async function networkFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
   try {
     const fresh = await fetch(request);
-    if (fresh && fresh.ok) await cache.put(request, fresh.clone());
+    if (fresh && fresh.ok) {
+      await cache.put(request, fresh.clone());
+      return fresh;
+    }
+    if (cached) return cached;
     return fresh;
   } catch (error) {
-    const cached = await cache.match(request);
     if (cached) return cached;
     throw error;
   }

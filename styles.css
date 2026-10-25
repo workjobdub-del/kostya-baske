@@ -236,6 +236,10 @@ body.header-hidden #nav.is-shown { top: 0; }
 
 .load-state.error { color: #ffb089; }
 
+.load-state[hidden] {
+  display: none !important;
+}
+
 .player-card {
   position: relative;
   margin-bottom: 0.9rem;

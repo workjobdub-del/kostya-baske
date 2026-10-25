@@ -607,7 +607,7 @@ function heroStats() {
     ${updatedLine()}`;
 }
 
-const ASSET_V = "2026-10-25-13";
+const ASSET_V = "2026-10-25-14";
 
 function siteLogoMark() {
   return `<div class="player-logo"><img src="logo.png?v=${ASSET_V}" width="995" height="978" alt="DERBYSHEV 7"></div>`;
@@ -1198,6 +1198,7 @@ function renderTrendPanel(restoreFocus) {
 }
 
 function render() {
+  clearLoadState(document.getElementById("load-state"));
   const page = document.body.dataset.page;
   const titles = {
     career: `${data.player.name} — карьера`,
@@ -1493,6 +1494,45 @@ function workerTarget() {
   return { path: `${scope.replace(/^\//, "")}sw.js`, scope };
 }
 
+function siteBase() {
+  const { scope } = workerTarget();
+  return new URL(scope, location.origin).href;
+}
+
+function dataUrl(name) {
+  return new URL(name, siteBase()).href;
+}
+
+function clearLoadState(status) {
+  if (!status) return;
+  status.hidden = true;
+  status.classList.remove("error");
+  status.textContent = "";
+}
+
+function loadErrorMessage(error) {
+  if (location.protocol === "file:") {
+    return "Не удалось загрузить data.json. Откройте страницу через локальный сервер или GitHub Pages, не как файл с диска.";
+  }
+  return "Не удалось загрузить данные с сайта. Проверьте интернет и обновите страницу (кнопка «Обновить» в плашке или Ctrl+F5).";
+}
+
+async function loadJson(name, attempts = 2) {
+  const url = dataUrl(name);
+  let lastError = null;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      lastError = error;
+      if (attempt + 1 < attempts) await new Promise((resolve) => window.setTimeout(resolve, 250));
+    }
+  }
+  throw lastError;
+}
+
 function renderNotify() {
   const app = document.getElementById("app");
   if (!app || app.hidden) return;
@@ -1691,26 +1731,33 @@ function setupNotifications() {
 
 async function init() {
   const status = document.getElementById("load-state");
-  await setupNotifications();
+  if (status && !status.hidden && !status.classList.contains("error")) {
+    status.textContent = "Загрузка…";
+  }
   try {
-    const response = await fetch("data.json");
-    if (!response.ok) throw new Error(String(response.status));
-    data = await response.json();
+    data = await loadJson("data.json");
     state.game = data.gameLogs.defaultId;
     state.trend = data.trend.defaultId;
     try {
-      const newsResponse = await fetch("news.json");
-      if (newsResponse.ok) newsData = await newsResponse.json();
+      newsData = await loadJson("news.json");
     } catch (newsError) {
       newsData = null;
     }
     render();
+    clearLoadState(status);
   } catch (error) {
-    status.hidden = false;
-    status.classList.add("error");
-    status.textContent =
-      "Не удалось загрузить data.json. Откройте страницу через локальный сервер или GitHub Pages, не как файл с диска.";
+    if (status) {
+      status.hidden = false;
+      status.classList.add("error");
+      status.textContent = loadErrorMessage(error);
+    }
+    const app = document.getElementById("app");
+    if (app) app.hidden = true;
   }
+  void setupNotifications();
 }
 
 init();
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) init();
+});
