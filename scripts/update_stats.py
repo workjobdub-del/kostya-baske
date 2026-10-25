@@ -821,6 +821,7 @@ def apply_protocols(data, stats, notes):
         ]],
         "paragraphs": paragraphs_for(latest, rows),
     }
+    # good, work и closing — ручные тексты для мамы, обновление их не переписывает.
     mama = data["mama"]["games"]
     have = {item.get("date") for item in mama}
     for stat in sorted(stats, key=lambda item: item["when"], reverse=True):
@@ -1314,7 +1315,13 @@ def self_test():
     assert len(calls) == 1
     kept_old = basket["gameLogs"]["tournaments"][0]["rows"][0]["aiReview"]
     kept_u12 = "Разбор U12 остаётся при обновлении протокола и достаточно длинный."
-    basket["mama"] = {"seasonSummary": "KEEP", "games": [{"date": "01.01.26", "plus": "старое"}]}
+    basket["mama"] = {
+        "seasonSummary": "KEEP",
+        "games": [{"date": "01.01.26", "plus": "старое"}],
+        "good": ["KEEP-GOOD"],
+        "work": ["KEEP-WORK"],
+        "closing": "KEEP-CLOSING",
+    }
     basket["glossary"] = [{"term": "Мин", "text": "минуты"}]
     basket["achievements"] = [{"value": "3", "label": "Место", "detail": "Росток U12, 2025/26"}]
     basket["tournamentStats"]["seasons"][0]["place"] = "3"
@@ -1364,6 +1371,9 @@ def self_test():
     assert u12_row["aiMama"] == "Тёплая фраза про бронзу."
     assert u12_row["key"] == "u12-9" and u12_row["place"] == 3
     assert basket["mama"]["seasonSummary"] == "KEEP"
+    assert basket["mama"]["good"] == ["KEEP-GOOD"]
+    assert basket["mama"]["work"] == ["KEEP-WORK"]
+    assert basket["mama"]["closing"] == "KEEP-CLOSING"
     assert basket["glossary"][0]["term"] == "Мин"
     assert basket["achievements"][0]["value"] == "3"
     season = basket["tournamentStats"]["seasons"][0]
