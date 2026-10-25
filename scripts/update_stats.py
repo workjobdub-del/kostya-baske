@@ -845,8 +845,8 @@ def merge_matches(old, games, protocol_dates, now):
 
 
 def plaque_for(rows, matches):
-    ours = next(row for row in rows if row.get("highlight"))
-    if int(ours["played"]) > 0:
+    ours = next((row for row in rows if row.get("highlight")), None)
+    if ours is None or int(ours["played"]) > 0:
         return ""
     for match in matches:
         score = extract_score(match.get("detail", ""))
@@ -1293,16 +1293,19 @@ def update_basket(data, notes):
         matches = None
     if rows is not None and rows != data["season"]["standings"]["rows"]:
         data["season"]["standings"]["rows"] = rows
-        ours = next(row for row in rows if row["highlight"])
-        plaque = plaque_for(rows, matches or old_matches)
-        if int(ours["played"]) == 0 and plaque:
-            data["season"]["caption"] = (
-                f"Официальная таблица ещё не обновилась. Первая игра — {plaque.split(': ', 1)[-1]} (по новости клуба)."
-            )
+        ours = next((row for row in rows if row.get("highlight")), None)
+        if ours is not None:
+            plaque = plaque_for(rows, matches or old_matches)
+            if int(ours["played"]) == 0 and plaque:
+                data["season"]["caption"] = (
+                    f"Официальная таблица ещё не обновилась. Первая игра — {plaque.split(': ', 1)[-1]} (по новости клуба)."
+                )
+            else:
+                data["season"]["caption"] = (
+                    f"На {long_date(now)}. В таблице группы у «Ростка» {ours['wins']} побед и {ours['losses']} поражений."
+                )
         else:
-            data["season"]["caption"] = (
-                f"На {long_date(now)}. В таблице группы у «Ростка» {ours['wins']} побед и {ours['losses']} поражений."
-            )
+            notes.append("таблица: строка «Ростка» не найдена, caption не менял")
         notes.append("таблица: обновлена")
     elif rows is not None:
         notes.append("таблица: без изменений")
