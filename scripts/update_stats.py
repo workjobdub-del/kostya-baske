@@ -212,6 +212,370 @@ def ru_count(value, one, few, many) -> str:
     return f"{value} {word}"
 
 
+WORD = {
+    1: "один",
+    2: "два",
+    3: "три",
+    4: "четыре",
+    5: "пять",
+    6: "шесть",
+}
+WORD_FEM = {1: "одна", 2: "две", 3: "три", 4: "четыре", 5: "пять", 6: "шесть"}
+WORD_GEN = {1: "одного", 2: "двух", 3: "трёх", 4: "четырёх", 5: "пяти", 6: "шести"}
+WORD_PREP_GAMES = {
+    2: "двух матчах",
+    3: "трёх матчах",
+    4: "четырёх матчах",
+    5: "пяти матчах",
+    6: "шести матчах",
+}
+
+
+def rate_bucket(value):
+    if value is None or value <= 0:
+        return "none", 0
+    if value < 0.75:
+        games = max(2, min(6, int(round(1 / value))))
+        return "rare", games
+    if value < 1.35:
+        return "about_one", 1
+    nearest = int(round(value))
+    nearest = max(2, min(6, nearest))
+    if value < nearest and nearest - value <= 0.45:
+        return "almost", nearest
+    return "about", nearest
+
+
+def soft_count(value, with_unit=False):
+    kind, number = rate_bucket(value)
+    if kind == "almost":
+        shown = str(number) if number >= 4 else WORD_FEM.get(number, str(number))
+        phrase = f"почти {shown}"
+        if with_unit:
+            phrase += " раза" if 2 <= number <= 4 else " раз"
+        return phrase
+    if kind == "about":
+        phrase = f"около {WORD_GEN.get(number, str(number))}"
+        if with_unit:
+            phrase += " раз"
+        return phrase
+    if kind == "rare":
+        games = WORD_FEM.get(number, str(number))
+        tail = "игры" if number < 5 else "игр"
+        return f"примерно за {games} {tail}"
+    return ""
+
+
+def fold_less(now, before):
+    if not before:
+        return ""
+    ratio = now / before
+    if 0.4 <= ratio <= 0.6:
+        return "вдвое реже"
+    if ratio <= 0.75:
+        return "реже"
+    return ""
+
+
+def fold_more(now, before):
+    if not before:
+        return ""
+    ratio = now / before
+    if 1.7 <= ratio <= 2.4:
+        return "почти вдвое больше"
+    if ratio >= 1.25:
+        return "больше"
+    return ""
+
+
+def as_float(value):
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    return None
+
+
+def season_games(season) -> int:
+    match = re.match(r"(\d+)", str((season or {}).get("games") or ""))
+    return int(match.group(1)) if match else 0
+
+
+def minutes_number(text) -> float:
+    match = re.match(r"^(\d+):(\d{2})$", str(text or ""))
+    if not match:
+        return 0.0
+    return int(match.group(1)) + int(match.group(2)) / 60
+
+
+def shot_percent(text):
+    made, attempts = parse_shot(text)
+    match = re.search(r"(\d+)\s*%", str(text or ""))
+    if match:
+        return int(match.group(1)), made, attempts
+    if attempts:
+        return int(round(made * 100 / attempts)), made, attempts
+    return None, made, attempts
+
+
+def season_token(name: str) -> str:
+    low = str(name or "").lower()
+    if "u12" in low:
+        return "u12"
+    if "быстр" in low:
+        return "быстр"
+    if "движен" in low:
+        return "движен"
+    if "2026/27" in low or "26/27" in low:
+        return "2627"
+    return ""
+
+
+def current_and_previous(data):
+    seasons = (data.get("tournamentStats") or {}).get("seasons") or []
+    current = next((item for item in seasons if item.get("highlight")), None)
+    if current is None and seasons:
+        current = seasons[-1]
+    if not current:
+        return None, None
+    index = seasons.index(current)
+    previous = seasons[index - 1] if index else None
+    return current, previous
+
+
+def trend_number(data, view_id, category, token):
+    for view in (data.get("trend") or {}).get("views") or []:
+        if view.get("id") != view_id:
+            continue
+        try:
+            index = view["categories"].index(category)
+        except (ValueError, KeyError):
+            return None
+        for series in view.get("series") or []:
+            if token and token in season_token(series.get("name")):
+                try:
+                    return float(series["values"][index])
+                except (TypeError, ValueError, IndexError, KeyError):
+                    return None
+    return None
+
+
+def fouls_pair(data, current, previous):
+    now = trend_number(data, "ctrl", "Фолы", season_token((current or {}).get("name")))
+    before = trend_number(data, "ctrl", "Фолы", season_token((previous or {}).get("name")))
+    return now, before
+
+
+def log_rows(data, season):
+    token = season_token((season or {}).get("name"))
+    if (season or {}).get("id") == "mos2627":
+        token = "2627"
+    wanted = {"u12": "u12", "быстр": "fb", "движен": "mu", "2627": "mos2627"}.get(token)
+    for tournament in (data.get("gameLogs") or {}).get("tournaments") or []:
+        if tournament.get("id") == wanted:
+            return tournament.get("rows") or []
+    return []
+
+
+def is_playoff(row) -> bool:
+    text = f"{row.get('opponent') or ''} {row.get('stage') or ''}".lower()
+    return any(mark in text for mark in ("полуфинал", "финал", "плей-офф", "плейофф", "за 3-е", "за третье"))
+
+
+def assist_line(now, before):
+    if now is None or before is None or before <= 0 or now < before * 1.15:
+        return None
+    kind, number = rate_bucket(before)
+    if kind == "rare":
+        games = WORD_FEM.get(number, str(number))
+        tail = "игры" if number < 5 else "игр"
+        earlier = f"раньше одна передача примерно за {games} {tail}"
+    elif kind == "about_one":
+        earlier = "раньше около одной передачи за матч"
+    else:
+        earlier = f"раньше было {soft_count(before)}"
+    if now >= 1.05:
+        later = "теперь больше одной за матч"
+    elif now >= 0.85:
+        later = "теперь около одной за матч"
+    else:
+        later = "теперь чуть чаще"
+    return f"Стал чаще отдавать пас партнёрам: {earlier}, {later}."
+
+
+def rebound_line(now, before):
+    if now is None or before is None or now < before * 1.15:
+        return None
+    return (
+        "Активнее борется под щитом: забирает отскок "
+        f"{soft_count(now, True)} за игру, раньше — {soft_count(before)}."
+    )
+
+
+def steal_line(now, before):
+    if now is None or before is None or before <= 0 or now < before * 1.15:
+        return None
+    if 0.85 <= now < 1.35 and 1.7 <= now / before <= 2.4:
+        return "Чаще отбирает мяч у соперника: в среднем перехват за игру, это почти вдвое больше прежнего."
+    if 0.85 <= now < 1.35:
+        return "Чаще отбирает мяч у соперника: в среднем перехват за игру."
+    return f"Чаще отбирает мяч у соперника: {soft_count(now, True)} за игру."
+
+
+def foul_line(now, before):
+    if now is None or before is None or before <= 0:
+        return None
+    change = fold_less(now, before)
+    if change == "вдвое реже":
+        return "Играет аккуратнее: фолит вдвое реже, чем раньше."
+    if change == "реже":
+        return "Играет аккуратнее: фолит реже, чем раньше."
+    if now >= before * 1.3:
+        return "work:Фолит чаще, чем раньше."
+    return None
+
+
+def turnover_line(turnovers, assists):
+    if turnovers is None or assists is None or assists <= 0:
+        return None
+    ratio = turnovers / assists
+    if ratio < 1.15:
+        return "good:Передач примерно столько же, сколько потерь."
+    number = max(2, min(6, int(round(ratio))))
+    if ratio < number and number - ratio <= 0.45:
+        word = WORD.get(number, str(number))
+        noun = "потери" if number < 5 else "потерь"
+        core = f"почти {word} {noun}"
+    else:
+        noun = "потери" if number < 5 else "потерь"
+        core = f"около {WORD_GEN.get(number, str(number))} {noun}"
+    return f"Пока чаще теряет мяч, чем отдаёт пас: {core} на одну передачу."
+
+
+def shooting_line(percent, strong):
+    if not percent:
+        return None
+    share = max(2, min(8, int(round(100 / percent))))
+    of = WORD_GEN.get(share, str(share))
+    if percent <= 35:
+        where = "Против сильных команд забить трудно" if strong else "Забить пока трудно"
+        return f"{where}: попадает примерно один бросок из {of}."
+    if percent >= 45:
+        return f"good:Бросок уже идёт: попадает примерно один из {of}."
+    return None
+
+
+def playoff_line(rows):
+    games = [row for row in rows if is_playoff(row) and isinstance(row.get("points"), (int, float))]
+    if len(games) < 2:
+        return None
+    points = int(sum(row["points"] for row in games))
+    if points / len(games) >= 6:
+        return None
+    where = WORD_PREP_GAMES.get(len(games), f"{len(games)} матчах")
+    if points == 0:
+        scored = "ни одного очка"
+    elif points == 1:
+        scored = "одно очко"
+    elif points == 2:
+        scored = "два очка"
+    else:
+        scored = ru_count(points, "очко", "очка", "очков")
+    return f"В {where} плей-офф набрал всего {scored} — в решающих играх пока тяжело."
+
+
+def three_line(text, games):
+    if not str(text or "").strip() or games <= 0:
+        return None
+    _made, attempts = parse_shot(text)
+    if attempts <= 0:
+        return None
+    if attempts / games < 0.8:
+        return "Из-за дуги почти не бросает — это следующий навык, который стоит освоить."
+    return None
+
+
+def split_side(text):
+    if not text:
+        return None, None
+    if text.startswith("good:"):
+        return "good", text[5:]
+    if text.startswith("work:"):
+        return "work", text[5:]
+    return None, text
+
+
+def mama_closing(current, assists, turnovers, steals, rebounds, before_rebounds):
+    parts = []
+    if minutes_number(current.get("minutes")) >= 15:
+        parts.append("Тренер ему доверяет и даёт много игрового времени.")
+    elif minutes_number(current.get("minutes")) >= 8:
+        parts.append("Игрового времени уже достаточно, чтобы проявить себя.")
+    defense = (steals or 0) >= 0.8 or (
+        rebounds is not None and before_rebounds is not None and rebounds > before_rebounds
+    )
+    learning = turnovers is not None and assists is not None and turnovers > assists
+    if defense and learning:
+        parts.append("В защите от него уже есть польза, а в нападении он учится беречь мяч и точнее бросать.")
+    elif defense:
+        parts.append("В защите от него уже есть польза, и в нападении мяч он бережёт лучше.")
+    elif learning:
+        parts.append("В нападении он учится беречь мяч и точнее бросать.")
+    if (steals or 0) >= 0.8 or learning or defense:
+        parts.append("Это нормальный этап роста.")
+    return " ".join(parts[:3])
+
+
+def build_mama_notes(data):
+    current, previous = current_and_previous(data)
+    if not current:
+        return [], [], ""
+    before = previous or {}
+    assists = as_float(current.get("assists"))
+    rebounds = as_float(current.get("rebounds"))
+    steals = as_float(current.get("steals"))
+    turnovers = as_float(current.get("turnovers"))
+    old_assists = as_float(before.get("assists"))
+    old_rebounds = as_float(before.get("rebounds"))
+    old_steals = as_float(before.get("steals"))
+    fouls_now, fouls_before = fouls_pair(data, current, previous)
+    percent, _made, _attempts = shot_percent(current.get("fg2"))
+    strong = season_token(current.get("name")) in ("u12", "быстр", "2627")
+    goods = []
+    works = []
+
+    def put(text, default):
+        side, line = split_side(text)
+        if not line:
+            return
+        bucket = goods if (side or default) == "good" else works
+        if line not in bucket:
+            bucket.append(line)
+
+    put(assist_line(assists, old_assists), "good")
+    put(rebound_line(rebounds, old_rebounds), "good")
+    put(steal_line(steals, old_steals), "good")
+    put(foul_line(fouls_now, fouls_before), "good")
+    put(turnover_line(turnovers, assists), "work")
+    put(shooting_line(percent, strong), "work")
+    put(playoff_line(log_rows(data, current)), "work")
+    put(three_line(current.get("fg3"), season_games(current)), "work")
+    closing = mama_closing(current, assists, turnovers, steals, rebounds, old_rebounds)
+    return goods[:4], works[:4], closing
+
+
+def refresh_mama_notes(data):
+    good, work, closing = build_mama_notes(data)
+    mama = data.setdefault("mama", {})
+    if len(good) >= 3:
+        mama["good"] = good
+    if len(work) >= 3:
+        mama["work"] = work
+    if closing:
+        mama["closing"] = closing
+    return good, work, closing
+
+
 def walk_comps(nodes, found):
     for node in nodes or []:
         if not isinstance(node, dict):
@@ -821,7 +1185,6 @@ def apply_protocols(data, stats, notes):
         ]],
         "paragraphs": paragraphs_for(latest, rows),
     }
-    # good, work и closing — ручные тексты для мамы, обновление их не переписывает.
     mama = data["mama"]["games"]
     have = {item.get("date") for item in mama}
     for stat in sorted(stats, key=lambda item: item["when"], reverse=True):
@@ -1371,9 +1734,6 @@ def self_test():
     assert u12_row["aiMama"] == "Тёплая фраза про бронзу."
     assert u12_row["key"] == "u12-9" and u12_row["place"] == 3
     assert basket["mama"]["seasonSummary"] == "KEEP"
-    assert basket["mama"]["good"] == ["KEEP-GOOD"]
-    assert basket["mama"]["work"] == ["KEEP-WORK"]
-    assert basket["mama"]["closing"] == "KEEP-CLOSING"
     assert basket["glossary"][0]["term"] == "Мин"
     assert basket["achievements"][0]["value"] == "3"
     season = basket["tournamentStats"]["seasons"][0]
@@ -1396,6 +1756,44 @@ def self_test():
     assert again["tournamentStats"]["seasons"][0]["place"] == "3"
     os.environ.pop("PERPLEXITY_API_KEY", None)
     assert ask_perplexity("тест") is None
+    sample = {
+        "tournamentStats": {"seasons": [
+            {"name": "2024/25, «Быстрый прорыв», Зоркий", "games": "10 (5)", "minutes": "18:44", "assists": 0.5, "rebounds": 2.3, "steals": 0.6, "turnovers": 3.5, "fg2": "18/73, 25%", "fg3": "0/1"},
+            {"name": "2025/26, U12(1), Росток U12", "games": "10 (3)", "minutes": "18:59", "assists": 1.2, "rebounds": 3.6, "steals": 1.1, "turnovers": 3.2, "fg2": "14/57, 25%", "fg3": "2/4", "highlight": True},
+        ]},
+        "trend": {"views": [{"id": "ctrl", "categories": ["Потери", "Фолы", "Фолы на нём"], "series": [
+            {"name": "Быстрый прорыв, 2024/25", "values": [3.5, 1.4, 1.3]},
+            {"name": "U12, 2025/26", "values": [3.2, 0.6, 1.5]},
+        ]}]},
+        "gameLogs": {"tournaments": [{"id": "u12", "rows": [
+            {"opponent": "Тринта, полуфинал", "points": 0},
+            {"opponent": "Тимирязевская, за 3-е", "points": 1},
+        ]}]},
+        "mama": {"good": ["Передачи: 1,2"], "work": ["Потери: 3,2"], "closing": "старое"},
+    }
+    good, work, closing = refresh_mama_notes(sample)
+    assert good == [
+        "Стал чаще отдавать пас партнёрам: раньше одна передача примерно за две игры, теперь больше одной за матч.",
+        "Активнее борется под щитом: забирает отскок почти 4 раза за игру, раньше — около двух.",
+        "Чаще отбирает мяч у соперника: в среднем перехват за игру, это почти вдвое больше прежнего.",
+        "Играет аккуратнее: фолит вдвое реже, чем раньше.",
+    ]
+    assert work == [
+        "Пока чаще теряет мяч, чем отдаёт пас: почти три потери на одну передачу.",
+        "Против сильных команд забить трудно: попадает примерно один бросок из четырёх.",
+        "В двух матчах плей-офф набрал всего одно очко — в решающих играх пока тяжело.",
+        "Из-за дуги почти не бросает — это следующий навык, который стоит освоить.",
+    ]
+    assert closing == "Тренер ему доверяет и даёт много игрового времени. В защите от него уже есть польза, а в нападении он учится беречь мяч и точнее бросать. Это нормальный этап роста."
+    for line in good + work:
+        assert not re.search(r":\s*\d", line)
+        assert len(line) > 20
+    assert 3 <= len(good) <= 4 and 3 <= len(work) <= 4
+    assert "не оценка" not in closing and "НБА" not in closing
+    sample["trend"]["views"][0]["series"][1]["values"][1] = None
+    short_good, _short_work, _short_close = build_mama_notes(sample)
+    assert all("фолит" not in line for line in short_good)
+    assert len(short_good) == 3
 
 
 def game_key(row) -> str:
@@ -1544,6 +1942,7 @@ def main():
     u12_before = copy.deepcopy(next(item["rows"] for item in data["gameLogs"]["tournaments"] if item["id"] == "u12"))
     notes = []
     update_basket(data, notes)
+    refresh_mama_notes(data)
     review_games(data, notes)
     merge_posts(news, fetch_telegram(notes) + fetch_club(notes), notes)
     deliver_pushes(data, news, before_games, before_news, notes)
