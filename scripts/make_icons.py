@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Рисует иконки PWA: золотой мяч и цифра 7, без чужих логотипов."""
+"""Старый генератор золотого мяча с цифрой 7. Иконки сайта теперь утверждённые файлы в корне, скрипт их не перезаписывает."""
 
 from pathlib import Path
 
@@ -50,10 +50,7 @@ def draw_icon(size, ball_ratio):
 
 
 def main():
-    draw_icon(192, 0.44).save(ROOT / "icon-192.png", "PNG")
-    draw_icon(512, 0.44).save(ROOT / "icon-512.png", "PNG")
-    draw_icon(192, 0.31).save(ROOT / "icon-maskable-192.png", "PNG")
-    draw_icon(512, 0.31).save(ROOT / "icon-maskable-512.png", "PNG")
+    raise SystemExit("Иконки утверждены и лежат в корне репозитория. Скрипт их не перерисовывает.")
 
 
 if __name__ == "__main__":
