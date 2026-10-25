@@ -478,6 +478,29 @@ def refresh_trend(data: dict, season_api: dict[str, dict]) -> None:
     trend["views"] = views
 
 
+def season_games_count(season: dict) -> int:
+    text = str(season.get("games") or "")
+    match = re.match(r"(\d+)", text)
+    if match:
+        return int(match.group(1))
+    return 0
+
+
+def apply_season_plus_minus(season: dict, tournament: dict | None, tournament_id: str) -> None:
+    rows = (tournament or {}).get("rows") or []
+    pm_vals = [r.get("plusMinus") for r in rows if r.get("plusMinus") is not None]
+    if pm_vals:
+        total = sum(nz(v) for v in pm_vals)
+        season["plusMinusPerGame"] = round(total / len(pm_vals), 1)
+        season["plusMinusTotal"] = int(total)
+        return
+    if tournament_id == "fb" or "Быстрый прорыв" in str(season.get("name") or ""):
+        games = season_games_count(season) or len(rows) or int(FALLBACK_WAS_2425["games"])
+        avg = float(FALLBACK_WAS_2425["plusMinus"])
+        season["plusMinusPerGame"] = round(avg, 1)
+        season["plusMinusTotal"] = int(round(avg * games))
+
+
 def refresh_season_cards(data: dict) -> None:
     name_map = [
         ("Быстрый прорыв", "fb"),
@@ -493,14 +516,18 @@ def refresh_season_cards(data: dict) -> None:
             if needle in name:
                 tid = tournament_id
                 break
-        if not tid:
+        if season.get("id") == "mos2627":
+            tid = "mos2627"
+        tournament = None
+        if tid:
+            tournament = next((t for t in data["gameLogs"]["tournaments"] if t.get("id") == tid), None)
+        if not tid and not tournament:
             continue
-        tournament = next((t for t in data["gameLogs"]["tournaments"] if t.get("id") == tid), None)
-        if not tournament:
-            continue
-        vals = [r.get("kpi") for r in tournament.get("rows") or [] if r.get("kpi") is not None]
+        vals = [r.get("kpi") for r in (tournament.get("rows") or []) if r.get("kpi") is not None] if tournament else []
         if vals:
             season["kpiPerGame"] = round(sum(float(v) for v in vals) / len(vals), 1)
+        if tid:
+            apply_season_plus_minus(season, tournament, tid)
 
 
 def build_metrics(active: dict, was: dict, team: dict | None) -> list[dict]:

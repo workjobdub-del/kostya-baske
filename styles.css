@@ -1523,6 +1523,15 @@ svg .bar-hit.is-picked { fill: rgba(243, 217, 138, 0.1); }
 .kpi-delta.is-up { color: #7dffb0; }
 .kpi-delta.is-down { color: #ff9b7d; }
 
+.plus-minus.is-pos,
+.meter.is-pos span { color: #7dffb0; }
+.plus-minus.is-neg,
+.meter.is-neg span { background: linear-gradient(90deg, #8b3d32, #ff9b7d); }
+.plus-minus.is-neg { color: #ff9b7d; }
+.plus-minus.is-even { color: var(--muted); }
+.season-card .plus-minus-label { color: var(--muted); font-weight: 500; }
+.meter.is-pos span { background: linear-gradient(90deg, #2a6b45, #7dffb0); }
+
 .kpi-hint {
   font-size: 0.72rem;
   vertical-align: super;
