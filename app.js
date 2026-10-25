@@ -132,7 +132,9 @@ function scoreCards(columns, rows) {
         .filter((label) => byLabel.has(label))
         .map((label) => {
           const shown = label === "Старт" ? "В стартовой пятёрке" : label;
-          return `<div class="stat-card"><b>${esc(phoneStat(label, byLabel.get(label)))}</b><span>${term(label, shown)}</span></div>`;
+          const valueText = phoneStat(label, byLabel.get(label));
+          const wide = valueText.length > 16 || shown.length > 16 ? " is-wide" : "";
+          return `<div class="stat-card${wide}"><b>${esc(valueText)}</b><span>${term(label, shown)}</span></div>`;
         })
         .join("");
       return cards ? `<section class="score-group"><h3>${esc(title)}</h3><div class="stat-cards">${cards}</div></section>` : "";
@@ -153,8 +155,10 @@ function gameCards(tournament) {
       const points = pointsCol ? formatCell(row.points, false) : "";
       const rest = tournament.columns
         .map((column) => {
-          const value = column.key === "score" ? scoreHtml(row[column.key]) : esc(phoneStat(column.label, row[column.key] ?? ""));
-          return `<div><dt>${term(column.label)}</dt><dd>${value}</dd></div>`;
+          const plain = column.key === "score" ? String(row[column.key] ?? "") : phoneStat(column.label, row[column.key] ?? "");
+          const value = column.key === "score" ? scoreHtml(row[column.key]) : esc(plain);
+          const wide = plain.length > 18 ? " is-wide" : "";
+          return `<div class="${wide.trim()}"><dt>${term(column.label)}</dt><dd>${value}</dd></div>`;
         })
         .join("");
       const review = row.aiReview ? `<p class="game-review">${esc(row.aiReview)}</p>` : "";
@@ -179,10 +183,10 @@ function factValue(item) {
 
 function facts(items) {
   const cards = items
-    .map(
-      (item) =>
-        `<div class="fact"><dt>${esc(item.label)}</dt><dd>${factValue(item)}</dd></div>`
-    )
+    .map((item) => {
+      const wide = String(item.value).length > 24 ? " is-wide" : "";
+      return `<div class="fact${wide}"><dt>${esc(item.label)}</dt><dd>${factValue(item)}</dd></div>`;
+    })
     .join("");
   return `<dl class="facts">${cards}</dl>`;
 }
@@ -804,7 +808,7 @@ function renderCareerPage() {
   const bio = data.profile.items
     .map(
       (item) =>
-        `<li><span>${esc(item.label)}</span><strong>${esc(item.value)}</strong></li>`
+        `<li class="${String(item.value).length > 24 ? "is-wide" : ""}"><span>${esc(item.label)}</span><strong>${esc(item.value)}</strong></li>`
     )
     .join("");
   document.getElementById("app").innerHTML = `<section class="player-card" id="top"${numberAttr()}>

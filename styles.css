@@ -418,10 +418,27 @@ body.header-hidden #nav.is-shown { top: 0; }
 
 .fact,
 .bio-strip li {
+  min-width: 0;
   margin: 0;
   padding: 0.7rem 0.75rem;
   background: #10131a;
   border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.fact dd,
+.bio-strip strong { overflow-wrap: break-word; }
+
+@media (max-width: 600px) {
+  .facts,
+  .bio-strip {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+  }
+
+  .fact.is-wide,
+  .bio-strip li.is-wide {
+    grid-column: 1 / -1;
+  }
 }
 
 .fact dt,
@@ -1445,22 +1462,27 @@ svg .bar-hit.is-picked { fill: rgba(243, 217, 138, 0.1); }
 }
 
 .stat-cards {
+  display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.45rem;
   margin: 0 0 0.85rem;
 }
 
 .stat-card {
+  min-width: 0;
   padding: 0.55rem 0.65rem;
   background: #10131a;
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.stat-card.is-wide { grid-column: 1 / -1; }
+
 .stat-card b {
   display: block;
+  overflow-wrap: break-word;
   font-family: var(--display);
   font-size: 1.35rem;
-  line-height: 1;
+  line-height: 1.15;
   color: var(--gold-2);
 }
 
@@ -1508,6 +1530,10 @@ svg .bar-hit.is-picked { fill: rgba(243, 217, 138, 0.1); }
   padding: 0 0.75rem 0.75rem;
 }
 
+.game-card dl > div { min-width: 0; }
+
+.game-card dl > .is-wide { grid-column: 1 / -1; }
+
 .game-card dt {
   color: var(--dim);
   font-family: var(--display);
@@ -1516,7 +1542,10 @@ svg .bar-hit.is-picked { fill: rgba(243, 217, 138, 0.1); }
   text-transform: uppercase;
 }
 
-.game-card dd { margin: 0; }
+.game-card dd {
+  margin: 0;
+  overflow-wrap: break-word;
+}
 
 .table-scroll.standings th:first-child,
 .table-scroll.standings td:first-child {
