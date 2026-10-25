@@ -117,12 +117,11 @@ body {
   text-overflow: ellipsis;
 }
 
-.ball {
-  width: 0.72rem;
-  height: 0.72rem;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, var(--gold-2), var(--gold) 55%, var(--gold-deep));
-  box-shadow: inset -1px -1px 0 rgba(0, 0, 0, 0.35);
+.brand-logo {
+  width: 1.35rem;
+  height: 1.35rem;
+  flex: 0 0 auto;
+  display: block;
 }
 
 .modes {
