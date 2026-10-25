@@ -1089,6 +1089,55 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
 
 .topbar { view-transition-name: topbar; }
 
+#content {
+  will-change: transform, opacity;
+}
+
+#content.page-exit-to-left {
+  animation: tab-page-out-left 200ms var(--ease-out) forwards;
+  pointer-events: none;
+}
+
+#content.page-exit-to-right {
+  animation: tab-page-out-right 200ms var(--ease-out) forwards;
+  pointer-events: none;
+}
+
+#content.page-enter-from-right {
+  animation: tab-page-in-from-right 200ms var(--ease-out) both;
+}
+
+#content.page-enter-from-left {
+  animation: tab-page-in-from-left 200ms var(--ease-out) both;
+}
+
+@keyframes tab-page-out-left {
+  to { opacity: 0; transform: translateX(-32px); }
+}
+
+@keyframes tab-page-out-right {
+  to { opacity: 0; transform: translateX(32px); }
+}
+
+@keyframes tab-page-in-from-right {
+  from { opacity: 0; transform: translateX(32px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes tab-page-in-from-left {
+  from { opacity: 0; transform: translateX(-32px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #content.page-exit-to-left,
+  #content.page-exit-to-right,
+  #content.page-enter-from-right,
+  #content.page-enter-from-left {
+    animation: none;
+  }
+}
+
 ::view-transition-old(root) { animation: vt-out 220ms var(--ease-out) both; }
 ::view-transition-new(root) { animation: vt-in 380ms var(--ease-slam) both; }
 

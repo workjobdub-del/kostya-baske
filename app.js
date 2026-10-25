@@ -7,6 +7,17 @@ const state = { game: null, trend: null, news: "all", section: "", lastY: 0, cha
 let data = null;
 let newsData = null;
 
+const TAB_PAGES = [
+  { id: "profile", href: "index.html" },
+  { id: "career", href: "career.html" },
+  { id: "team", href: "team.html" },
+  { id: "mama", href: "mama.html" },
+];
+const TAB_SWIPE_MIN_DX = 70;
+const TAB_SWIPE_MAX_MS = 600;
+const TAB_SWIPE_EDGE_PX = 20;
+const TAB_SWIPE_ANIM_MS = 200;
+
 const MONTHS = [
   "января",
   "февраля",
@@ -467,7 +478,7 @@ function segmented(options, current, attr, label) {
         `<button type="button" aria-pressed="${option.id === current}" data-${attr}="${esc(option.id)}">${esc(option.label)}</button>`
     )
     .join("");
-  return `<div class="segmented" role="group" aria-label="${esc(label)}">${buttons}</div>`;
+  return `<div class="segmented" role="group" aria-label="${esc(label)}" data-noswipe>${buttons}</div>`;
 }
 
 function profileValue(label) {
@@ -1986,6 +1997,136 @@ function setupNotifications() {
   });
 }
 
+function currentTabIndex() {
+  const page = document.body.dataset.page;
+  const index = TAB_PAGES.findIndex((item) => item.id === page);
+  return index >= 0 ? index : 0;
+}
+
+function tabSwipeReducedMotion() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function isNoSwipeTarget(node) {
+  let el = node instanceof Element ? node : null;
+  while (el && el !== document.body && el !== document.documentElement) {
+    if (el.hasAttribute("data-noswipe")) return true;
+    const tag = el.tagName;
+    if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return true;
+    if (tag === "CANVAS") return true;
+    if (tag === "SVG" && (el.closest("#trend-panel") || el.closest("svg.points"))) return true;
+    if (el.closest("#trend-panel, .table-scroll, svg.points, .chart-scroll, .segmented, .news-list")) return true;
+    const style = window.getComputedStyle(el);
+    const ox = style.overflowX;
+    if ((ox === "auto" || ox === "scroll" || ox === "overlay") && el.scrollWidth > el.clientWidth + 2) {
+      return true;
+    }
+    el = el.parentElement;
+  }
+  return false;
+}
+
+let tabSwipeNavigating = false;
+
+function navigateTabSwipe(direction) {
+  if (tabSwipeNavigating) return;
+  const index = currentTabIndex();
+  const nextIndex = direction === "next" ? index + 1 : index - 1;
+  if (nextIndex < 0 || nextIndex >= TAB_PAGES.length) return;
+  tabSwipeNavigating = true;
+  const enter = direction === "next" ? "from-right" : "from-left";
+  try {
+    sessionStorage.setItem("tabSwipeEnter", enter);
+  } catch (error) {}
+  const reduced = tabSwipeReducedMotion();
+  const content = document.getElementById("content");
+  if (content && !reduced) {
+    content.classList.add(direction === "next" ? "page-exit-to-left" : "page-exit-to-right");
+  }
+  const target = TAB_PAGES[nextIndex].href;
+  const go = () => {
+    location.href = target;
+  };
+  if (reduced || !content) go();
+  else window.setTimeout(go, TAB_SWIPE_ANIM_MS);
+}
+
+function applyTabSwipeEnter() {
+  let enter = "";
+  try {
+    enter = sessionStorage.getItem("tabSwipeEnter") || "";
+    sessionStorage.removeItem("tabSwipeEnter");
+  } catch (error) {
+    return;
+  }
+  if (!enter || tabSwipeReducedMotion()) return;
+  const content = document.getElementById("content");
+  if (!content) return;
+  content.classList.add(enter === "from-right" ? "page-enter-from-right" : "page-enter-from-left");
+  requestAnimationFrame(() => {
+    content.classList.add("page-enter-active");
+  });
+  const clear = () => {
+    content.classList.remove("page-enter-from-right", "page-enter-from-left", "page-enter-active");
+  };
+  content.addEventListener("animationend", clear, { once: true });
+  window.setTimeout(clear, TAB_SWIPE_ANIM_MS + 80);
+}
+
+function setupTabSwipe() {
+  let start = null;
+  let blocked = false;
+
+  document.addEventListener(
+    "touchstart",
+    (event) => {
+      if (tabSwipeNavigating || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      const w = window.innerWidth;
+      if (touch.clientX < TAB_SWIPE_EDGE_PX || touch.clientX > w - TAB_SWIPE_EDGE_PX) {
+        blocked = true;
+        start = null;
+        return;
+      }
+      if (isNoSwipeTarget(event.target)) {
+        blocked = true;
+        start = null;
+        return;
+      }
+      blocked = false;
+      start = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+    },
+    { passive: true }
+  );
+
+  document.addEventListener(
+    "touchend",
+    (event) => {
+      if (blocked || !start || tabSwipeNavigating) {
+        start = null;
+        blocked = false;
+        return;
+      }
+      const touch = event.changedTouches[0];
+      if (!touch) {
+        start = null;
+        return;
+      }
+      const dx = touch.clientX - start.x;
+      const dy = touch.clientY - start.y;
+      const dt = Date.now() - start.time;
+      start = null;
+      blocked = false;
+      if (dt > TAB_SWIPE_MAX_MS) return;
+      if (Math.abs(dx) < TAB_SWIPE_MIN_DX) return;
+      if (Math.abs(dx) < 1.5 * Math.abs(dy)) return;
+      if (dx < 0) navigateTabSwipe("next");
+      else navigateTabSwipe("prev");
+    },
+    { passive: true }
+  );
+}
+
 async function init() {
   const status = document.getElementById("load-state");
   if (status && !status.hidden && !status.classList.contains("error")) {
@@ -2014,6 +2155,8 @@ async function init() {
   void setupNotifications();
 }
 
+applyTabSwipeEnter();
+setupTabSwipe();
 init();
 window.addEventListener("pageshow", (event) => {
   if (event.persisted) init();
