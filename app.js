@@ -3,8 +3,24 @@
 const SERIES_COLORS = ["#b7beca", "#e8b84a"];
 const FONT = "Barlow Condensed, Arial Narrow, Segoe UI, sans-serif";
 
-const state = { game: null, trend: null };
+const state = { game: null, trend: null, news: "all" };
 let data = null;
+let newsData = null;
+
+const MONTHS = [
+  "января",
+  "февраля",
+  "марта",
+  "апреля",
+  "мая",
+  "июня",
+  "июля",
+  "августа",
+  "сентября",
+  "октября",
+  "ноября",
+  "декабря",
+];
 
 function esc(value) {
   return String(value)
@@ -240,6 +256,55 @@ function firstNumber(text) {
   return match ? match[0] : "";
 }
 
+function ruCount(value, one, few, many) {
+  const n = Math.abs(Number(value));
+  const n10 = n % 10;
+  const n100 = n % 100;
+  const word = n10 === 1 && n100 !== 11 ? one : n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14) ? few : many;
+  return `${value} ${word}`;
+}
+
+function fullDate(short) {
+  const match = String(short).match(/^(\d{2})\.(\d{2})\.(\d{2})$/);
+  return match ? `${match[1]}.${match[2]}.20${match[3]}` : String(short);
+}
+
+function formatNewsDate(iso) {
+  const match = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return String(iso);
+  const month = MONTHS[Number(match[2]) - 1];
+  return month ? `${Number(match[3])} ${month} ${match[1]}` : String(iso);
+}
+
+function findLogRow(date) {
+  for (const tournament of data.gameLogs.tournaments) {
+    const row = tournament.rows.find((item) => item.date === date);
+    if (row) return row;
+  }
+  return null;
+}
+
+function mamaFacts(row) {
+  const score = String(row.score);
+  const result = score.includes("победа") ? "Победа" : score.includes("поражение") ? "Поражение" : "Счёт";
+  const clean = score.replace(/,\s*победа|,\s*поражение/g, "");
+  const bits = [ruCount(row.points, "очко", "очка", "очков")];
+  const shots = String(row.fg2 || "").match(/(\d+)\s*\/\s*(\d+)/);
+  if (shots) {
+    const total = Number(shots[2]);
+    const n10 = total % 10;
+    const n100 = total % 100;
+    const word = n10 === 1 && n100 !== 11 ? "двухочкового" : "двухочковых";
+    bits.push(`${shots[1]} из ${shots[2]} ${word}`);
+  }
+  if (row.rebounds != null) bits.push(ruCount(row.rebounds, "подбор", "подбора", "подборов"));
+  if (row.assists != null) bits.push(ruCount(row.assists, "передача", "передачи", "передач"));
+  if (row.steals != null) bits.push(ruCount(row.steals, "перехват", "перехвата", "перехватов"));
+  if (row.turnovers != null) bits.push(ruCount(row.turnovers, "потеря", "потери", "потерь"));
+  const minutes = row.minutes ? ` На площадке ${row.minutes}.` : "";
+  return `${result} ${clean}.${minutes} ${bits.join(", ")}.`;
+}
+
 function renderNav() {
   const nav = document.getElementById("nav");
   if (!nav) return;
@@ -268,7 +333,7 @@ function renderHero() {
         <h1>${esc(player.name)}</h1>
         <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
         <p class="summary">${esc(player.summary)}</p>
-        <p class="card-link"><a href="career.html">Карьера и достижения</a></p>
+        <p class="card-link"><a href="career.html">Карьера</a><a href="mama.html">Для мамы</a></p>
       </div>
     </div>
   </section>`;
@@ -331,21 +396,21 @@ function renderCareerCards(career) {
     .filter(Boolean)
     .join(" · ");
   const cards = [
-    kpiCard(String(career.games), "Игры в журналах", "Сумма строк трёх турниров"),
-    kpiCard(String(career.points), "Очки", "Сумма очков по тем же строкам"),
+    kpiCard(String(career.games), "Игры", "Все матчи из трёх турниров"),
+    kpiCard(String(career.points), "Очки", "Сколько набрал в этих матчах"),
     kpiCard(String(career.best.points), "Лучшая игра", bestDetail),
     kpiCard(career.place || "—", "Место", career.placeFact ? career.placeFact.value : ""),
-    kpiCard(formatAvg(career.peakPoints.points), "Макс. очки за игру", career.peakPoints.name),
-    kpiCard(formatAvg(career.peakSteals.steals), "Макс. перехваты", career.peakSteals.name),
+    kpiCard(formatAvg(career.peakPoints.points), "Больше всего очков", career.peakPoints.name),
+    kpiCard(formatAvg(career.peakSteals.steals), "Больше всего перехватов", career.peakSteals.name),
     kpiCard(
       formatAvg(career.latest.rebounds),
       "Подборы, 2025/26",
-      reboundsThen === null ? career.latest.name : `В 2024/25 было ${formatAvg(reboundsThen)}`
+      reboundsThen === null ? career.latest.name : `Год назад было ${formatAvg(reboundsThen)}`
     ),
     kpiCard(
       formatAvg(career.latest.assists),
       "Передачи, 2025/26",
-      assistsThen === null ? career.latest.name : `В 2024/25 было ${formatAvg(assistsThen)}`
+      assistsThen === null ? career.latest.name : `Год назад было ${formatAvg(assistsThen)}`
     ),
   ];
   return `<div class="kpi-grid">${cards.join("")}</div>`;
@@ -357,7 +422,7 @@ function renderSeasonCards() {
       return `<article class="season-card${season.highlight ? " is-current" : ""}">
         <p>${esc(season.name)}</p>
         <strong>${formatAvg(season.points)}</strong>
-        <span>очка за игру · ${esc(season.games)} · ${esc(season.minutes)}</span>
+        <span>за игру · ${esc(season.games)} игр · ${esc(season.minutes)}</span>
         <ul>
           <li><b>${formatAvg(season.rebounds)}</b> подб</li>
           <li><b>${formatAvg(season.assists)}</b> пер</li>
@@ -434,16 +499,17 @@ function renderCareerPage() {
           <h1>${esc(player.name)}</h1>
           <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
           <p class="summary">${esc(player.summary)}</p>
+          <p class="card-link"><a href="mama.html">Для мамы</a></p>
         </div>
       </div>
     </section>
     <section class="block" id="kpis">
       <h2>Достижения</h2>
-      <p class="caption">Карточки собраны из журналов и средних в data.json. Отдельный рейтинг не выдумывается.</p>
+      <p class="caption">Цифры из журналов матчей и средних. Отдельный рейтинг не придумываем.</p>
       ${renderCareerCards(career)}
     </section>
     <section class="block" id="bio">
-      <h2>Карточка</h2>
+      <h2>Коротко</h2>
       <ul class="bio-strip">${bio}</ul>
     </section>
     <section class="block" id="seasons">
@@ -453,7 +519,7 @@ function renderCareerPage() {
     </section>
     <section class="block" id="meters">
       <h2>Сравнение средних</h2>
-      <p class="caption">Длина полосы — доля от лучшего среднего в этих трёх турнирах, не шкала до 99.</p>
+      <p class="caption">Полоска — доля от лучшего среднего в этих трёх турнирах. Это не оценка от 0 до 99.</p>
       <div class="meter-grid">${renderMeters()}</div>
     </section>
     <section class="block" id="badges">
@@ -463,7 +529,123 @@ function renderCareerPage() {
         <p class="callout-lead">${esc(data.notes.conclusionLead)}</p>
         <p>${esc(data.notes.conclusion)}</p>
       </aside>
-    </section>`;
+    </section>
+    ${renderNewsSection()}`;
+  renderNewsPanel(false);
+}
+
+function newsIntro() {
+  if (!newsData) {
+    return `<p class="caption">Файл news.json не загрузился. Остальная страница на месте.</p>`;
+  }
+  const links = (newsData.sources || [])
+    .map((source) => {
+      const href = safeUrl(source.href);
+      if (!href) return "";
+      return `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(source.title)}</a>`;
+    })
+    .join("");
+  return `<p class="caption">${esc(newsData.caption || "")}</p><p class="news-links">${links}</p>`;
+}
+
+function renderNewsSection() {
+  return `<section class="block" id="news">
+    <h2>Новости команды</h2>
+    ${newsIntro()}
+    <div id="news-panel"></div>
+  </section>`;
+}
+
+function newsCard(post) {
+  const href = safeUrl(post.link);
+  const tag = post.tag === "2014" ? "Команда 2014" : post.tag === "клуб" ? "Клуб" : post.tag;
+  const link = href
+    ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">Пост в Telegram</a>`
+    : "";
+  return `<article class="news-card">
+    <p class="news-meta"><span class="tag">${esc(tag)}</span><time datetime="${esc(post.date)}">${esc(formatNewsDate(post.date))}</time></p>
+    <h3>${esc(post.title)}</h3>
+    <p>${esc(post.text)}</p>
+    ${link}
+  </article>`;
+}
+
+function renderNewsPanel(restoreFocus) {
+  const root = document.getElementById("news-panel");
+  if (!root || !newsData) return;
+  const filters = [
+    { id: "all", label: "Все" },
+    { id: "2014", label: "2014" },
+    { id: "клуб", label: "Клуб" },
+  ];
+  if (!filters.some((item) => item.id === state.news)) state.news = "all";
+  const posts = newsData.posts
+    .filter((post) => state.news === "all" || post.tag === state.news)
+    .slice()
+    .sort((a, b) => {
+      if (a.date === b.date) return (b.sort || 0) - (a.sort || 0);
+      return a.date < b.date ? 1 : -1;
+    });
+  const cards = posts.length
+    ? posts.map(newsCard).join("")
+    : `<p class="caption">Таких записей нет.</p>`;
+  root.innerHTML = `${segmented(filters, state.news, "news", "Какие новости показать")}<div class="news-list">${cards}</div>`;
+  if (restoreFocus) {
+    const button = document.querySelector(`[data-news="${CSS.escape(state.news)}"]`);
+    if (button) button.focus();
+  }
+}
+
+function renderMamaGame(entry) {
+  const row = findLogRow(entry.date);
+  const title = row ? `${fullDate(entry.date)} · ${row.opponent}` : fullDate(entry.date);
+  const facts = row ? mamaFacts(row) : "Этой строки нет в журнале матчей.";
+  return `<article class="review">
+    <h3>${esc(title)}</h3>
+    <p>${esc(facts)}</p>
+    <p class="plus"><span>Плюс.</span> ${esc(entry.plus)}</p>
+  </article>`;
+}
+
+function renderMamaPage() {
+  const mama = data.mama;
+  const player = data.player;
+  const year = profileValue("Год рождения");
+  const anchor = mama.anchor.map((line) => `<p>${esc(line)}</p>`).join("");
+  const games = mama.games.map(renderMamaGame).join("");
+  const list = (items) => items.map((item) => `<li>${esc(item)}</li>`).join("");
+  document.getElementById("app").innerHTML = `<section class="player-card" id="top">
+      <p class="kicker">Для мамы${year ? ` · ${esc(year)}` : ""}</p>
+      <h1>${esc(player.name)}</h1>
+      <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
+      <p class="summary">${esc(mama.summary)}</p>
+      <aside class="callout">${anchor}</aside>
+    </section>
+    <section class="block" id="recent">
+      <h2>Последние игры</h2>
+      <p class="caption">Пять последних матчей сезона U12, с конца. Цифры из журнала.</p>
+      <div class="reviews">${games}</div>
+      <article class="review">
+        <h3>${esc(mama.pending.title)}</h3>
+        <p>${esc(mama.pending.text)}</p>
+      </article>
+    </section>
+    <section class="block" id="mama-notes">
+      <h2>Что видно по цифрам</h2>
+      <div class="split">
+        <section class="panel good">
+          <h3>${esc(mama.goodHeading)}</h3>
+          <ul>${list(mama.good)}</ul>
+        </section>
+        <section class="panel work">
+          <h3>${esc(mama.workHeading)}</h3>
+          <ul>${list(mama.work)}</ul>
+        </section>
+      </div>
+      <aside class="callout"><p>${esc(mama.closing)}</p></aside>
+    </section>
+    ${renderNewsSection()}`;
+  renderNewsPanel(false);
 }
 
 function renderLast() {
@@ -604,14 +786,18 @@ function renderTrendPanel(restoreFocus) {
 }
 
 function render() {
-  const career = document.body.dataset.page === "career";
-  document.title = career
-    ? `${data.player.name} — карьера`
-    : `${data.player.name} — профиль игрока`;
+  const page = document.body.dataset.page;
+  const titles = {
+    career: `${data.player.name} — карьера`,
+    mama: `${data.player.name} — для мамы`,
+  };
+  document.title = titles[page] || `${data.player.name} — профиль`;
   document.getElementById("brand-name").textContent = data.player.name;
   renderNav();
-  if (career) {
+  if (page === "career") {
     renderCareerPage();
+  } else if (page === "mama") {
+    renderMamaPage();
   } else {
     document.getElementById("app").innerHTML = [
       renderHero(),
@@ -671,6 +857,12 @@ document.addEventListener("click", (event) => {
   if (trendButton) {
     state.trend = trendButton.getAttribute("data-trend");
     renderTrendPanel(true);
+    return;
+  }
+  const newsButton = event.target.closest("[data-news]");
+  if (newsButton) {
+    state.news = newsButton.getAttribute("data-news");
+    renderNewsPanel(true);
   }
 });
 
@@ -684,12 +876,18 @@ async function init() {
     data = await response.json();
     state.game = data.gameLogs.defaultId;
     state.trend = data.trend.defaultId;
+    try {
+      const newsResponse = await fetch("news.json");
+      if (newsResponse.ok) newsData = await newsResponse.json();
+    } catch (newsError) {
+      newsData = null;
+    }
     render();
   } catch (error) {
     status.hidden = false;
     status.classList.add("error");
     status.textContent =
-      "Не удалось загрузить data.json. Откройте страницу через GitHub Pages или локальный HTTP-сервер.";
+      "Не удалось загрузить data.json. Откройте страницу через локальный сервер или GitHub Pages, не как файл с диска.";
   }
 }
 

@@ -247,8 +247,8 @@ body {
 
 .player-card h1 {
   margin: 0 0 0.35rem;
-  font-size: clamp(3rem, 8vw, 5.2rem);
-  line-height: 0.86;
+  font-size: clamp(2.6rem, 8vw, 4.6rem);
+  line-height: 0.9;
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
@@ -283,7 +283,12 @@ body {
 
 .summary { margin: 0; max-width: 40rem; color: var(--muted); }
 
-.card-link { margin: 0.85rem 0 0; }
+.card-link {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin: 0.85rem 0 0;
+}
 
 .card-link a,
 .source-card {
@@ -730,6 +735,97 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
 
 .callout p:last-child { margin: 0; }
 
+.callout p + p { margin-top: 0.45rem; }
+
+.player-card .callout { margin-top: 1rem; }
+
+.reviews { display: grid; gap: 0.65rem; margin-bottom: 0.65rem; }
+
+.review {
+  padding: 0.85rem 0.95rem;
+  background: #10131a;
+  border-left: 3px solid var(--gold);
+}
+
+.review h3 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 1.28rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.review p { margin: 0.4rem 0 0; }
+
+.plus span {
+  color: var(--good);
+  font-weight: 700;
+}
+
+.news-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin: 0 0 0.85rem;
+}
+
+.news-links a,
+.news-card a {
+  color: var(--gold-2);
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.news-links a:hover,
+.news-card a:hover { color: white; }
+
+.news-list { display: grid; gap: 0.65rem; }
+
+.news-card {
+  padding: 0.9rem 0.95rem;
+  background: #10131a;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.news-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  color: var(--dim);
+  font-size: 0.88rem;
+}
+
+.tag {
+  display: inline-block;
+  padding: 0.05rem 0.45rem;
+  background: rgba(232, 184, 74, 0.16);
+  color: var(--gold-2);
+  font-family: var(--display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.news-card h3 {
+  margin: 0.4rem 0 0.2rem;
+  font-family: var(--display);
+  font-size: 1.4rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.news-card p { margin: 0.35rem 0 0; }
+
+.news-card a { display: inline-block; margin-top: 0.55rem; }
+
+#news .segmented { margin-bottom: 0.8rem; }
+
 .sources {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -791,6 +887,17 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
   .meter-line b { text-align: left; }
 
   .topbar { flex-wrap: wrap; }
+
+  .brand {
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+  }
+
+  .modes a {
+    padding: 0.24rem 0.45rem;
+    letter-spacing: 0.04em;
+    font-size: 0.86rem;
+  }
 
   #nav { flex: 1 1 100%; }
 }
