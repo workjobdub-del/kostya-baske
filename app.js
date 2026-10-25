@@ -766,10 +766,11 @@ function renderMamaGame(entry) {
   const row = findLogRow(entry.date);
   const title = row ? `${fullDate(entry.date)} · ${row.opponent}` : fullDate(entry.date);
   const facts = row ? mamaFacts(row) : "Этой строки нет в журнале матчей.";
+  const plus = row && row.aiMama ? row.aiMama : entry.plus;
   return `<article class="review">
     <h3>${esc(title)}</h3>
     <p>${esc(facts)}</p>
-    <p class="plus"><span>Плюс.</span> ${esc(entry.plus)}</p>
+    <p class="plus"><span>Плюс.</span> ${esc(plus)}</p>
   </article>`;
 }
 
@@ -822,7 +823,7 @@ function renderLast() {
     ${facts(block.facts)}
     ${scoreCards(block.columns, block.rows)}
     ${arrayTable(block.columns, block.rows)}
-    ${paragraphs(block.paragraphs)}
+    ${block.aiReview ? `<div class="prose"><p>${esc(block.aiReview)}</p></div>` : paragraphs(block.paragraphs)}
   </section>`;
 }
 
