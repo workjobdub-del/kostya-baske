@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Турнирная таблица и новости «Ростка-2014».">
+  <meta name="theme-color" content="#07080c">
+  <link rel="manifest" href="manifest.json?v=2026-10-25-18">
+  <link rel="icon" href="favicon.svg?v=2026-10-25-18" type="image/svg+xml">
+  <link rel="icon" href="icon-v3-192.png?v=2026-10-25-18" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="apple-touch-icon-v3-180.png?v=2026-10-25-18">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Команда — Росток-2014</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;600&family=Oswald:wght@600;700&subset=cyrillic&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=2026-10-25-18">
+</head>
+<body data-page="team">
+  <a class="skip" href="#content">К содержанию</a>
+  <header class="topbar">
+    <nav class="modes modes--pages" aria-label="Страницы">
+      <a href="index.html">Профиль</a>
+      <a href="career.html">Карьера</a>
+      <a href="team.html" aria-current="page">Команда</a>
+      <a href="mama.html">Для мамы</a>
+    </nav>
+  </header>
+  <nav id="nav" aria-label="Разделы" hidden></nav>
+  <main id="content">
+    <p id="load-state" class="load-state">Загрузка…</p>
+    <div id="app" class="wrap" hidden></div>
+  </main>
+  <button type="button" class="to-top" id="to-top" hidden>Наверх</button>
+  <noscript>Чтобы собрать страницу из data.json, нужен JavaScript.</noscript>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script src="app.js?v=2026-10-25-18" defer></script>
+</body>
+</html>

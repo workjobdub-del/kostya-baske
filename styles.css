@@ -80,13 +80,13 @@ body {
   top: 0;
   z-index: 30;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: stretch;
+  justify-content: stretch;
   flex-wrap: nowrap;
-  gap: 0.35rem;
+  gap: 0;
   height: var(--bar);
   min-height: var(--bar);
-  padding: 0 0.55rem;
+  padding: 0 0.35rem;
   background: #07080c;
   border-bottom: 1px solid var(--line);
   transition: transform 180ms ease;
@@ -143,6 +143,13 @@ body {
   gap: 0.3rem;
 }
 
+.modes--pages {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  gap: 0.12rem;
+}
+
 .modes a {
   color: var(--muted);
   font-family: var(--display);
@@ -164,6 +171,16 @@ body {
   color: #1a1408;
   background: linear-gradient(180deg, #f6e2a8, #d7a441);
   clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}
+
+.modes.modes--pages a {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 0.1rem;
+  font-size: clamp(0.62rem, 2.85vw, 0.85rem);
+  letter-spacing: 0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 #nav {
@@ -1048,6 +1065,11 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
     font-size: 0.95rem;
     letter-spacing: 0.06em;
     padding: 0 0.7rem;
+  }
+
+  .modes.modes--pages a {
+    font-size: 0.92rem;
+    padding: 0 0.45rem;
   }
 
   #nav a {
