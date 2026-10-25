@@ -2,7 +2,7 @@ importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 
 "use strict";
 
-const VERSION = "2026-10-25-13";
+const VERSION = "2026-10-25-15";
 const STATIC = `kostya-static-${VERSION}`;
 const DATA = "kostya-data";
 
@@ -11,9 +11,9 @@ const PRECACHE = [
   "./index.html",
   "./career.html",
   "./mama.html",
-  "./styles.css?v=2026-10-25-13",
-  "./app.js?v=2026-10-25-13",
-  "./manifest.json",
+  "./styles.css?v=2026-10-25-15",
+  "./app.js?v=2026-10-25-15",
+  "./manifest.json?v=2026-10-25-15",
   "./favicon.svg",
   "./logo.svg",
   "./logo.png",
@@ -56,6 +56,14 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   if (freshCode) {
+    event.respondWith(networkFirst(request, STATIC));
+    return;
+  }
+  const pwaIcon =
+    /\/icon(?:-maskable)?-\d+\.png$/i.test(url.pathname) ||
+    url.pathname.endsWith("/apple-touch-icon.png") ||
+    url.pathname.endsWith("/manifest.json");
+  if (pwaIcon) {
     event.respondWith(networkFirst(request, STATIC));
     return;
   }
