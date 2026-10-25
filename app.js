@@ -62,37 +62,83 @@ function heading(id) {
   return item ? item.label : id;
 }
 
+function term(label, shown) {
+  const text = String(shown || label);
+  const hit = (data.glossary || []).find((item) => item.term === String(label));
+  if (!hit) return esc(text);
+  return `<abbr class="term" tabindex="0" role="button" aria-expanded="false" data-term="${esc(hit.text)}">${esc(text)}</abbr>`;
+}
+
 function objectTable(columns, rows, extraClass) {
-  const head = columns.map((column) => `<th scope="col">${esc(column.label)}</th>`).join("");
+  const head = columns
+    .map((column) => {
+      const extra = column.key === "scored" || column.key === "conceded" ? " col-extra" : "";
+      return `<th class="${extra}" scope="col">${term(column.label)}</th>`;
+    })
+    .join("");
   const body = rows
-    .map((row) => {
+    .map((row, index) => {
       const cells = columns
-        .map((column) => `<td>${formatCell(row[column.key], column.average)}</td>`)
+        .map((column) => {
+          const extra = column.key === "scored" || column.key === "conceded" ? " col-extra" : "";
+          const value = column.key === "score" ? scoreHtml(row[column.key]) : formatCell(row[column.key], column.average);
+          return `<td class="${extra}">${value}</td>`;
+        })
         .join("");
-      return `<tr class="${row.highlight ? "highlight" : ""}">${cells}</tr>`;
+      const fold = row.aiReview
+        ? `<tr class="review-fold"><td colspan="${columns.length}"><button type="button" data-fold="review-${index}">Читать разбор</button><p class="game-review" hidden>${esc(row.aiReview)}</p></td></tr>`
+        : "";
+      return `<tr class="${row.highlight ? "highlight" : ""}">${cells}</tr>${fold}`;
     })
     .join("");
   const cls = extraClass ? ` ${extraClass}` : "";
-  return `<div class="table-scroll${cls}"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  const hint = extraClass && extraClass.includes("standings") ? `<p class="scroll-hint only-phone">Листайте таблицу вбок.</p>` : "";
+  return `${hint}<div class="table-scroll${cls}"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
 function arrayTable(columns, rows) {
-  const head = columns.map((column) => `<th scope="col">${esc(column)}</th>`).join("");
+  const head = columns
+    .map((column) => `<th scope="col">${term(column, column === "Старт" ? "В стартовой пятёрке" : column)}</th>`)
+    .join("");
   const body = rows
     .map((row) => `<tr>${row.map((cell) => `<td>${esc(cell)}</td>`).join("")}</tr>`)
     .join("");
   return `<div class="table-scroll only-desk"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
+function phoneStat(label, value) {
+  const raw = String(value ?? "");
+  if (String(label).startsWith("Подб") && raw.includes("(")) {
+    const match = raw.match(/(\d+)\s*\((\d+)\)/);
+    if (match) return `${match[1]}, из них ${match[2]} в нападении`;
+  }
+  const shot = raw.match(/^(\d+)\s*\/\s*(\d+)$/);
+  if (shot) return `${shot[1]} из ${shot[2]}`;
+  return raw;
+}
+
 function scoreCards(columns, rows) {
   const row = rows[0] || [];
-  const cards = columns
-    .map(
-      (label, index) =>
-        `<div class="stat-card"><b>${esc(row[index] ?? "")}</b><span>${esc(label)}</span></div>`
-    )
+  const groups = [
+    ["Атака", ["Очки", "2-очк.", "Штраф"]],
+    ["Борьба", ["Подб (нап)", "Перехв"]],
+    ["Мяч", ["Пер", "Потери"]],
+    ["Прочее", ["Старт", "Мин", "Фолы"]],
+  ];
+  const byLabel = new Map(columns.map((label, index) => [label, row[index]]));
+  const blocks = groups
+    .map(([title, labels]) => {
+      const cards = labels
+        .filter((label) => byLabel.has(label))
+        .map((label) => {
+          const shown = label === "Старт" ? "В стартовой пятёрке" : label;
+          return `<div class="stat-card"><b>${esc(phoneStat(label, byLabel.get(label)))}</b><span>${term(label, shown)}</span></div>`;
+        })
+        .join("");
+      return cards ? `<section class="score-group"><h3>${esc(title)}</h3><div class="stat-cards">${cards}</div></section>` : "";
+    })
     .join("");
-  return `<div class="stat-cards only-phone">${cards}</div>`;
+  return `<div class="only-phone">${blocks}</div>`;
 }
 
 function gameCards(tournament) {
@@ -106,12 +152,14 @@ function gameCards(tournament) {
         .join(" · ");
       const points = pointsCol ? formatCell(row.points, false) : "";
       const rest = tournament.columns
-        .map(
-          (column) =>
-            `<div><dt>${esc(column.label)}</dt><dd>${formatCell(row[column.key], column.average)}</dd></div>`
-        )
+        .map((column) => {
+          const value = column.key === "score" ? scoreHtml(row[column.key]) : esc(phoneStat(column.label, row[column.key] ?? ""));
+          return `<div><dt>${term(column.label)}</dt><dd>${value}</dd></div>`;
+        })
         .join("");
-      return `<details class="game-card"><summary><span>${esc(title)}</span><b>${points}</b></summary><dl>${rest}</dl></details>`;
+      const review = row.aiReview ? `<p class="game-review">${esc(row.aiReview)}</p>` : "";
+      const limited = row.minutes == null && row.fg2 == null ? `<p class="caption">Других цифр в протоколе этой лиги нет.</p>` : "";
+      return `<details class="game-card"><summary><span>${esc(title)}</span><b>${points}</b></summary><dl>${rest}</dl>${ratioLine(row)}${shareLine(row)}${signalRow(row, tournament)}${limited}${review}</details>`;
     })
     .join("");
   return `<div class="game-cards only-phone">${cards}</div>`;
@@ -122,11 +170,18 @@ function paragraphs(list) {
   return `<div class="prose">${list.map((text) => `<p>${esc(text)}</p>`).join("")}</div>`;
 }
 
+function factValue(item) {
+  const parts = scoreParts(item.value);
+  if (!parts.kind || !/\d+\s*:\s*\d+/.test(String(item.value))) return esc(item.value);
+  const clean = String(item.value).replace(/,\s*победа/gi, "").replace(/,\s*поражение/gi, "");
+  return `${esc(clean)} ${resultBadge(parts.kind, parts.word)}`;
+}
+
 function facts(items) {
   const cards = items
     .map(
       (item) =>
-        `<div class="fact"><dt>${esc(item.label)}</dt><dd>${esc(item.value)}</dd></div>`
+        `<div class="fact"><dt>${esc(item.label)}</dt><dd>${factValue(item)}</dd></div>`
     )
     .join("");
   return `<dl class="facts">${cards}</dl>`;
@@ -178,6 +233,7 @@ function pointsChart(tournament) {
       loss: score.includes("поражение"),
       value: Number.isFinite(value) ? value : 0,
       display: formatPlain(row[chart.valueKey]),
+      review: row.aiReview || "",
     };
   });
   const fire = fireStreak(points);
@@ -235,8 +291,8 @@ function pointsChart(tournament) {
 
   state.chartPoints = points;
   const summary = points.map((point) => `${point.label}: ${point.display}`).join(", ");
-  const legend = `<ul class="legend chart-key"><li><span class="swatch" style="background:#e8b84a"></span>Победа</li><li><span class="swatch" style="background:#6b717e"></span>Поражение</li>${
-    fire ? `<li><span class="swatch swatch-fire"></span>В огне — вдвое выше среднего</li>` : ""
+  const legend = `<ul class="legend chart-key"><li><span class="swatch" style="background:#e8b84a"></span>Победа</li><li><span class="swatch" style="background:#6b717e"></span>Поражение</li><li><span class="swatch swatch-mean"></span>Пунктир — среднее за турнир</li>${
+    fire ? `<li><span class="swatch swatch-fire"></span>${term("В ОГНЕ")}</li>` : ""
   }</ul>`;
   const readout = `<p class="chart-readout" id="chart-readout" aria-live="polite">Нажмите на столбец — покажу соперника и счёт.</p>`;
   return `${legend}${chartFrame("points", width, height, shapes, `Очки по играм. ${summary}`)}${readout}`;
@@ -264,7 +320,8 @@ function showBar(index) {
   const point = state.chartPoints && state.chartPoints[index];
   const out = document.getElementById("chart-readout");
   if (!point || !out) return;
-  out.textContent = `${point.date} · ${point.opponent} · ${point.score} · ${ruCount(point.display, "очко", "очка", "очков")}`;
+  const cut = point.review ? (point.review.length > 140 ? `${point.review.slice(0, 140).trim()}…` : point.review) : "";
+  out.textContent = `${point.date} · ${point.opponent} · ${point.score} · ${ruCount(point.display, "очко", "очка", "очков")}${cut ? `. ${cut}` : ""}`;
   document.querySelectorAll("svg.points .bar-hit").forEach((rect) => {
     rect.classList.toggle("is-picked", rect.getAttribute("data-bar") === String(index));
   });
@@ -353,11 +410,17 @@ function profileValue(label) {
 }
 
 function ruCount(value, one, few, many) {
-  const n = Math.abs(Number(value));
-  const n10 = n % 10;
-  const n100 = n % 100;
-  const word = n10 === 1 && n100 !== 11 ? one : n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14) ? few : many;
-  return `${value} ${word}`;
+  const raw = typeof value === "string" ? Number(String(value).replace(",", ".")) : Number(value);
+  const n = Math.abs(raw);
+  let word = many;
+  if (Number.isFinite(n) && !Number.isInteger(n)) word = few;
+  else if (Number.isFinite(n)) {
+    const n10 = n % 10;
+    const n100 = n % 100;
+    word = n10 === 1 && n100 !== 11 ? one : n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14) ? few : many;
+  }
+  const shown = typeof value === "number" && Number.isFinite(value) && !Number.isInteger(value) ? formatAvg(value) : value;
+  return `${shown} ${word}`;
 }
 
 function fullDate(short) {
@@ -374,31 +437,108 @@ function formatNewsDate(iso) {
 
 function findLogRow(date) {
   for (const tournament of data.gameLogs.tournaments) {
-    const row = tournament.rows.find((item) => item.date === date);
+    const row = tournament.rows.find((item) => item.date === date || item.key === date);
     if (row) return row;
   }
   return null;
 }
 
+function scoreParts(score) {
+  const text = String(score || "");
+  const nums = text.match(/(\d+)\s*:\s*(\d+)/);
+  let kind = "";
+  if (text.includes("победа")) kind = "win";
+  else if (text.includes("поражение")) kind = "loss";
+  else if (nums) {
+    const left = Number(nums[1]);
+    const right = Number(nums[2]);
+    kind = left > right ? "win" : left < right ? "loss" : "";
+  }
+  const clean = nums ? `${nums[1]}:${nums[2]}` : text.replace(/,\s*победа|,\s*поражение/g, "");
+  const word = kind === "win" ? "Победа" : kind === "loss" ? "Поражение" : "Счёт";
+  return { kind, clean, word, team: nums ? Number(nums[1]) : null };
+}
+
+function resultBadge(kind, word) {
+  if (kind !== "win" && kind !== "loss") return "";
+  return `<span class="badge is-${kind}">${esc(word)}</span>`;
+}
+
+function scoreHtml(score) {
+  const parts = scoreParts(score);
+  return `${esc(parts.clean)} ${resultBadge(parts.kind, parts.word)}`;
+}
+
+function shareLine(row) {
+  const parts = scoreParts(row.score);
+  const points = Number(row.points);
+  if (!Number.isFinite(points) || parts.team == null || parts.team <= 0) return "";
+  const pct = Math.round((points / parts.team) * 100);
+  return `<p class="share">${esc(String(points))} из ${parts.team} очков команды (${pct}%)</p>`;
+}
+
+function ratioLine(row) {
+  if (row.assists == null || row.turnovers == null) return "";
+  const ok = Number(row.assists) >= Number(row.turnovers);
+  return `<p class="ratio ${ok ? "is-good" : "is-bad"}">Передачи/потери: ${esc(String(row.assists))} : ${esc(String(row.turnovers))}${ok ? " ✓" : ""}</p>`;
+}
+
+function seasonFor(tournament) {
+  const seasons = data.tournamentStats.seasons;
+  if (!tournament) return seasons.find((season) => season.highlight) || null;
+  if (tournament.id === "u12") return seasons.find((season) => String(season.name).includes("U12")) || null;
+  if (tournament.id === "fb") return seasons.find((season) => season.name.includes("Быстрый")) || null;
+  if (tournament.id === "mu") return seasons.find((season) => season.name.includes("Движение")) || null;
+  if (tournament.id === "mos2627") return seasons.find((season) => season.id === "mos2627") || null;
+  return null;
+}
+
+function signalRow(row, tournament) {
+  const season = seasonFor(tournament);
+  if (!season) return "";
+  const bits = [
+    ["Очки", "Очки", row.points, season.points, false],
+    ["Подб", "Подборы", row.rebounds, season.rebounds, false],
+    ["Пер", "Передачи", row.assists, season.assists, false],
+    ["Перехв", "Перехваты", row.steals, season.steals, false],
+    ["Потери", "Потери", row.turnovers, season.turnovers, true],
+    ["Фолы", "Фолы", row.fouls, season.fouls, true],
+  ];
+  const marks = bits
+    .filter((item) => item[2] != null && item[3] != null)
+    .map(([label, shown, value, avg, invert]) => {
+      const current = Number(value);
+      const base = Number(avg);
+      if (!Number.isFinite(current) || !Number.isFinite(base) || base === 0) return "";
+      const ratio = current / base;
+      let state = "even";
+      if (ratio >= 1.2) state = "up";
+      else if (ratio <= 0.8) state = "down";
+      const good = invert ? state === "down" : state === "up";
+      const bad = invert ? state === "up" : state === "down";
+      const mark = state === "up" ? "▲" : state === "down" ? "▼" : "≈";
+      const cls = good ? "is-good" : bad ? "is-bad" : "is-even";
+      return `<span class="signal ${cls}"><b>${mark}</b> ${term(label, shown)} ${esc(formatPlain(current))}</span>`;
+    })
+    .filter(Boolean);
+  return marks.length ? `<p class="signals">${marks.join("")}</p>` : "";
+}
+
 function mamaFacts(row) {
-  const score = String(row.score);
-  const result = score.includes("победа") ? "Победа" : score.includes("поражение") ? "Поражение" : "Счёт";
-  const clean = score.replace(/,\s*победа|,\s*поражение/g, "");
-  const bits = [ruCount(row.points, "очко", "очка", "очков")];
+  const parts = scoreParts(row.score);
+  const bits = [];
+  if (row.points != null) bits.push(ruCount(row.points, "очко", "очка", "очков"));
   const shots = String(row.fg2 || "").match(/(\d+)\s*\/\s*(\d+)/);
-  if (shots) {
-    const total = Number(shots[2]);
-    const n10 = total % 10;
-    const n100 = total % 100;
-    const word = n10 === 1 && n100 !== 11 ? "двухочкового" : "двухочковых";
-    bits.push(`${shots[1]} из ${shots[2]} ${word}`);
+  if (shots && row.fg2 != null) {
+    bits.push(`${shots[1]} из ${shots[2]} двухочковых`);
   }
   if (row.rebounds != null) bits.push(ruCount(row.rebounds, "подбор", "подбора", "подборов"));
   if (row.assists != null) bits.push(ruCount(row.assists, "передача", "передачи", "передач"));
   if (row.steals != null) bits.push(ruCount(row.steals, "перехват", "перехвата", "перехватов"));
   if (row.turnovers != null) bits.push(ruCount(row.turnovers, "потеря", "потери", "потерь"));
   const minutes = row.minutes ? ` На площадке ${row.minutes}.` : "";
-  return `${result} ${clean}.${minutes} ${bits.join(", ")}.`;
+  const tail = bits.length ? ` ${bits.join(", ")}.` : "";
+  return `${parts.word} ${parts.clean}.${minutes}${tail}`;
 }
 
 function renderNav() {
@@ -488,8 +628,9 @@ function ticker() {
   items.push(ruCount(career.games, "игра", "игры", "игр"));
   items.push(ruCount(career.points, "очко", "очка", "очков"));
   if (career.best) items.push(`Лучшая игра — ${ruCount(career.best.points, "очко", "очка", "очков")}`);
-  if (career.place) items.push(`${career.place}-е место`);
-  if (career.latest) items.push(`${formatAvg(career.latest.steals)} перехвата за игру`);
+  const achievement = (data.achievements || [])[0];
+  if (achievement) items.push(`${achievement.value}-е место`);
+  if (career.latest) items.push(`${formatAvg(career.latest.steals)} перехвата за игру (${seasonYear(career.latest.name) || "сезон"})`);
   const run = items.map((item) => `<span>${esc(item)}</span>`).join("");
   return `<div class="ticker" aria-hidden="true"><div class="ticker-track">${run}${run}</div></div>`;
 }
@@ -522,9 +663,8 @@ function collectCareer() {
     season.steals > bestSeason.steals ? season : bestSeason
   );
   const latest = seasons.find((season) => season.highlight) || seasons[seasons.length - 1];
-  const placeFact = data.lastMatch.facts.find((fact) => fact.label === "Результат");
-  const placeMatch = placeFact ? String(placeFact.value).match(/(\d+)-е/) : null;
-  return { games, points, best, peakPoints, peakSteals, latest, placeFact, place: placeMatch ? placeMatch[1] : "" };
+  const achievement = (data.achievements || [])[0];
+  return { games, points, best, peakPoints, peakSteals, latest, achievement };
 }
 
 function trendValue(viewId, category, seriesName) {
@@ -550,18 +690,22 @@ function kpiCard(value, label, detail) {
 }
 
 function renderCareerCards(career) {
-  const assistsThen = trendValue("avg", "Передачи", "2024/25");
-  const reboundsThen = trendValue("avg", "Подборы", "2024/25");
+  const assistsThen = trendValue("avg", "Передачи", "Быстрый прорыв, 2024/25");
+  const reboundsThen = trendValue("avg", "Подборы", "Быстрый прорыв, 2024/25");
   const bestDetail = [career.best.opponent, career.best.when, career.best.tournament]
     .filter(Boolean)
     .join(" · ");
   const cards = [
     kpiCard(String(career.games), "Игры", "Все матчи из трёх турниров"),
-    kpiCard(String(career.points), "Очки", "Сколько набрал в этих матчах"),
+    kpiCard(String(career.points), "Очков за карьеру (в базе)", "Сумма очков из журналов"),
     kpiCard(String(career.best.points), "Лучшая игра", bestDetail),
-    kpiCard(career.place || "—", "Место", career.placeFact ? career.placeFact.value : ""),
-    kpiCard(formatAvg(career.peakPoints.points), "Больше всего очков", career.peakPoints.name),
-    kpiCard(formatAvg(career.peakSteals.steals), "Больше всего перехватов", career.peakSteals.name),
+    kpiCard(
+      career.achievement ? career.achievement.value : "—",
+      "Место",
+      career.achievement ? `${career.achievement.value}-е место · ${career.achievement.detail}` : ""
+    ),
+    kpiCard(formatAvg(career.peakPoints.points), "Лучшее среднее за турнир", `очка за игру · ${career.peakPoints.name}`),
+    kpiCard(formatAvg(career.peakSteals.steals), "Лучшее среднее по перехватам", career.peakSteals.name),
     kpiCard(
       formatAvg(career.latest.rebounds),
       `Подборы, ${seasonYear(career.latest.name) || "сезон"}`,
@@ -580,20 +724,29 @@ function renderCareerCards(career) {
   return `<div class="kpi-grid">${cards.join("")}</div>`;
 }
 
+function shotPhrase(label, value) {
+  const match = String(value).match(/(\d+)\s*\/\s*(\d+)(?:,\s*(\d+)%)?/);
+  if (!match) return `<span>${term(label)}: ${esc(value)}</span>`;
+  const percent = match[3] ? ` (${match[3]}%)` : "";
+  return `<span>${term(label)}: ${match[1]} из ${match[2]}${percent}</span>`;
+}
+
 function renderSeasonCards() {
   const cards = data.tournamentStats.seasons
     .map((season) => {
+      const games = String(season.games).match(/(\d+)\s*\((\d+)\)/);
+      const gamesText = games ? `${games[1]} игр, ${games[2]} в старте` : `${season.games} игр`;
       return `<article class="season-card${season.highlight ? " is-current" : ""}">
         <p>${esc(season.name)}</p>
         <strong>${formatAvg(season.points)}</strong>
-        <span>за игру · ${esc(season.games)} игр · ${esc(season.minutes)}</span>
+        <span>очка за игру · ${esc(gamesText)} · ${esc(season.minutes)} мин в среднем</span>
         <ul>
-          <li><b>${formatAvg(season.rebounds)}</b> подб</li>
-          <li><b>${formatAvg(season.assists)}</b> пер</li>
-          <li><b>${formatAvg(season.steals)}</b> перехв</li>
-          <li><b>${formatAvg(season.turnovers)}</b> потери</li>
+          <li><b>${formatAvg(season.rebounds)}</b> ${term("Подб")}</li>
+          <li><b>${formatAvg(season.assists)}</b> ${term("Пер")}</li>
+          <li><b>${formatAvg(season.steals)}</b> ${term("Перехв")}</li>
+          <li><b>${formatAvg(season.turnovers)}</b> ${term("Потери")}</li>
         </ul>
-        <small>${esc(season.fg2)} 2-очк. · ${esc(season.fg3)} 3-очк. · ${esc(season.ft)} штраф</small>
+        <small class="shoot-lines">${shotPhrase("2-очк.", season.fg2)}${shotPhrase("3-очк.", season.fg3)}${shotPhrase("Штраф", season.ft)}</small>
       </article>`;
     })
     .join("");
@@ -664,7 +817,7 @@ function renderCareerPage() {
           <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
           <p class="summary">${esc(ruCount(career.games, "игра", "игры", "игр"))}, ${esc(ruCount(career.points, "очко", "очка", "очков"))}. Ниже — лучшие матчи и средние из этих журналов.</p>
           ${updatedLine()}
-          <p class="card-link"><a href="mama.html">Для мамы</a></p>
+          <p class="card-link"><a href="#kpis">Достижения</a><a href="#seasons">Турниры</a><a href="#badges">Оценка</a><a href="#news">Новости</a><a href="index.html#glossary">Что значат цифры?</a><a href="mama.html">Для мамы</a></p>
         </div>
       </div>
     </section>
@@ -774,11 +927,49 @@ function renderMamaGame(entry) {
   </article>`;
 }
 
+function gameStamp(tournament, row, index) {
+  const match = String(row.date || "").match(/^(\d{2})\.(\d{2})\.(\d{2})$/);
+  if (match) return new Date(2000 + Number(match[3]), Number(match[2]) - 1, Number(match[1])).getTime() + index;
+  return (tournament.id === "u12" ? 20250000 : 20240000) + index;
+}
+
+function mamaArticle(tournament, row) {
+  const parts = scoreParts(row.score);
+  const title = row.date
+    ? `${fullDate(row.date)} · ${row.opponent}`
+    : `${row.stage ? `${row.stage} · ` : ""}${row.opponent}`;
+  const plus = row.aiMama || "";
+  const limited = row.minutes == null && row.fg2 == null ? `<p class="caption">Других цифр в протоколе этой лиги нет.</p>` : "";
+  return `<article class="review">
+    <h3>${esc(title)} ${resultBadge(parts.kind, parts.word)}</h3>
+    <p>${esc(mamaFacts(row))}</p>
+    ${shareLine(row)}
+    ${limited}
+    ${plus ? `<p class="plus"><span>Что порадовало:</span> ${esc(plus)}</p>` : ""}
+  </article>`;
+}
+
 function renderMamaPage() {
   const mama = data.mama;
   const player = data.player;
   const year = profileValue("Год рождения");
-  const games = mama.games.map(renderMamaGame).join("");
+  const flat = [];
+  data.gameLogs.tournaments.forEach((tournament) => {
+    tournament.rows.forEach((row, index) => flat.push({ tournament, row, index, stamp: gameStamp(tournament, row, index) }));
+  });
+  flat.sort((a, b) => b.stamp - a.stamp);
+  const latestItems = flat.slice(0, 5);
+  const latestKeys = new Set(latestItems.map((item) => `${item.tournament.id}:${item.index}`));
+  const latest = latestItems.map((item) => mamaArticle(item.tournament, item.row)).join("");
+  const groups = data.gameLogs.tournaments
+    .map((tournament) => {
+      const cards = tournament.rows
+        .map((row, index) => (latestKeys.has(`${tournament.id}:${index}`) ? "" : mamaArticle(tournament, row)))
+        .join("");
+      if (!cards) return "";
+      return `<section class="mama-group"><h3>${esc(tournament.mamaTitle || tournament.label)}</h3>${cards}</section>`;
+    })
+    .join("");
   const list = (items) => items.map((item) => `<li>${esc(item)}</li>`).join("");
   document.getElementById("app").innerHTML = `<section class="player-card" id="top"${numberAttr()}>
       <p class="kicker">Для мамы${year ? ` · ${esc(year)}` : ""}</p>
@@ -786,11 +977,18 @@ function renderMamaPage() {
       <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
       <p class="summary">${esc(mama.summary)}</p>
       ${updatedLine()}
+      <p class="card-link"><a href="#path">Весь путь</a><a href="#recent">Игры</a><a href="#mama-notes">Что видно</a><a href="#news">Новости</a><a href="index.html#glossary">Что значат цифры?</a></p>
+    </section>
+    <section class="block" id="path">
+      <h2>Весь путь</h2>
+      <aside class="callout"><p>${esc(mama.seasonSummary || "")}</p></aside>
     </section>
     <section class="block" id="recent">
       <h2>Последние игры</h2>
-      <p class="caption">Пять последних матчей сезона U12, с конца. Цифры из журнала.</p>
-      <div class="reviews">${games}</div>
+      <p class="caption">Пять последних матчей с личным текстом. Остальные — под кнопкой, по турнирам.</p>
+      <div class="reviews">${latest}</div>
+      <p class="card-link"><button type="button" id="show-all-games">Показать все игры</button></p>
+      <div id="all-mama-games" hidden>${groups}</div>
       ${
         mama.pending && mama.pending.title
           ? `<article class="review"><h3>${esc(mama.pending.title)}</h3><p>${esc(mama.pending.text)}</p></article>`
@@ -817,14 +1015,41 @@ function renderMamaPage() {
 
 function renderLast() {
   const block = data.lastMatch;
+  const row = findLogRow("21.02.26") || findLogRow("u12-9");
+  const tournament = data.gameLogs.tournaments.find((item) => item.id === "u12");
   return `<section class="block" id="last">
     <h2>${esc(heading("last"))}</h2>
+    ${block.notice ? `<p class="plaque">${esc(block.notice)}</p>` : ""}
     <p class="caption">${esc(block.caption)}</p>
     ${facts(block.facts)}
     ${scoreCards(block.columns, block.rows)}
     ${arrayTable(block.columns, block.rows)}
+    ${row ? ratioLine(row) : ""}
+    ${row ? shareLine(row) : ""}
+    ${row ? signalRow(row, tournament) : ""}
     ${block.aiReview ? `<div class="prose"><p>${esc(block.aiReview)}</p></div>` : paragraphs(block.paragraphs)}
   </section>`;
+}
+
+function renderGuard() {
+  const season = data.tournamentStats.seasons.find((item) => item.highlight) || data.tournamentStats.seasons[data.tournamentStats.seasons.length - 1];
+  return `<section class="block" id="guard">
+    <h2>Что важно для разыгрывающего</h2>
+    <ul class="guard-list">
+      <li>Передачи не меньше потерь. Сейчас в среднем ${esc(formatAvg(season.assists))} : ${esc(formatAvg(season.turnovers))}.</li>
+      <li>Мало потерь: разыгрывающий держит мяч дольше всех.</li>
+      <li>Перехваты и подборы — вклад в защиту.</li>
+      <li>Очки — бонус, не главное.</li>
+    </ul>
+  </section>`;
+}
+
+function renderGlossary() {
+  if (!data.glossary || !data.glossary.length) return "";
+  const items = data.glossary
+    .map((item) => `<article class="glossary-item"><h3>${esc(item.term)}</h3><p>${esc(item.text)}</p></article>`)
+    .join("");
+  return `<section class="block" id="glossary"><h2>Словарик</h2><div class="glossary">${items}</div></section>`;
 }
 
 function renderProfile() {
@@ -912,7 +1137,7 @@ function renderSources() {
   const cards = data.sources.links
     .map((link) => {
       const href = safeUrl(link.href);
-      const body = `<strong>${esc(link.title)}</strong><span>${esc(link.site)}</span>`;
+      const body = `<strong>${esc(link.title)}</strong><span>${esc(link.site)}</span>${link.note ? `<small>${esc(link.note)}</small>` : ""}`;
       if (!href) return `<div class="source-card">${body}</div>`;
       return `<a class="source-card" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${body}</a>`;
     })
@@ -933,7 +1158,7 @@ function renderGamePanel(restoreFocus) {
     state.game,
     "game",
     "Турнир"
-  )}${pointsChart(tournament)}${gameCards(tournament)}${objectTable(tournament.columns, tournament.rows, "only-desk")}`;
+  )}${tournament.blurb ? `<p class="caption">${esc(tournament.blurb)}</p>` : ""}${pointsChart(tournament)}${gameCards(tournament)}${objectTable(tournament.columns, tournament.rows, "only-desk")}`;
   if (restoreFocus) {
     const button = document.querySelector(`[data-game="${CSS.escape(state.game)}"]`);
     if (button) button.focus();
@@ -948,7 +1173,7 @@ function renderTrendPanel(restoreFocus) {
     state.trend,
     "trend",
     "Показатель"
-  )}${groupedChart(view)}`;
+  )}${view.hint ? `<p class="caption">${esc(view.hint)}</p>` : ""}${groupedChart(view)}`;
   if (restoreFocus) {
     const button = document.querySelector(`[data-trend="${CSS.escape(state.trend)}"]`);
     if (button) button.focus();
@@ -972,6 +1197,7 @@ function render() {
     document.getElementById("app").innerHTML = [
       renderHero(),
       renderLast(),
+      renderGuard(),
       renderProfile(),
       renderSeason(),
       renderStats(),
@@ -979,6 +1205,7 @@ function render() {
       renderTrendSection(),
       renderNotes(),
       renderSources(),
+      renderGlossary(),
     ].join("");
     document.getElementById("load-state").hidden = true;
     document.getElementById("app").hidden = false;
@@ -1123,7 +1350,59 @@ function scrollToHash() {
   if (node) node.scrollIntoView();
 }
 
+function closeTerm() {
+  const pop = document.getElementById("term-pop");
+  if (pop) pop.hidden = true;
+  document.querySelectorAll(".term[aria-expanded='true']").forEach((node) => node.setAttribute("aria-expanded", "false"));
+}
+
+function openTerm(node) {
+  let pop = document.getElementById("term-pop");
+  if (!pop) {
+    pop = document.createElement("div");
+    pop.id = "term-pop";
+    pop.className = "term-pop";
+    pop.setAttribute("role", "tooltip");
+    document.body.appendChild(pop);
+  }
+  closeTerm();
+  pop.textContent = node.getAttribute("data-term") || "";
+  pop.hidden = false;
+  node.setAttribute("aria-expanded", "true");
+  const rect = node.getBoundingClientRect();
+  const width = Math.min(280, window.innerWidth - 24);
+  pop.style.width = `${width}px`;
+  const left = Math.max(12, Math.min(rect.left, window.innerWidth - width - 12));
+  const popHeight = pop.offsetHeight || 72;
+  let top = rect.bottom + 8;
+  if (top + popHeight > window.innerHeight - 8) top = Math.max(8, rect.top - popHeight - 8);
+  pop.style.left = `${left}px`;
+  pop.style.top = `${top}px`;
+}
+
 document.addEventListener("click", (event) => {
+  const termNode = event.target.closest(".term");
+  if (termNode) {
+    event.preventDefault();
+    if (termNode.getAttribute("aria-expanded") === "true") closeTerm();
+    else openTerm(termNode);
+    return;
+  }
+  if (!event.target.closest("#term-pop")) closeTerm();
+  const fold = event.target.closest("[data-fold]");
+  if (fold) {
+    const text = fold.parentElement.querySelector(".game-review");
+    if (text) text.hidden = !text.hidden;
+    return;
+  }
+  if (event.target.closest("#show-all-games")) {
+    const box = document.getElementById("all-mama-games");
+    if (box) {
+      box.hidden = !box.hidden;
+      event.target.textContent = box.hidden ? "Показать все игры" : "Скрыть остальные игры";
+    }
+    return;
+  }
   const bar = event.target.closest("[data-bar]");
   if (bar) {
     showBar(Number(bar.getAttribute("data-bar")));
@@ -1152,6 +1431,16 @@ document.addEventListener("pointerover", (event) => {
   if (event.pointerType !== "mouse" || !event.target.closest) return;
   const bar = event.target.closest("[data-bar]");
   if (bar) showBar(Number(bar.getAttribute("data-bar")));
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeTerm();
+  const termNode = event.target.closest && event.target.closest(".term");
+  if (termNode && (event.key === "Enter" || event.key === " ")) {
+    event.preventDefault();
+    if (termNode.getAttribute("aria-expanded") === "true") closeTerm();
+    else openTerm(termNode);
+  }
 });
 
 document.addEventListener("scroll", syncChrome, { passive: true });
