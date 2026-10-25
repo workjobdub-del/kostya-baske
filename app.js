@@ -609,7 +609,6 @@ function renderHero() {
         <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
         <p class="summary">${esc(player.summary)}</p>
         ${heroStats()}
-        <p class="card-link"><a href="career.html">Карьера</a><a href="mama.html">Для мамы</a></p>
       </div>
     </div>
   </section>
