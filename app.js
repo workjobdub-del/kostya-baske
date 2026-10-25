@@ -598,16 +598,19 @@ function heroStats() {
     ${updatedLine()}`;
 }
 
+const ASSET_V = "2026-10-25-13";
+
+function siteLogoMark() {
+  return `<div class="player-logo"><img src="logo.png?v=${ASSET_V}" width="677" height="546" alt="DERBYSH 7. Игра, достойная сцены"></div>`;
+}
+
 function renderHero() {
   const player = data.player;
   const year = profileValue("Год рождения");
-  const shield = player.number
-    ? `<div class="shield"><strong>${esc(player.number)}</strong><em>номер</em></div>`
-    : "";
   return `<section class="player-card" id="top"${numberAttr()}>
     <p class="kicker">Карточка игрока${year ? ` · ${esc(year)}` : ""}</p>
     <div class="player-card-main">
-      ${shield}
+      ${siteLogoMark()}
       <div class="player-card-copy">
         <h1>${esc(player.name)}</h1>
         <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
@@ -814,6 +817,7 @@ function renderCareerPage() {
   document.getElementById("app").innerHTML = `<section class="player-card" id="top"${numberAttr()}>
       <p class="kicker">Карьера${year ? ` · ${esc(year)}` : ""}</p>
       <div class="player-card-main">
+        ${siteLogoMark()}
         <div class="shield"><strong>${esc(String(career.best.points))}</strong><em>лучшая игра</em></div>
         <div class="player-card-copy">
           <h1>${esc(player.name)}</h1>
@@ -976,6 +980,7 @@ function renderMamaPage() {
   const list = (items) => items.map((item) => `<li>${esc(item)}</li>`).join("");
   document.getElementById("app").innerHTML = `<section class="player-card" id="top"${numberAttr()}>
       <p class="kicker">Для мамы${year ? ` · ${esc(year)}` : ""}</p>
+      ${siteLogoMark()}
       <h1>${esc(player.name)}</h1>
       <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
       <p class="summary">${esc(mama.summary)}</p>
