@@ -777,7 +777,6 @@ function renderMamaPage() {
   const mama = data.mama;
   const player = data.player;
   const year = profileValue("Год рождения");
-  const anchor = mama.anchor.map((line) => `<p>${esc(line)}</p>`).join("");
   const games = mama.games.map(renderMamaGame).join("");
   const list = (items) => items.map((item) => `<li>${esc(item)}</li>`).join("");
   document.getElementById("app").innerHTML = `<section class="player-card" id="top"${numberAttr()}>
@@ -786,7 +785,6 @@ function renderMamaPage() {
       <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
       <p class="summary">${esc(mama.summary)}</p>
       ${updatedLine()}
-      <aside class="callout">${anchor}</aside>
     </section>
     <section class="block" id="recent">
       <h2>Последние игры</h2>
