@@ -13,10 +13,15 @@ const TAB_PAGES = [
   { id: "team", href: "team.html" },
   { id: "mama", href: "mama.html" },
 ];
-const TAB_SWIPE_MIN_DX = 70;
-const TAB_SWIPE_MAX_MS = 600;
-const TAB_SWIPE_EDGE_PX = 20;
+const TAB_SWIPE_MIN_DX = 60;
+const TAB_SWIPE_MAX_MS = 800;
+const TAB_SWIPE_EDGE_PX = 12;
+const TAB_SWIPE_SLOPE = 1.3;
 const TAB_SWIPE_ANIM_MS = 200;
+const TAB_SWIPE_MOVE_COMMIT_PX = 16;
+const TAB_SWIPE_EXPLICIT =
+  "#trend-panel, .table-scroll, svg.points, .chart-scroll, .segmented, .news-list, [data-noswipe]";
+const TAB_SWIPE_ROOT_TAGS = new Set(["HTML", "BODY", "MAIN"]);
 
 const MONTHS = [
   "января",
@@ -1997,33 +2002,89 @@ function setupNotifications() {
   });
 }
 
-function currentTabIndex() {
+function tabPageIdFromPath() {
   const page = document.body.dataset.page;
-  const index = TAB_PAGES.findIndex((item) => item.id === page);
+  if (page) {
+    const hit = TAB_PAGES.find((item) => item.id === page);
+    if (hit) return hit.id;
+  }
+  const scope = workerTarget().scope.replace(/\/+$/, "");
+  let path = location.pathname.replace(/\/+$/, "") || "/";
+  if (scope && path.startsWith(scope)) {
+    path = path.slice(scope.length) || "/";
+  }
+  const leaf = path === "/" ? "" : path.split("/").pop() || "";
+  const file = (leaf || "index.html").toLowerCase();
+  const map = {
+    "": "profile",
+    index: "profile",
+    "index.html": "profile",
+    career: "career",
+    "career.html": "career",
+    team: "team",
+    "team.html": "team",
+    mama: "mama",
+    "mama.html": "mama",
+  };
+  return map[file] || map[file.replace(/\.html$/, "")] || "profile";
+}
+
+function currentTabIndex() {
+  const id = tabPageIdFromPath();
+  const index = TAB_PAGES.findIndex((item) => item.id === id);
   return index >= 0 ? index : 0;
+}
+
+function tabPageHref(filename) {
+  return new URL(filename, siteBase()).href;
 }
 
 function tabSwipeReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-function isNoSwipeTarget(node) {
+function isSwipeLayoutRoot(el) {
+  if (!el) return true;
+  if (el.id === "content") return true;
+  return TAB_SWIPE_ROOT_TAGS.has(el.tagName);
+}
+
+function isExplicitNoSwipe(el) {
+  if (!(el instanceof Element)) return false;
+  if (el.matches("input, select, textarea, canvas")) return true;
+  if (el.hasAttribute("data-noswipe")) return true;
+  if (el.closest(TAB_SWIPE_EXPLICIT)) return true;
+  if (el.tagName === "SVG" && (el.closest("#trend-panel") || el.classList.contains("points"))) return true;
+  return false;
+}
+
+function horizontalScrollerBlocks(el, dx) {
+  const style = window.getComputedStyle(el);
+  const ox = style.overflowX;
+  if (!(ox === "auto" || ox === "scroll" || ox === "overlay")) return false;
+  if (el.scrollWidth <= el.clientWidth + 4) return false;
+  const max = el.scrollWidth - el.clientWidth;
+  if (dx < 0) return el.scrollLeft > 2;
+  if (dx > 0) return el.scrollLeft < max - 2;
+  return true;
+}
+
+function isNoSwipeTarget(node, dx) {
   let el = node instanceof Element ? node : null;
-  while (el && el !== document.body && el !== document.documentElement) {
-    if (el.hasAttribute("data-noswipe")) return true;
-    const tag = el.tagName;
-    if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return true;
-    if (tag === "CANVAS") return true;
-    if (tag === "SVG" && (el.closest("#trend-panel") || el.closest("svg.points"))) return true;
-    if (el.closest("#trend-panel, .table-scroll, svg.points, .chart-scroll, .segmented, .news-list")) return true;
-    const style = window.getComputedStyle(el);
-    const ox = style.overflowX;
-    if ((ox === "auto" || ox === "scroll" || ox === "overlay") && el.scrollWidth > el.clientWidth + 2) {
-      return true;
-    }
+  while (el) {
+    if (isSwipeLayoutRoot(el)) break;
+    if (isExplicitNoSwipe(el)) return true;
+    if (horizontalScrollerBlocks(el, dx)) return true;
     el = el.parentElement;
   }
   return false;
+}
+
+function tabSwipeGestureOk(dx, dy, dt) {
+  if (dt > TAB_SWIPE_MAX_MS) return false;
+  if (Math.abs(dx) < TAB_SWIPE_MIN_DX) return false;
+  if (Math.abs(dx) < TAB_SWIPE_SLOPE * Math.abs(dy)) return false;
+  return true;
 }
 
 let tabSwipeNavigating = false;
@@ -2043,7 +2104,7 @@ function navigateTabSwipe(direction) {
   if (content && !reduced) {
     content.classList.add(direction === "next" ? "page-exit-to-left" : "page-exit-to-right");
   }
-  const target = TAB_PAGES[nextIndex].href;
+  const target = tabPageHref(TAB_PAGES[nextIndex].href);
   const go = () => {
     location.href = target;
   };
@@ -2073,9 +2134,20 @@ function applyTabSwipeEnter() {
   window.setTimeout(clear, TAB_SWIPE_ANIM_MS + 80);
 }
 
+function commitTabSwipe(dx, dy, dt, target) {
+  if (tabSwipeNavigating || !tabSwipeGestureOk(dx, dy, dt)) return false;
+  if (isNoSwipeTarget(target, dx)) return false;
+  if (dx < 0) navigateTabSwipe("next");
+  else navigateTabSwipe("prev");
+  return true;
+}
+
 function setupTabSwipe() {
   let start = null;
-  let blocked = false;
+
+  const reset = () => {
+    start = null;
+  };
 
   document.addEventListener(
     "touchstart",
@@ -2084,17 +2156,33 @@ function setupTabSwipe() {
       const touch = event.touches[0];
       const w = window.innerWidth;
       if (touch.clientX < TAB_SWIPE_EDGE_PX || touch.clientX > w - TAB_SWIPE_EDGE_PX) {
-        blocked = true;
-        start = null;
+        reset();
         return;
       }
-      if (isNoSwipeTarget(event.target)) {
-        blocked = true;
-        start = null;
+      if (isExplicitNoSwipe(event.target)) {
+        reset();
         return;
       }
-      blocked = false;
-      start = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+      start = {
+        x: touch.clientX,
+        y: touch.clientY,
+        time: Date.now(),
+        target: event.target,
+      };
+    },
+    { passive: true }
+  );
+
+  document.addEventListener(
+    "touchmove",
+    (event) => {
+      if (!start || tabSwipeNavigating || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      const dx = touch.clientX - start.x;
+      const dy = touch.clientY - start.y;
+      const dt = Date.now() - start.time;
+      if (Math.abs(dx) < TAB_SWIPE_MOVE_COMMIT_PX) return;
+      if (commitTabSwipe(dx, dy, dt, start.target)) reset();
     },
     { passive: true }
   );
@@ -2102,29 +2190,60 @@ function setupTabSwipe() {
   document.addEventListener(
     "touchend",
     (event) => {
-      if (blocked || !start || tabSwipeNavigating) {
-        start = null;
-        blocked = false;
+      if (!start || tabSwipeNavigating) {
+        reset();
         return;
       }
       const touch = event.changedTouches[0];
       if (!touch) {
-        start = null;
+        reset();
         return;
       }
       const dx = touch.clientX - start.x;
       const dy = touch.clientY - start.y;
       const dt = Date.now() - start.time;
-      start = null;
-      blocked = false;
-      if (dt > TAB_SWIPE_MAX_MS) return;
-      if (Math.abs(dx) < TAB_SWIPE_MIN_DX) return;
-      if (Math.abs(dx) < 1.5 * Math.abs(dy)) return;
-      if (dx < 0) navigateTabSwipe("next");
-      else navigateTabSwipe("prev");
+      const target = start.target;
+      reset();
+      commitTabSwipe(dx, dy, dt, target);
     },
     { passive: true }
   );
+
+  document.addEventListener("touchcancel", reset, { passive: true });
+}
+
+function initServiceWorkerAutoUpdate() {
+  if (!("serviceWorker" in navigator)) return;
+  let hadController = Boolean(navigator.serviceWorker.controller);
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController) {
+      hadController = true;
+      return;
+    }
+    if (sessionStorage.getItem("kostya-sw-pending-reload") !== "1") return;
+    sessionStorage.removeItem("kostya-sw-pending-reload");
+    location.reload();
+  });
+
+  const target = workerTarget();
+  navigator.serviceWorker
+    .register(target.path, { scope: target.scope })
+    .then((reg) => {
+      const kickWaiting = (worker) => {
+        if (!worker || !navigator.serviceWorker.controller) return;
+        sessionStorage.setItem("kostya-sw-pending-reload", "1");
+        worker.postMessage({ type: "SKIP_WAITING" });
+      };
+      kickWaiting(reg.waiting);
+      reg.addEventListener("updatefound", () => {
+        const worker = reg.installing;
+        if (!worker) return;
+        worker.addEventListener("statechange", () => {
+          if (worker.state === "installed") kickWaiting(worker);
+        });
+      });
+    })
+    .catch(() => {});
 }
 
 async function init() {
@@ -2155,6 +2274,7 @@ async function init() {
   void setupNotifications();
 }
 
+initServiceWorkerAutoUpdate();
 applyTabSwipeEnter();
 setupTabSwipe();
 init();
