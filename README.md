@@ -62,7 +62,7 @@ python3 -m http.server 8000
 
 | Ключ | Что на странице |
 | --- | --- |
-| `player` | Шапка: `name`, `team`, `position`, `summary` |
+| `player` | Шапка: `name`, `number` (цифра в шестиграннике), `team`, `position`, `summary` |
 | `nav` | Меню разделов: `id`, `label`, `short` |
 | `lastMatch` | Блок «Последний матч» |
 | `profile` | Карточки профиля и абзац |

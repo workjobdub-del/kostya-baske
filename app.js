@@ -259,11 +259,6 @@ function profileValue(label) {
   return item ? item.value : "";
 }
 
-function firstNumber(text) {
-  const match = String(text).match(/\d+/);
-  return match ? match[0] : "";
-}
-
 function ruCount(value, one, few, many) {
   const n = Math.abs(Number(value));
   const n10 = n % 10;
@@ -328,10 +323,9 @@ function renderNav() {
 
 function renderHero() {
   const player = data.player;
-  const height = firstNumber(profileValue("Рост и вес"));
   const year = profileValue("Год рождения");
-  const shield = height
-    ? `<div class="shield"><strong>${esc(height)}</strong><em>рост, см</em></div>`
+  const shield = player.number
+    ? `<div class="shield"><strong>${esc(player.number)}</strong><em>номер</em></div>`
     : "";
   return `<section class="player-card" id="top">
     <p class="kicker">Карточка игрока${year ? ` · ${esc(year)}` : ""}</p>
