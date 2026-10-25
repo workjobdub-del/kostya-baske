@@ -607,7 +607,7 @@ function heroStats() {
     ${updatedLine()}`;
 }
 
-const ASSET_V = "2026-10-25-16";
+const ASSET_V = "2026-10-25-17";
 
 function siteLogoMark() {
   return `<div class="player-logo"><img src="logo.png?v=${ASSET_V}" width="995" height="978" alt="DERBYSHEV 7"></div>`;
@@ -1489,8 +1489,10 @@ const TAG_NEWS = "Новости команды";
 
 function workerTarget() {
   const path = location.pathname;
-  const marker = "/kostya-baske/";
-  const scope = path.includes(marker) ? marker : path.slice(0, path.lastIndexOf("/") + 1) || "/";
+  const marker = "/kostya-baske";
+  const at = path.indexOf(marker);
+  const scope =
+    at >= 0 ? `${path.slice(at, at + marker.length)}/` : path.slice(0, path.lastIndexOf("/") + 1) || "/";
   return { path: `${scope.replace(/^\//, "")}sw.js`, scope };
 }
 
@@ -1517,10 +1519,16 @@ function loadErrorMessage(error) {
   return "Не удалось загрузить данные с сайта. Проверьте интернет и обновите страницу (кнопка «Обновить» в плашке или Ctrl+F5).";
 }
 
+const LIVE_DATA_BASE = "https://workjobdub-del.github.io/kostya-baske/";
+
 async function loadJson(name, attempts = 3) {
-  const url = dataUrl(name);
+  const urls = [dataUrl(name)];
+  if (location.protocol === "file:" && !urls[0].startsWith(LIVE_DATA_BASE)) {
+    urls.push(new URL(name, LIVE_DATA_BASE).href);
+  }
   let lastError = null;
-  for (let attempt = 0; attempt < attempts; attempt++) {
+  for (const url of urls) {
+    for (let attempt = 0; attempt < attempts; attempt++) {
     try {
       const response = await fetch(url, { cache: "no-store", credentials: "same-origin" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -1533,6 +1541,7 @@ async function loadJson(name, attempts = 3) {
     } catch (error) {
       lastError = error;
       if (attempt + 1 < attempts) await new Promise((resolve) => window.setTimeout(resolve, 300));
+    }
     }
   }
   throw lastError;
