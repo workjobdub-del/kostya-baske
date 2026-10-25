@@ -598,10 +598,10 @@ function heroStats() {
     ${updatedLine()}`;
 }
 
-const ASSET_V = "2026-10-25-13";
+const ASSET_V = "2026-10-25-14";
 
 function siteLogoMark() {
-  return `<div class="player-logo"><img src="logo.png?v=${ASSET_V}" width="677" height="546" alt="DERBYSH 7. Игра, достойная сцены"></div>`;
+  return `<div class="player-logo"><img src="logo.png?v=${ASSET_V}" width="995" height="978" alt="DERBYSHEV 7"></div>`;
 }
 
 function renderHero() {
