@@ -1517,6 +1517,12 @@ def canonical(obj) -> str:
     return json.dumps(obj, ensure_ascii=False, sort_keys=True)
 
 
+def _log_row_core(row: dict) -> dict:
+    """Журнал без полей, которые дописывает kpi_sync из PlayerStats."""
+    core = {k: v for k, v in row.items() if k not in ("kpi", "plusMinus", "gameId")}
+    return core
+
+
 def assert_safe(data, news, u12_before):
     blob = json.dumps({"data": data, "news": news}, ensure_ascii=False)
     for forbidden in ("424578", "Кириллович", "26.03.2014"):
@@ -1525,7 +1531,9 @@ def assert_safe(data, news, u12_before):
     if data["player"]["name"] != "Костя Дербышев" or str(data["player"].get("number")) != "7":
         raise SystemExit("остановка: имя или номер изменились бы, файлы не записал")
     u12 = next(item for item in data["gameLogs"]["tournaments"] if item.get("id") == "u12")
-    if u12["rows"] != u12_before:
+    before_core = [_log_row_core(row) for row in u12_before]
+    after_core = [_log_row_core(row) for row in u12["rows"]]
+    if after_core != before_core:
         raise SystemExit("остановка: журнал U12 изменился бы, файлы не записал")
     for post in news["posts"]:
         if post.get("tag") not in ("2014", "клуб") or not str(post.get("link", "")).startswith("https://"):
@@ -1947,6 +1955,12 @@ def main():
     u12_before = copy.deepcopy(next(item["rows"] for item in data["gameLogs"]["tournaments"] if item["id"] == "u12"))
     notes = []
     update_basket(data, notes)
+    try:
+        from kpi_sync import refresh_kpi
+
+        refresh_kpi(data, notes)
+    except Exception as exc:
+        notes.append(f"kpi: не обновил ({type(exc).__name__})")
     refresh_mama_notes(data)
     review_games(data, notes)
     merge_posts(news, fetch_telegram(notes) + fetch_club(notes), notes)

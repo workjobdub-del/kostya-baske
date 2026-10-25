@@ -47,6 +47,33 @@ function formatCell(value, average) {
   return esc(value);
 }
 
+function formatPlusMinus(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "—";
+  const sign = num > 0 ? "+" : "";
+  return `${sign}${formatPlain(num)}`;
+}
+
+function normOppName(text) {
+  return String(text || "").toLowerCase().replace(/ё/g, "е").trim();
+}
+
+function sameKpiMatch(a, b) {
+  if (!a || !b) return false;
+  if (a.gameId && b.gameId) return a.gameId === b.gameId;
+  return a.date === b.date && normOppName(a.opponent) === normOppName(b.opponent);
+}
+
+function isMvpMatch(row) {
+  const mvp = data.kpi && data.kpi.mvp;
+  if (!mvp || !row) return false;
+  return sameKpiMatch(mvp, row);
+}
+
+function mvpBadgeHtml() {
+  return '<span class="match-mvp">🏅 MVP матча</span>';
+}
+
 function safeUrl(url) {
   try {
     const parsed = new URL(url);
@@ -81,8 +108,14 @@ function objectTable(columns, rows, extraClass) {
       const cells = columns
         .map((column) => {
           const extra = column.key === "scored" || column.key === "conceded" ? " col-extra" : "";
-          const value = column.key === "score" ? scoreHtml(row[column.key]) : formatCell(row[column.key], column.average);
-          return `<td class="${extra}">${value}</td>`;
+          let value;
+          if (column.key === "score") value = scoreHtml(row[column.key]);
+          else if (column.key === "plusMinus") value = formatPlusMinus(row[column.key]);
+          else if (column.key === "kpi") value = row[column.key] == null ? "—" : formatPlain(row[column.key]);
+          else value = formatCell(row[column.key], column.average);
+          const mvp =
+            column.key === "opponent" && isMvpMatch(row) ? ` ${mvpBadgeHtml()}` : "";
+          return `<td class="${extra}">${value}${mvp}</td>`;
         })
         .join("");
       const fold = row.aiReview
@@ -163,7 +196,8 @@ function gameCards(tournament) {
         .join("");
       const review = row.aiReview ? `<p class="game-review">${esc(row.aiReview)}</p>` : "";
       const limited = row.minutes == null && row.fg2 == null ? `<p class="caption">Других цифр в протоколе этой лиги нет.</p>` : "";
-      return `<details class="game-card"><summary><span>${esc(title)}</span><b>${points}</b></summary><dl>${rest}</dl>${ratioLine(row)}${shareLine(row)}${signalRow(row, tournament)}${limited}${review}</details>`;
+      const mvp = isMvpMatch(row) ? ` ${mvpBadgeHtml()}` : "";
+      return `<details class="game-card"><summary><span>${esc(title)}${mvp}</span><b>${points}</b></summary><dl>${rest}</dl>${ratioLine(row)}${shareLine(row)}${signalRow(row, tournament)}${limited}${review}</details>`;
     })
     .join("");
   return `<div class="game-cards only-phone">${cards}</div>`;
@@ -342,16 +376,22 @@ function groupedChart(view) {
   const plotW = width - pad.left - pad.right;
   const categories = view.categories;
   const series = view.series;
-  const maxValue = Math.max(...series.flatMap((item) => item.values), 0);
-  const top = axisMax(maxValue);
+  const flat = series.flatMap((item) => item.values.map((v) => Number(v)));
+  const minValue = view.signed ? Math.min(...flat, 0) : 0;
+  const maxValue = Math.max(...flat, 0);
+  const span = maxValue - minValue || 1;
+  const top = view.signed ? span : axisMax(maxValue);
   const step = tickStep(top);
   const groupW = plotW / categories.length;
   const barW = Math.min(28, (groupW - 24) / series.length);
   let shapes = "";
 
-  for (let tick = 0; tick <= top + 0.001; tick += step) {
-    const y = pad.top + plotH - (tick / top) * plotH;
-    const grid = tick === 0 ? "#3a3f4b" : "#2c313c";
+  const zeroY = view.signed ? pad.top + plotH - ((0 - minValue) / span) * plotH : pad.top + plotH;
+  for (let tick = minValue; tick <= maxValue + 0.001; tick += step) {
+    const y = view.signed
+      ? pad.top + plotH - ((tick - minValue) / span) * plotH
+      : pad.top + plotH - (tick / top) * plotH;
+    const grid = Math.abs(tick) < 0.001 ? "#3a3f4b" : "#2c313c";
     shapes += `<line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="${grid}"></line>`;
     shapes += `<text x="${pad.left - 8}" y="${y + 4}" text-anchor="end" fill="#c8c2b6" font-size="12" font-family="${FONT}">${formatTick(tick)}</text>`;
   }
@@ -363,9 +403,16 @@ function groupedChart(view) {
     series.forEach((item, seriesIndex) => {
       const value = Number(item.values[categoryIndex]);
       const safe = Number.isFinite(value) ? value : 0;
-      const barH = top === 0 ? 0 : (safe / top) * plotH;
+      let barH;
+      let y;
+      if (view.signed) {
+        barH = (Math.abs(safe) / span) * plotH;
+        y = safe >= 0 ? zeroY - barH : zeroY;
+      } else {
+        barH = top === 0 ? 0 : (safe / top) * plotH;
+        y = pad.top + plotH - barH;
+      }
       const x = start + seriesIndex * (barW + 8);
-      const y = pad.top + plotH - barH;
       const color = SERIES_COLORS[seriesIndex % SERIES_COLORS.length];
       if (barH > 0) {
         const radius = Math.min(5, barW / 2, barH);
@@ -614,6 +661,87 @@ function siteLogoMark() {
   return `<div class="player-logo"><img src="logo.png?v=${ASSET_V}" width="995" height="978" alt="DERBYSHEV 7"></div>`;
 }
 
+function kpiFormatMetric(metric) {
+  const value = metric.value;
+  if (value == null || value === "") return "—";
+  if (metric.id === "ts") return `${Math.round(Number(value) * 100)}%`;
+  if (metric.id === "astTo") return formatAvg(value);
+  if (metric.id === "plusMinus") return formatPlusMinus(value);
+  return formatPlain(value);
+}
+
+function kpiFormatWas(metric) {
+  const value = metric.was;
+  if (value == null || value === "") return "";
+  if (metric.id === "ts") return `${Math.round(Number(value) * 100)}%`;
+  if (metric.id === "plusMinus") return formatPlusMinus(value);
+  return formatPlain(value);
+}
+
+function kpiDelta(metric) {
+  if (metric.was == null || metric.value == null) return "";
+  const cur = Number(metric.value);
+  const was = Number(metric.was);
+  if (!Number.isFinite(cur) || !Number.isFinite(was) || cur === was) return "";
+  const improved = metric.higher ? cur > was : cur < was;
+  const worse = metric.higher ? cur < was : cur > was;
+  if (improved) return '<span class="kpi-delta is-up" aria-hidden="true">▲</span>';
+  if (worse) return '<span class="kpi-delta is-down" aria-hidden="true">▼</span>';
+  return "";
+}
+
+function renderKpiMatchBadge(match, isMvp) {
+  if (!match) return "";
+  const title = isMvp || match.mvp ? "🏅 MVP матча" : "🏅 Лучший игрок матча по КПИ";
+  const href = safeUrl(match.href);
+  const link = href
+    ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">Страница матча</a>`
+    : "";
+  return `<article class="kpi-match-badge">
+    <p class="kpi-match-title">${esc(title)}</p>
+    <p><strong>${esc(match.date)}</strong> · ${esc(match.opponent)} · ${esc(match.score)}${match.result ? `, ${esc(match.result)}` : ""}</p>
+    <p>${esc(match.tournament || "")}</p>
+    <p>${esc(match.line || "")}</p>
+    ${link}
+  </article>`;
+}
+
+function renderKpiBlock() {
+  const block = data.kpi;
+  if (!block || !block.metrics || !block.metrics.length) return "";
+  const badges = [];
+  if (block.mvp) badges.push(renderKpiMatchBadge(block.mvp, true));
+  if (block.best && !sameKpiMatch(block.best, block.mvp)) badges.push(renderKpiMatchBadge(block.best, false));
+  const tiles = block.metrics
+    .map((metric) => {
+      const was = kpiFormatWas(metric);
+      const team =
+        metric.team != null && metric.team !== ""
+          ? `<span class="kpi-team">в среднем по команде: ${esc(String(metric.id === "ts" ? `${metric.team}%` : metric.team))}</span>`
+          : "";
+      return `<article class="kpi-tile">
+        <h3>${term(metric.label, metric.label)} ${metric.hint ? `<abbr class="term kpi-hint" tabindex="0" role="button" aria-expanded="false" data-term="${esc(metric.hint)}">?</abbr>` : ""}</h3>
+        <p class="kpi-value">${kpiFormatMetric(metric)} ${kpiDelta(metric)}</p>
+        ${was ? `<p class="kpi-was">было ${esc(was)}</p>` : ""}
+        ${team}
+      </article>`;
+    })
+    .join("");
+  const tour =
+    block.tournaments && block.tournaments.length
+      ? `<p class="kpi-split">${block.tournaments
+          .map((item) => `${esc(item.label)}: КПИ ${formatPlain(item.kpiGame)} (${item.games} игр)`)
+          .join(" · ")}</p>`
+      : "";
+  return `<section class="block" id="kpi">
+    <h2>Ключевые показатели (KPI)</h2>
+    ${block.caption ? `<p class="caption">${esc(block.caption)}</p>` : ""}
+    ${badges.join("")}
+    <div class="kpi-profile-grid">${tiles}</div>
+    ${tour}
+  </section>`;
+}
+
 function renderHero() {
   const player = data.player;
   const year = profileValue("Год рождения");
@@ -761,6 +889,7 @@ function renderSeasonCards() {
           <li><b>${formatAvg(season.assists)}</b> ${term("Пер")}</li>
           <li><b>${formatAvg(season.steals)}</b> ${term("Перехв")}</li>
           <li><b>${formatAvg(season.turnovers)}</b> ${term("Потери")}</li>
+          ${season.kpiPerGame != null ? `<li><b>${formatPlain(season.kpiPerGame)}</b> ${term("КПИ")}</li>` : ""}
         </ul>
         <small class="shoot-lines">${shotPhrase("2-очк.", season.fg2)}${shotPhrase("3-очк.", season.fg3)}${shotPhrase("Штраф", season.ft)}</small>
       </article>`;
@@ -960,8 +1089,9 @@ function mamaArticle(tournament, row) {
     : `${row.stage ? `${row.stage} · ` : ""}${row.opponent}`;
   const plus = row.aiMama || "";
   const limited = row.minutes == null && row.fg2 == null ? `<p class="caption">Других цифр в протоколе этой лиги нет.</p>` : "";
+  const mvp = isMvpMatch(row) ? ` ${mvpBadgeHtml()}` : "";
   return `<article class="review">
-    <h3>${esc(title)} ${resultBadge(parts.kind, parts.word)}</h3>
+    <h3>${esc(title)} ${resultBadge(parts.kind, parts.word)}${mvp}</h3>
     <p>${esc(mamaFacts(row))}</p>
     ${shareLine(row)}
     ${limited}
@@ -997,6 +1127,11 @@ function renderMamaPage() {
       <h1>${esc(player.name)}</h1>
       <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
       <p class="summary">${esc(mama.summary)}</p>
+      ${
+        data.kpi && data.kpi.mvp
+          ? `<p class="caption">В матче ${esc(data.kpi.mvp.date)} против «${esc(String(data.kpi.mvp.opponent).split(",")[0])}» у Кости звание <strong>MVP матча</strong> — его назвали лучшим по общей пользе на площадке.</p>`
+          : ""
+      }
       ${updatedLine()}
       <p class="card-link"><a href="#path">Весь путь</a><a href="#recent">Игры</a><a href="#mama-notes">Что видно</a><a href="team.html#news">Новости</a><a href="index.html#glossary">Что значат цифры?</a></p>
     </section>
@@ -1218,6 +1353,7 @@ function render() {
   } else {
     document.getElementById("app").innerHTML = [
       renderHero(),
+      renderKpiBlock(),
       renderLast(),
       renderGuard(),
       renderProfile(),
