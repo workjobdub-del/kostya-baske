@@ -3,7 +3,7 @@
 const SERIES_COLORS = ["#b7beca", "#e8b84a"];
 const FONT = "Oswald, sans-serif";
 
-const state = { game: null, trend: null, news: "all" };
+const state = { game: null, trend: null, news: "all", section: "", lastY: 0 };
 let data = null;
 let newsData = null;
 
@@ -322,7 +322,7 @@ function renderNav() {
   }
   nav.hidden = false;
   nav.innerHTML = data.nav
-    .map((item) => `<a href="#${esc(item.id)}">${esc(item.label)}</a>`)
+    .map((item) => `<a href="#${esc(item.id)}">${esc(item.short || item.label)}</a>`)
     .join("");
 }
 
@@ -825,13 +825,47 @@ function render() {
   }
   document.getElementById("load-state").hidden = true;
   document.getElementById("app").hidden = false;
-  updateActiveNav();
+  syncChrome();
   scrollToHash();
+}
+
+function phoneLayout() {
+  return window.innerWidth <= 720;
+}
+
+function syncChrome() {
+  const header = document.querySelector(".topbar");
+  const nav = document.getElementById("nav");
+  const toTop = document.getElementById("to-top");
+  const y = window.scrollY;
+  const hero = document.getElementById("top");
+  const pastHero = hero ? hero.getBoundingClientRect().bottom <= 1 : y > 200;
+  const showNav = document.body.dataset.page === "profile" && nav && !nav.hidden && (pastHero || !phoneLayout());
+  if (nav) nav.classList.toggle("is-shown", Boolean(showNav));
+  if (header) {
+    if (phoneLayout()) {
+      const down = y > state.lastY + 8;
+      const up = y < state.lastY - 8;
+      if (y < 12 || up) header.classList.remove("is-hidden");
+      else if (down && y > 40) header.classList.add("is-hidden");
+    } else {
+      header.classList.remove("is-hidden");
+    }
+    document.body.classList.toggle("header-hidden", header.classList.contains("is-hidden"));
+  }
+  document.body.classList.toggle("nav-open", Boolean(showNav));
+  if (toTop) toTop.hidden = y < window.innerHeight;
+  state.lastY = y;
+  updateActiveNav();
 }
 
 function updateActiveNav() {
   if (!data || document.body.dataset.page !== "profile") return;
-  const offset = 78;
+  const header = document.querySelector(".topbar");
+  const nav = document.getElementById("nav");
+  const headerH = header && !header.classList.contains("is-hidden") ? header.offsetHeight : 0;
+  const navH = nav && nav.classList.contains("is-shown") ? nav.offsetHeight : 0;
+  const offset = headerH + navH + 8;
   let current = data.nav[0].id;
   data.nav.forEach((item) => {
     const section = document.getElementById(item.id);
@@ -840,6 +874,15 @@ function updateActiveNav() {
   document.querySelectorAll("#nav a").forEach((link) => {
     link.classList.toggle("active", link.getAttribute("href") === `#${current}`);
   });
+  if (current !== state.section && nav) {
+    state.section = current;
+    const link = nav.querySelector("a.active");
+    if (link) {
+      const left = link.offsetLeft - (nav.clientWidth - link.offsetWidth) / 2;
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      nav.scrollTo({ left: Math.max(0, left), behavior: reduce ? "auto" : "smooth" });
+    }
+  }
 }
 
 function scrollToHash() {
@@ -876,7 +919,15 @@ document.addEventListener("click", (event) => {
   }
 });
 
-document.addEventListener("scroll", updateActiveNav, { passive: true });
+document.addEventListener("scroll", syncChrome, { passive: true });
+
+const toTop = document.getElementById("to-top");
+if (toTop) {
+  toTop.addEventListener("click", () => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+  });
+}
 
 let resizeTimer = 0;
 window.addEventListener("resize", () => {
