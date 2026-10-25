@@ -1,7 +1,7 @@
 "use strict";
 
 const SERIES_COLORS = ["#b7beca", "#e8b84a"];
-const FONT = "Barlow Condensed, Arial Narrow, Segoe UI, sans-serif";
+const FONT = "Oswald, sans-serif";
 
 const state = { game: null, trend: null, news: "all" };
 let data = null;
@@ -117,7 +117,14 @@ function formatTick(value) {
 }
 
 function chartFrame(className, width, height, body, label) {
-  return `<div class="chart-scroll"><svg class="${className}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(label)}">${body}</svg></div>`;
+  return `<div class="chart-scroll"><svg class="${className}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(label)}">${body}</svg></div>`;
+}
+
+function boxWidth(el, max) {
+  if (!el || el.clientWidth < 40) return Math.min(max, 320);
+  const style = getComputedStyle(el);
+  const pad = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+  return Math.max(240, Math.min(max, Math.floor(el.clientWidth - pad)));
 }
 
 function pointsChart(tournament) {
@@ -134,9 +141,10 @@ function pointsChart(tournament) {
       display: formatPlain(row[chart.valueKey]),
     };
   });
-  const width = Math.max(640, 56 + points.length * 62);
-  const height = 268;
-  const pad = { top: 28, right: 16, bottom: 40, left: 40 };
+  const host = document.getElementById("game-panel");
+  const width = boxWidth(host, 1040);
+  const height = 240;
+  const pad = { top: 26, right: 8, bottom: 32, left: 28 };
   const plotH = height - pad.top - pad.bottom;
   const plotW = width - pad.left - pad.right;
   const top = axisMax(Math.max(...points.map((point) => point.value), 0));
@@ -148,20 +156,23 @@ function pointsChart(tournament) {
     const y = pad.top + plotH - (tick / top) * plotH;
     const grid = tick === 0 ? "#3a3f4b" : "#2c313c";
     shapes += `<line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="${grid}"></line>`;
-    shapes += `<text x="${pad.left - 8}" y="${y + 4}" text-anchor="end" fill="#c8c2b6" font-size="12" font-family="${FONT}">${formatTick(tick)}</text>`;
+    shapes += `<text x="${pad.left - 6}" y="${y + 4}" text-anchor="end" fill="#c8c2b6" font-size="12" font-family="${FONT}">${formatTick(tick)}</text>`;
   }
 
+  const showEvery = slot < 36 ? 2 : 1;
   points.forEach((point, index) => {
     const barH = top === 0 ? 0 : (point.value / top) * plotH;
-    const barW = Math.min(32, slot - 18);
+    const barW = Math.max(6, Math.min(28, slot - 10));
     const x = pad.left + index * slot + (slot - barW) / 2;
     const y = pad.top + plotH - barH;
     if (barH > 0) {
-      const radius = Math.min(5, barW / 2, barH);
+      const radius = Math.min(4, barW / 2, barH);
       shapes += `<path d="M${x} ${y + barH} V${y + radius} Q${x} ${y} ${x + radius} ${y} H${x + barW - radius} Q${x + barW} ${y} ${x + barW} ${y + radius} V${y + barH} Z" fill="#e8b84a"></path>`;
     }
-    shapes += `<text x="${x + barW / 2}" y="${Math.max(14, y - 6)}" text-anchor="middle" fill="#f4efe4" font-size="12" font-weight="700" font-family="${FONT}">${esc(point.display)}</text>`;
-    shapes += `<text x="${x + barW / 2}" y="${height - 14}" text-anchor="middle" fill="#c8c2b6" font-size="12" font-family="${FONT}">${esc(point.label)}</text>`;
+    shapes += `<text x="${x + barW / 2}" y="${Math.max(14, y - 5)}" text-anchor="middle" fill="#f4efe4" font-size="13" font-weight="700" font-family="${FONT}">${esc(point.display)}</text>`;
+    if (index % showEvery === 0) {
+      shapes += `<text x="${x + barW / 2}" y="${height - 10}" text-anchor="middle" fill="#c8c2b6" font-size="12" font-family="${FONT}">${esc(point.label)}</text>`;
+    }
   });
 
   const summary = points.map((point) => `${point.label}: ${point.display}`).join(", ");
@@ -169,13 +180,12 @@ function pointsChart(tournament) {
 }
 
 function groupedChart(view) {
-  const host = document.getElementById("trend");
-  const available = Math.max(300, (host ? host.clientWidth : 720) - 36);
-  const width = Math.round(Math.min(760, available));
-  const height = width < 480 ? 248 : 300;
-  const pad = { top: 28, right: 12, bottom: width < 480 ? 40 : 46, left: 36 };
-  const valueSize = width < 480 ? 10 : 11;
-  const labelSize = width < 480 ? 11 : 13;
+  const host = document.getElementById("trend-panel") || document.getElementById("trend");
+  const width = boxWidth(host, 560);
+  const height = 260;
+  const pad = { top: 24, right: 8, bottom: 36, left: 32 };
+  const valueSize = 13;
+  const labelSize = width < 420 ? 12 : 14;
   const plotH = height - pad.top - pad.bottom;
   const plotW = width - pad.left - pad.right;
   const categories = view.categories;
@@ -223,16 +233,14 @@ function groupedChart(view) {
         `<li><span class="swatch" style="background:${SERIES_COLORS[index % SERIES_COLORS.length]}"></span>${esc(item.name)}</li>`
     )
     .join("")}</ul>`;
-  const hidden = `<table class="sr-only"><caption>${esc(view.label)}</caption><thead><tr><th>Показатель</th>${series
-    .map((item) => `<th>${esc(item.name)}</th>`)
-    .join("")}</tr></thead><tbody>${categories
-    .map(
-      (category, index) =>
-        `<tr><th scope="row">${esc(category)}</th>${series
-          .map((item) => `<td>${formatAvg(item.values[index])}</td>`)
-          .join("")}</tr>`
-    )
-    .join("")}</tbody></table>`;
+  const heads = series.map((item) => `<th>${esc(item.name)}</th>`).join("");
+  const body = categories
+    .map((category, index) => {
+      const cells = series.map((item) => `<td>${formatAvg(item.values[index])}</td>`).join("");
+      return `<tr><th scope="row">${esc(category)}</th>${cells}</tr>`;
+    })
+    .join("");
+  const hidden = `<div class="sr-only"><table><caption>${esc(view.label)}</caption><thead><tr><th>Показатель</th>${heads}</tr></thead><tbody>${body}</tbody></table></div>`;
   return `${legend}${chartFrame("groups", width, height, shapes, `${view.label}. ${categories.join(", ")}. ${summary}`)}${hidden}`;
 }
 
@@ -810,6 +818,8 @@ function render() {
       renderNotes(),
       renderSources(),
     ].join("");
+    document.getElementById("load-state").hidden = true;
+    document.getElementById("app").hidden = false;
     renderGamePanel(false);
     renderTrendPanel(false);
   }
@@ -867,6 +877,16 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("scroll", updateActiveNav, { passive: true });
+
+let resizeTimer = 0;
+window.addEventListener("resize", () => {
+  window.clearTimeout(resizeTimer);
+  resizeTimer = window.setTimeout(() => {
+    if (!data) return;
+    if (document.getElementById("game-panel")) renderGamePanel(false);
+    if (document.getElementById("trend-panel")) renderTrendPanel(false);
+  }, 150);
+});
 
 async function init() {
   const status = document.getElementById("load-state");

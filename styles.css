@@ -14,14 +14,14 @@
   --good: #8fd19a;
   --work: #f0a36a;
   --bar: 3.6rem;
-  --display: "Barlow Condensed", "Arial Narrow", "Segoe UI", sans-serif;
-  --font: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --display: "Oswald", "Arial Narrow", sans-serif;
+  --font: "Onest", "Segoe UI", system-ui, sans-serif;
   --cut: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
 }
 
 * { box-sizing: border-box; }
 
-html { scroll-behavior: smooth; overflow-x: clip; }
+html { scroll-behavior: smooth; }
 
 body {
   margin: 0;
@@ -32,6 +32,7 @@ body {
   color: var(--ink);
   font-family: var(--font);
   font-size: 16px;
+  font-variant-numeric: tabular-nums;
   line-height: 1.5;
 }
 
@@ -611,10 +612,17 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
 
 .segmented {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  max-width: 100%;
   margin: 0.2rem 0 0.85rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
+
+.segmented::-webkit-scrollbar { display: none; }
 
 .segmented button {
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -627,6 +635,8 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
   text-transform: uppercase;
   padding: 0.4rem 0.75rem;
   cursor: pointer;
+  flex: 0 0 auto;
+  scroll-snap-align: start;
 }
 
 .segmented button[aria-pressed="true"] {
@@ -635,11 +645,15 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
   color: var(--gold-2);
 }
 
-.chart-scroll svg { display: block; width: 100%; height: auto; }
+.chart-scroll svg {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  font-variant-numeric: tabular-nums;
+}
 
-.chart-scroll svg.points { min-width: 640px; }
-
-.chart-scroll svg.groups { min-width: 0; }
+.chart-scroll svg.groups { max-width: 560px; }
 
 .legend {
   display: flex;
