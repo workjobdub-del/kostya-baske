@@ -800,6 +800,7 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
   position: relative;
   margin: 0.45rem 0;
   padding-left: 1rem;
+  overflow-wrap: break-word;
 }
 
 .panel li::before,
