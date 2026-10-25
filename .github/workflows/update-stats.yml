@@ -11,6 +11,10 @@ on:
         description: "Отправить тестовое уведомление всем подписчикам"
         type: boolean
         default: false
+      regen_ai:
+        description: "Заново сделать ИИ-разбор последней игры с протоколом"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -24,7 +28,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ONESIGNAL_REST_API_KEY: ${{ secrets.ONESIGNAL_REST_API_KEY }}
+      PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
       PUSH_TEST: ${{ github.event.inputs.test_push == 'true' && '1' || '0' }}
+      AI_REGEN: ${{ github.event.inputs.regen_ai == 'true' && '1' || '0' }}
     steps:
       - name: Забрать main
         uses: actions/checkout@v4

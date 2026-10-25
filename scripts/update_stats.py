@@ -543,6 +543,194 @@ def paragraphs_for(stat, rows):
     return parts
 
 
+def clean_ai_text(text) -> str:
+    text = str(text or "")
+    text = re.sub(r"```(?:json)?", "", text, flags=re.I)
+    text = re.sub(r"https?://\S+", "", text)
+    text = re.sub(r"\[\d{1,2}\]", "", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip(" \n`\"")
+
+
+def parse_ai_answer(content):
+    raw = clean_ai_text(content)
+    start = raw.find("{")
+    end = raw.rfind("}")
+    if start < 0 or end <= start:
+        return None
+    try:
+        payload = json.loads(raw[start : end + 1])
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    review = clean_ai_text(payload.get("review"))
+    mama = clean_ai_text(payload.get("mama"))
+    if len(review) < 40 or len(mama) < 8 or len(review) > 900 or len(mama) > 280:
+        return None
+    blob = f"{review} {mama}"
+    for forbidden in ("424578", "Кириллович", "26.03.2014", "http://", "https://"):
+        if forbidden in blob:
+            return None
+    if re.search(r"\[\d+\]", blob):
+        return None
+    return {"review": review, "mama": mama}
+
+
+def row_brief(row) -> dict:
+    return {
+        "дата": row.get("date"),
+        "соперник": row.get("opponent"),
+        "счёт": row.get("score"),
+        "минуты": row.get("minutes"),
+        "старт": "да" if row.get("started") else "нет",
+        "очки": row.get("points"),
+        "двухочковые": row.get("fg2"),
+        "трёхочковые": row.get("fg3"),
+        "штрафные": row.get("ft"),
+        "подборы": row.get("rebounds"),
+        "подборы в нападении": row.get("offRebounds"),
+        "передачи": row.get("assists"),
+        "перехваты": row.get("steals"),
+        "потери": row.get("turnovers"),
+    }
+
+
+def season_brief(data) -> dict:
+    for season in data.get("tournamentStats", {}).get("seasons") or []:
+        if season.get("id") == "mos2627" or str(season.get("name", "")).startswith("2026/27"):
+            return {
+                key: season.get(key)
+                for key in (
+                    "name",
+                    "games",
+                    "minutes",
+                    "points",
+                    "rebounds",
+                    "assists",
+                    "steals",
+                    "turnovers",
+                    "fg2",
+                    "fg3",
+                    "ft",
+                )
+            }
+    return {}
+
+
+def review_prompt(data, row, previous) -> str:
+    player = data.get("player") or {}
+    payload = {
+        "игрок": "Костя",
+        "амплуа": player.get("position") or "Разыгрывающий",
+        "номер": player.get("number") or "7",
+        "этот матч": row_brief(row),
+        "средние сезона": season_brief(data),
+        "предыдущие игры": [row_brief(item) for item in previous],
+    }
+    return json.dumps(payload, ensure_ascii=False)
+
+
+def ask_perplexity(prompt: str):
+    key = os.environ.get("PERPLEXITY_API_KEY", "").strip()
+    if not key:
+        return None
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "Ты разбираешь детский баскетбольный матч. Пиши только по цифрам из сообщения пользователя. "
+                "Не добавляй факты, которых там нет: ни настроение, ни травмы, ни слова тренера, ни чужие игроки. "
+                "Игрока называй только Костя. Без ссылок и без сносок в квадратных скобках. "
+                "Ответ — один JSON-объект с ключами review и mama, без markdown. "
+                "review — 3–5 коротких предложений, конкретно по цифрам. "
+                "mama — одна тёплая фраза для мамы, тоже только по этим цифрам, без упрёка."
+            ),
+        },
+        {"role": "user", "content": prompt},
+    ]
+    bodies = [
+        {"model": "sonar", "temperature": 0.1, "max_tokens": 450, "disable_search": True, "messages": messages},
+        {"model": "sonar", "temperature": 0.1, "max_tokens": 450, "messages": messages},
+    ]
+    for body in bodies:
+        request = urllib.request.Request(
+            "https://api.perplexity.ai/chat/completions",
+            data=json.dumps(body).encode("utf-8"),
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json", "Accept": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+            content = payload["choices"][0]["message"]["content"]
+            parsed = parse_ai_answer(content)
+            if parsed:
+                return parsed
+        except urllib.error.HTTPError as exc:
+            if exc.code != 400 or "disable_search" not in body:
+                return None
+        except (urllib.error.URLError, TimeoutError, OSError, KeyError, IndexError, TypeError, json.JSONDecodeError):
+            return None
+    return None
+
+
+def attach_review(data):
+    rows = season_rows(data)
+    last = data.get("lastMatch")
+    if not rows or not isinstance(last, dict):
+        return
+    latest = rows[-1]
+    fact = ""
+    for item in last.get("facts") or []:
+        if item.get("label") == "Матч":
+            fact = str(item.get("value") or "")
+    opponent = str(latest.get("opponent") or "")
+    if latest.get("aiReview") and opponent and opponent in fact:
+        last["aiReview"] = latest["aiReview"]
+    else:
+        last.pop("aiReview", None)
+
+
+def review_games(data, notes, ask=None):
+    ask = ask or ask_perplexity
+    rows = season_rows(data)
+    force = os.environ.get("AI_REGEN") == "1"
+    if not rows:
+        if force:
+            notes.append("разбор: личного протокола ещё нет, шаблон на месте")
+        attach_review(data)
+        return
+    targets = [rows[-1]] if force else [row for row in rows if not row.get("aiReview") or not row.get("aiMama")]
+    if not targets:
+        attach_review(data)
+        return
+    if ask is ask_perplexity and not os.environ.get("PERPLEXITY_API_KEY", "").strip():
+        notes.append("разбор: секрет PERPLEXITY_API_KEY не задан, оставлен шаблон")
+        attach_review(data)
+        return
+    for row in targets:
+        index = rows.index(row)
+        previous = rows[max(0, index - 3) : index]
+        prompt = review_prompt(data, row, previous)
+        for forbidden in ("424578", "Кириллович", "26.03.2014"):
+            if forbidden in prompt:
+                notes.append("разбор: в запрос попали лишние данные, запрос не отправлен")
+                attach_review(data)
+                return
+        try:
+            answer = ask(prompt)
+        except Exception:
+            answer = None
+        if not answer:
+            notes.append(f"разбор: {row.get('date')} — API не ответил, оставлен шаблон")
+            continue
+        row["aiReview"] = answer["review"]
+        row["aiMama"] = answer["mama"]
+        notes.append(f"разбор: {row.get('date')}")
+    attach_review(data)
+
+
 def kind_line(stat) -> str:
     bits = []
     if stat["points"]:
@@ -1078,6 +1266,45 @@ def self_test():
     deliver_pushes(basket, feed, [], [], [], sender=lambda *args: again.append(args) or "sent")
     assert again == []
     assert "424578" not in game_push_text(sample_row)
+    dirty = 'Разбор [1] смотри https://example.com/a и ещё [12].'
+    assert "[" not in clean_ai_text(dirty) and "http" not in clean_ai_text(dirty)
+    parsed = parse_ai_answer(
+        '```json\n{"review": "Костя набрал 8 очков за 18 минут и забил 3 из 7 двухочковых. Это выше его среднего за сезон.", "mama": "Восемь очков и четыре подбора — спокойная полезная игра."}\n```'
+    )
+    assert parsed and parsed["review"].startswith("Костя") and "http" not in parsed["mama"]
+    assert parse_ai_answer('{"review": "Кириллович набрал очень много очков в этом длинном матче сегодня.", "mama": "Молодец."}') is None
+    basket = {
+        "player": {"position": "Разыгрывающий", "number": "7"},
+        "tournamentStats": {"seasons": [{"id": "mos2627", "name": "2026/27", "points": 4.3, "rebounds": 3.6, "games": "1 (1)", "minutes": "18:02", "assists": 1.2, "steals": 1.1, "turnovers": 3.0, "fg2": "3/7, 43%", "fg3": "0/1", "ft": "2/2, 100%"}]},
+        "gameLogs": {"tournaments": [{"id": "mos2627", "rows": [
+            {"date": "18.01.26", "opponent": "Тринта", "score": "37:35, победа", "minutes": "22:16", "points": 10, "fg2": "3/5", "fg3": "0/0", "ft": "4/4", "rebounds": 3, "offRebounds": 1, "assists": 0, "steals": 5, "turnovers": 4, "started": True, "aiReview": "Уже готово и достаточно длинное, чтобы не звать API снова.", "aiMama": "Уже есть."},
+            {"date": "24.10.26", "opponent": "Гольяново-2014-2", "score": "62:37, победа", "minutes": "18:02", "points": 8, "fg2": "3/7", "fg3": "0/1", "ft": "2/2", "rebounds": 4, "offRebounds": 1, "assists": 2, "steals": 1, "turnovers": 3, "started": True},
+        ]}]},
+        "lastMatch": {"facts": [{"label": "Матч", "value": "Росток-2014 — Гольяново-2014-2, 62:37"}], "paragraphs": ["Шаблон."]},
+    }
+    prompt = review_prompt(basket, basket["gameLogs"]["tournaments"][0]["rows"][1], basket["gameLogs"]["tournaments"][0]["rows"][:1])
+    assert "424578" not in prompt and "Кириллович" not in prompt and "26.03.2014" not in prompt
+    assert "Гольяново-2014-2" in prompt and "Разыгрывающий" in prompt
+    calls = []
+
+    def fake_ask(text):
+        calls.append(text)
+        return {"review": "Костя набрал 8 очков за 18 минут. Двухочковые 3 из 7, подборов 4. Это конкретно по протоколу этого матча.", "mama": "Восемь очков и четыре подбора в победном матче."}
+
+    review_games(basket, [], ask=fake_ask)
+    row = basket["gameLogs"]["tournaments"][0]["rows"][1]
+    assert row["aiReview"].startswith("Костя") and row["aiMama"].startswith("Восемь")
+    assert basket["lastMatch"]["aiReview"] == row["aiReview"]
+    review_games(basket, [], ask=fake_ask)
+    assert len(calls) == 1
+    os.environ["AI_REGEN"] = "1"
+    try:
+        review_games(basket, [], ask=fake_ask)
+    finally:
+        os.environ.pop("AI_REGEN", None)
+    assert len(calls) == 2
+    os.environ.pop("PERPLEXITY_API_KEY", None)
+    assert ask_perplexity("тест") is None
 
 
 def game_key(row) -> str:
@@ -1226,6 +1453,7 @@ def main():
     u12_before = copy.deepcopy(next(item["rows"] for item in data["gameLogs"]["tournaments"] if item["id"] == "u12"))
     notes = []
     update_basket(data, notes)
+    review_games(data, notes)
     merge_posts(news, fetch_telegram(notes) + fetch_club(notes), notes)
     deliver_pushes(data, news, before_games, before_news, notes)
     assert_safe(data, news, u12_before)
