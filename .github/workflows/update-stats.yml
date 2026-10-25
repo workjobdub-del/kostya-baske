@@ -1,0 +1,48 @@
+name: Обновление статистики и новостей
+
+on:
+  schedule:
+    # Суббота и воскресенье — каждый час, в остальные дни — каждые 3 часа. Дни и часы по UTC.
+    - cron: "0 * * * 0,6"
+    - cron: "0 */3 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      test_push:
+        description: "Отправить тестовое уведомление всем подписчикам"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-stats
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      ONESIGNAL_REST_API_KEY: ${{ secrets.ONESIGNAL_REST_API_KEY }}
+      PUSH_TEST: ${{ github.event.inputs.test_push == 'true' && '1' || '0' }}
+    steps:
+      - name: Забрать main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Обновить data.json и news.json
+        run: python3 scripts/update_stats.py
+
+      - name: Закоммитить, если цифры или новости изменились
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data.json news.json
+          if git diff --cached --quiet; then
+            echo "Изменений нет."
+          else
+            git commit -m "Обновить статистику и новости."
+            git push origin HEAD:main
+          fi
