@@ -607,7 +607,7 @@ function heroStats() {
     ${updatedLine()}`;
 }
 
-const ASSET_V = "2026-10-25-14";
+const ASSET_V = "2026-10-25-16";
 
 function siteLogoMark() {
   return `<div class="player-logo"><img src="logo.png?v=${ASSET_V}" width="995" height="978" alt="DERBYSHEV 7"></div>`;
@@ -1517,17 +1517,22 @@ function loadErrorMessage(error) {
   return "Не удалось загрузить данные с сайта. Проверьте интернет и обновите страницу (кнопка «Обновить» в плашке или Ctrl+F5).";
 }
 
-async function loadJson(name, attempts = 2) {
+async function loadJson(name, attempts = 3) {
   const url = dataUrl(name);
   let lastError = null;
   for (let attempt = 0; attempt < attempts; attempt++) {
     try {
-      const response = await fetch(url, { cache: "no-store" });
+      const response = await fetch(url, { cache: "no-store", credentials: "same-origin" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return await response.json();
+      const type = (response.headers.get("content-type") || "").toLowerCase();
+      if (type && !type.includes("json") && !type.includes("text/plain")) {
+        throw new Error(`unexpected type ${type}`);
+      }
+      const text = await response.text();
+      return JSON.parse(text);
     } catch (error) {
       lastError = error;
-      if (attempt + 1 < attempts) await new Promise((resolve) => window.setTimeout(resolve, 250));
+      if (attempt + 1 < attempts) await new Promise((resolve) => window.setTimeout(resolve, 300));
     }
   }
   throw lastError;

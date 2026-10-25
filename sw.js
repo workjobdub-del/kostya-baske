@@ -2,18 +2,18 @@ importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 
 "use strict";
 
-const VERSION = "2026-10-25-14";
+const VERSION = "2026-10-25-16";
 const STATIC = `kostya-static-${VERSION}`;
-const DATA = "kostya-data";
+const DATA = `kostya-data-${VERSION}`;
 
 const PRECACHE = [
   "./",
   "./index.html",
   "./career.html",
   "./mama.html",
-  "./styles.css?v=2026-10-25-14",
-  "./app.js?v=2026-10-25-14",
-  "./manifest.json",
+  "./styles.css?v=2026-10-25-16",
+  "./app.js?v=2026-10-25-16",
+  "./manifest.json?v=2026-10-25-16",
   "./favicon.svg",
   "./logo.svg",
   "./logo.png",
@@ -34,7 +34,9 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
-      await Promise.all(keys.filter((key) => key !== STATIC && key !== DATA).map((key) => caches.delete(key)));
+      await Promise.all(
+        keys.filter((key) => key !== STATIC && key !== DATA).map((key) => caches.delete(key))
+      );
       await self.clients.claim();
     })()
   );
@@ -56,6 +58,14 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   if (freshCode) {
+    event.respondWith(networkFirst(request, STATIC));
+    return;
+  }
+  const pwaIcon =
+    /\/icon(?:-maskable)?-\d+\.png$/i.test(url.pathname) ||
+    url.pathname.endsWith("/apple-touch-icon.png") ||
+    url.pathname.endsWith("/manifest.json");
+  if (pwaIcon) {
     event.respondWith(networkFirst(request, STATIC));
     return;
   }
