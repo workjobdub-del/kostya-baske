@@ -1581,12 +1581,26 @@ function renderNotify() {
     </div>
     <p class="notify-note" data-notify-note hidden></p>`;
   if (OneSignal && opted) {
-    OneSignal.User.getTags().then((tags) => {
-      const games = box.querySelector("[data-tag='games']");
-      const news = box.querySelector("[data-tag='news']");
-      if (games) games.checked = Boolean(tags && tags[TAG_GAMES] === "1");
-      if (news) news.checked = Boolean(tags && tags[TAG_NEWS] === "1");
-    }).catch(() => {});
+    OneSignal.User.getTags()
+      .then((tags) => {
+        const tagMap = tags && typeof tags === "object" ? tags : {};
+        const games = box.querySelector("[data-tag='games']");
+        const news = box.querySelector("[data-tag='news']");
+        const hasOurTags = Object.prototype.hasOwnProperty.call(tagMap, TAG_GAMES)
+          || Object.prototype.hasOwnProperty.call(tagMap, TAG_NEWS);
+        if (!hasOurTags) {
+          if (games) games.checked = true;
+          void saveNotifyTagsWithRetry().catch(() => {});
+          return;
+        }
+        if (games && Object.prototype.hasOwnProperty.call(tagMap, TAG_GAMES)) {
+          games.checked = tagMap[TAG_GAMES] === "1";
+        }
+        if (news && Object.prototype.hasOwnProperty.call(tagMap, TAG_NEWS)) {
+          news.checked = tagMap[TAG_NEWS] === "1";
+        }
+      })
+      .catch(() => {});
   }
 }
 
@@ -1600,6 +1614,67 @@ async function saveNotifyTags() {
   else await OneSignal.User.removeTag(TAG_GAMES);
   if (news) await OneSignal.User.addTag(TAG_NEWS, "1");
   else await OneSignal.User.removeTag(TAG_NEWS);
+}
+
+async function saveNotifyTagsWithRetry() {
+  try {
+    await saveNotifyTags();
+  } catch (firstError) {
+    await new Promise((resolve) => window.setTimeout(resolve, 400));
+    await saveNotifyTags();
+  }
+}
+
+function waitForOptedIn(OneSignal, timeoutMs = 5000) {
+  const sub = OneSignal.User.PushSubscription;
+  if (sub.optedIn) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      sub.removeEventListener("change", onChange);
+      window.clearInterval(poll);
+      window.clearTimeout(timer);
+      resolve(value);
+    };
+    const onChange = () => {
+      if (sub.optedIn) finish(true);
+    };
+    sub.addEventListener("change", onChange);
+    const started = Date.now();
+    const poll = window.setInterval(() => {
+      if (sub.optedIn) finish(true);
+      else if (Date.now() - started >= timeoutMs) finish(false);
+    }, 200);
+    const timer = window.setTimeout(() => finish(Boolean(sub.optedIn)), timeoutMs);
+  });
+}
+
+async function enableNotifications(OneSignal) {
+  notifyNote("");
+  try {
+    await OneSignal.User.PushSubscription.optIn();
+  } catch (error) {
+    renderNotify();
+    if (!OneSignal.User.PushSubscription.optedIn) {
+      notifyNote("Не удалось включить уведомления.");
+    }
+    return;
+  }
+  const opted = await waitForOptedIn(OneSignal);
+  renderNotify();
+  if (!opted) {
+    notifyNote("Браузер не разрешил уведомления. Включите их в настройках сайта.");
+    return;
+  }
+  try {
+    await saveNotifyTagsWithRetry();
+  } catch (error) {
+    notifyNote(
+      "Уведомления включены, но темы не сохранились. Переключите галочки «Игры» / «Новости» ещё раз."
+    );
+  }
 }
 
 function notifyNote(text) {
@@ -1628,15 +1703,7 @@ document.addEventListener("click", (event) => {
     OneSignal.User.PushSubscription.optOut().then(() => renderNotify()).catch(() => notifyNote("Не удалось выключить."));
     return;
   }
-  saveNotifyTags()
-    .then(() => OneSignal.User.PushSubscription.optIn())
-    .then(() => {
-      renderNotify();
-      if (!OneSignal.User.PushSubscription.optedIn) {
-        notifyNote("Браузер не разрешил уведомления. Включите их в настройках сайта.");
-      }
-    })
-    .catch(() => notifyNote("Не удалось включить уведомления."));
+  void enableNotifications(OneSignal);
 });
 
 function genuineWaiting(reg) {

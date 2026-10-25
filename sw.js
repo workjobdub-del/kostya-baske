@@ -2,7 +2,7 @@ importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 
 "use strict";
 
-const VERSION = "2026-10-25-18";
+const VERSION = "2026-10-25-19";
 const STATIC = `kostya-static-${VERSION}`;
 const DATA = `kostya-data-${VERSION}`;
 
@@ -11,9 +11,9 @@ const PRECACHE = [
   "./index.html",
   "./career.html",
   "./mama.html",
-  "./styles.css?v=2026-10-25-18",
-  "./app.js?v=2026-10-25-18",
-  "./manifest.json?v=2026-10-25-18",
+  "./styles.css?v=2026-10-25-19",
+  "./app.js?v=2026-10-25-19",
+  "./manifest.json?v=2026-10-25-19",
   "./favicon.svg",
   "./logo.svg",
   "./logo.png",
