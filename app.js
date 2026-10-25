@@ -3,7 +3,7 @@
 const SERIES_COLORS = ["#b7beca", "#e8b84a"];
 const FONT = "Oswald, sans-serif";
 
-const state = { game: null, trend: null, news: "all", section: "", lastY: 0 };
+const state = { game: null, trend: null, news: "all", section: "", lastY: 0, chartPoints: [] };
 let data = null;
 let newsData = null;
 
@@ -135,22 +135,30 @@ function pointsChart(tournament) {
     const prefix = chart.labelPrefix;
     const label = prefix ? rawLabel.slice(0, prefix) : rawLabel;
     const value = Number(row[chart.valueKey]);
+    const score = String(row.score || "");
     return {
       label,
+      date: rawLabel,
+      opponent: String(row.opponent || ""),
+      score,
+      loss: score.includes("поражение"),
       value: Number.isFinite(value) ? value : 0,
       display: formatPlain(row[chart.valueKey]),
     };
   });
+  const fire = fireStreak(points);
+  const mean = points.reduce((sum, point) => sum + point.value, 0) / points.length;
   const host = document.getElementById("game-panel");
   const width = boxWidth(host, 1040);
-  const height = 240;
-  const pad = { top: 26, right: 8, bottom: 32, left: 28 };
+  const height = fire ? 256 : 240;
+  const pad = { top: fire ? 42 : 26, right: 8, bottom: 32, left: 28 };
   const plotH = height - pad.top - pad.bottom;
   const plotW = width - pad.left - pad.right;
   const top = axisMax(Math.max(...points.map((point) => point.value), 0));
   const step = tickStep(top);
   const slot = plotW / points.length;
-  let shapes = "";
+  const barW = Math.max(6, Math.min(28, slot - 10));
+  let shapes = `<defs><linearGradient id="fire-fill" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ff5a1f"></stop><stop offset="0.55" stop-color="#ffb21f"></stop><stop offset="1" stop-color="#fff1b8"></stop></linearGradient></defs>`;
 
   for (let tick = 0; tick <= top + 0.001; tick += step) {
     const y = pad.top + plotH - (tick / top) * plotH;
@@ -159,24 +167,73 @@ function pointsChart(tournament) {
     shapes += `<text x="${pad.left - 6}" y="${y + 4}" text-anchor="end" fill="#c8c2b6" font-size="12" font-family="${FONT}">${formatTick(tick)}</text>`;
   }
 
+  if (fire) {
+    const left = pad.left + fire.start * slot + (slot - barW) / 2;
+    const right = pad.left + fire.end * slot + (slot + barW) / 2;
+    shapes += `<path class="fire-bracket" d="M${left} 30 V24 H${right} V30" fill="none" stroke="#ff7a2a" stroke-width="2"></path>`;
+    shapes += `<text class="fire-label" x="${(left + right) / 2}" y="18" text-anchor="middle" fill="#ffb21f" font-size="13" font-weight="700" font-family="${FONT}" letter-spacing="1.5">В ОГНЕ</text>`;
+  }
+
   const showEvery = slot < 36 ? 2 : 1;
   points.forEach((point, index) => {
     const barH = top === 0 ? 0 : (point.value / top) * plotH;
-    const barW = Math.max(6, Math.min(28, slot - 10));
     const x = pad.left + index * slot + (slot - barW) / 2;
     const y = pad.top + plotH - barH;
+    const hot = fire && index >= fire.start && index <= fire.end;
+    const kind = hot ? "fire" : point.loss ? "loss" : "win";
+    const color = hot ? "url(#fire-fill)" : point.loss ? "#6b717e" : "#e8b84a";
     if (barH > 0) {
       const radius = Math.min(4, barW / 2, barH);
-      shapes += `<path d="M${x} ${y + barH} V${y + radius} Q${x} ${y} ${x + radius} ${y} H${x + barW - radius} Q${x + barW} ${y} ${x + barW} ${y + radius} V${y + barH} Z" fill="#e8b84a"></path>`;
+      shapes += `<path class="bar is-${kind}" style="--d:${index * 45}ms" d="M${x} ${y + barH} V${y + radius} Q${x} ${y} ${x + radius} ${y} H${x + barW - radius} Q${x + barW} ${y} ${x + barW} ${y + radius} V${y + barH} Z" fill="${color}"></path>`;
     }
-    shapes += `<text x="${x + barW / 2}" y="${Math.max(14, y - 5)}" text-anchor="middle" fill="#f4efe4" font-size="13" font-weight="700" font-family="${FONT}">${esc(point.display)}</text>`;
+    shapes += `<text class="bar-value" style="--d:${index * 45 + 260}ms" x="${x + barW / 2}" y="${Math.max(pad.top - 4, y - 5)}" text-anchor="middle" fill="#f4efe4" font-size="13" font-weight="700" font-family="${FONT}">${esc(point.display)}</text>`;
     if (index % showEvery === 0) {
       shapes += `<text x="${x + barW / 2}" y="${height - 10}" text-anchor="middle" fill="#c8c2b6" font-size="12" font-family="${FONT}">${esc(point.label)}</text>`;
     }
+    shapes += `<rect class="bar-hit" data-bar="${index}" x="${pad.left + index * slot}" y="${pad.top}" width="${slot}" height="${plotH}" fill="transparent"></rect>`;
   });
 
+  if (top > 0) {
+    const meanY = pad.top + plotH - (mean / top) * plotH;
+    shapes += `<line class="mean-line" x1="${pad.left}" y1="${meanY}" x2="${width - pad.right}" y2="${meanY}" stroke="#f3d98a" stroke-width="1.5" stroke-dasharray="5 4"></line>`;
+    shapes += `<text x="${width - pad.right}" y="${meanY - 5}" text-anchor="end" fill="#f3d98a" font-size="12" font-family="${FONT}">среднее ${formatAvg(mean)}</text>`;
+  }
+
+  state.chartPoints = points;
   const summary = points.map((point) => `${point.label}: ${point.display}`).join(", ");
-  return chartFrame("points", width, height, shapes, `Очки по играм. ${summary}`);
+  const legend = `<ul class="legend chart-key"><li><span class="swatch" style="background:#e8b84a"></span>Победа</li><li><span class="swatch" style="background:#6b717e"></span>Поражение</li>${
+    fire ? `<li><span class="swatch swatch-fire"></span>В огне — вдвое выше среднего</li>` : ""
+  }</ul>`;
+  const readout = `<p class="chart-readout" id="chart-readout" aria-live="polite">Нажмите на столбец — покажу соперника и счёт.</p>`;
+  return `${legend}${chartFrame("points", width, height, shapes, `Очки по играм. ${summary}`)}${readout}`;
+}
+
+function fireStreak(points) {
+  if (points.length < 3) return null;
+  const mean = points.reduce((sum, point) => sum + point.value, 0) / points.length;
+  if (mean <= 0) return null;
+  let best = null;
+  let start = -1;
+  points.forEach((point, index) => {
+    if (point.value >= mean * 2) {
+      if (start < 0) start = index;
+      const length = index - start + 1;
+      if (length >= 3 && (!best || length > best.end - best.start + 1)) best = { start, end: index };
+    } else {
+      start = -1;
+    }
+  });
+  return best;
+}
+
+function showBar(index) {
+  const point = state.chartPoints && state.chartPoints[index];
+  const out = document.getElementById("chart-readout");
+  if (!point || !out) return;
+  out.textContent = `${point.date} · ${point.opponent} · ${point.score} · ${ruCount(point.display, "очко", "очка", "очков")}`;
+  document.querySelectorAll("svg.points .bar-hit").forEach((rect) => {
+    rect.classList.toggle("is-picked", rect.getAttribute("data-bar") === String(index));
+  });
 }
 
 function groupedChart(view) {
@@ -217,9 +274,11 @@ function groupedChart(view) {
       const color = SERIES_COLORS[seriesIndex % SERIES_COLORS.length];
       if (barH > 0) {
         const radius = Math.min(5, barW / 2, barH);
-        shapes += `<path d="M${x} ${y + barH} V${y + radius} Q${x} ${y} ${x + radius} ${y} H${x + barW - radius} Q${x + barW} ${y} ${x + barW} ${y + radius} V${y + barH} Z" fill="${color}"></path>`;
+        const delay = (categoryIndex * series.length + seriesIndex) * 60;
+        shapes += `<path class="bar" style="--d:${delay}ms" d="M${x} ${y + barH} V${y + radius} Q${x} ${y} ${x + radius} ${y} H${x + barW - radius} Q${x + barW} ${y} ${x + barW} ${y + radius} V${y + barH} Z" fill="${color}"></path>`;
       }
-      shapes += `<text x="${x + barW / 2}" y="${Math.max(12, y - 6)}" text-anchor="middle" fill="#f4efe4" font-size="${valueSize}" font-weight="700" font-family="${FONT}">${formatAvg(safe)}</text>`;
+      const textDelay = (categoryIndex * series.length + seriesIndex) * 60 + 260;
+      shapes += `<text class="bar-value" style="--d:${textDelay}ms" x="${x + barW / 2}" y="${Math.max(12, y - 6)}" text-anchor="middle" fill="#f4efe4" font-size="${valueSize}" font-weight="700" font-family="${FONT}">${formatAvg(safe)}</text>`;
     });
     shapes += `<text x="${groupX + groupW / 2}" y="${height - 14}" text-anchor="middle" fill="#f4efe4" font-size="${labelSize}" font-family="${FONT}">${esc(category)}</text>`;
   });
@@ -327,7 +386,7 @@ function renderHero() {
   const shield = player.number
     ? `<div class="shield"><strong>${esc(player.number)}</strong><em>номер</em></div>`
     : "";
-  return `<section class="player-card" id="top">
+  return `<section class="player-card" id="top"${numberAttr()}>
     <p class="kicker">Карточка игрока${year ? ` · ${esc(year)}` : ""}</p>
     <div class="player-card-main">
       ${shield}
@@ -338,7 +397,26 @@ function renderHero() {
         <p class="card-link"><a href="career.html">Карьера</a><a href="mama.html">Для мамы</a></p>
       </div>
     </div>
-  </section>`;
+  </section>
+  ${ticker()}`;
+}
+
+function numberAttr() {
+  const number = data.player.number;
+  return number ? ` data-number="${esc(number)}"` : "";
+}
+
+function ticker() {
+  const career = collectCareer();
+  const items = [];
+  if (data.player.number) items.push(`№ ${data.player.number}`);
+  items.push(ruCount(career.games, "игра", "игры", "игр"));
+  items.push(ruCount(career.points, "очко", "очка", "очков"));
+  if (career.best) items.push(`Лучшая игра — ${ruCount(career.best.points, "очко", "очка", "очков")}`);
+  if (career.place) items.push(`${career.place}-е место`);
+  if (career.latest) items.push(`${formatAvg(career.latest.steals)} перехвата за игру`);
+  const run = items.map((item) => `<span>${esc(item)}</span>`).join("");
+  return `<div class="ticker" aria-hidden="true"><div class="ticker-track">${run}${run}</div></div>`;
 }
 
 function collectCareer() {
@@ -493,7 +571,7 @@ function renderCareerPage() {
         `<li><span>${esc(item.label)}</span><strong>${esc(item.value)}</strong></li>`
     )
     .join("");
-  document.getElementById("app").innerHTML = `<section class="player-card" id="top">
+  document.getElementById("app").innerHTML = `<section class="player-card" id="top"${numberAttr()}>
       <p class="kicker">Карьера${year ? ` · ${esc(year)}` : ""}</p>
       <div class="player-card-main">
         <div class="shield"><strong>${esc(String(career.best.points))}</strong><em>лучшая игра</em></div>
@@ -505,6 +583,7 @@ function renderCareerPage() {
         </div>
       </div>
     </section>
+    ${ticker()}
     <section class="block" id="kpis">
       <h2>Достижения</h2>
       <p class="caption">Цифры из журналов матчей и средних. Отдельный рейтинг не придумываем.</p>
@@ -616,7 +695,7 @@ function renderMamaPage() {
   const anchor = mama.anchor.map((line) => `<p>${esc(line)}</p>`).join("");
   const games = mama.games.map(renderMamaGame).join("");
   const list = (items) => items.map((item) => `<li>${esc(item)}</li>`).join("");
-  document.getElementById("app").innerHTML = `<section class="player-card" id="top">
+  document.getElementById("app").innerHTML = `<section class="player-card" id="top"${numberAttr()}>
       <p class="kicker">Для мамы${year ? ` · ${esc(year)}` : ""}</p>
       <h1>${esc(player.name)}</h1>
       <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
@@ -819,8 +898,67 @@ function render() {
   }
   document.getElementById("load-state").hidden = true;
   document.getElementById("app").hidden = false;
+  animateIn();
   syncChrome();
   scrollToHash();
+}
+
+const REVEAL =
+  ".block, .ticker, .kpi, .season-card, .meter-block, .review, .news-card, .fact, .bio-strip li, .match-row, .source-card, .panel";
+const COUNT = ".kpi b, .shield strong, .season-card strong";
+let revealer = null;
+
+function motionOk() {
+  return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function countUp(el) {
+  if (el.dataset.counted) return;
+  const final = el.textContent.trim();
+  const match = final.match(/^(\d+)(?:,(\d+))?$/);
+  if (!match) return;
+  el.dataset.counted = "1";
+  const decimals = match[2] ? match[2].length : 0;
+  const target = Number(match[1] + (match[2] ? `.${match[2]}` : ""));
+  const started = performance.now();
+  const duration = 700;
+  const frame = (now) => {
+    const t = Math.min(1, (now - started) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = t < 1 ? (target * eased).toFixed(decimals).replace(".", ",") : final;
+    if (t < 1) requestAnimationFrame(frame);
+    else el.classList.add("is-landed");
+  };
+  el.textContent = (0).toFixed(decimals).replace(".", ",");
+  requestAnimationFrame(frame);
+}
+
+function animateIn() {
+  const root = document.getElementById("app");
+  if (!motionOk() || !("IntersectionObserver" in window)) return;
+  document.documentElement.classList.add("jam");
+  if (revealer) revealer.disconnect();
+  revealer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const el = entry.target;
+        el.classList.add("in");
+        if (el.matches(COUNT)) countUp(el);
+        el.querySelectorAll(COUNT).forEach(countUp);
+        revealer.unobserve(el);
+      });
+    },
+    { rootMargin: "0px 0px -6% 0px", threshold: 0.06 }
+  );
+  root.querySelectorAll(REVEAL).forEach((el) => {
+    const parent = el.parentElement;
+    const index = parent ? Array.prototype.indexOf.call(parent.children, el) : 0;
+    el.classList.add("reveal");
+    el.style.setProperty("--i", String(Math.min(index, 7)));
+    revealer.observe(el);
+  });
+  root.querySelectorAll(".player-card .shield strong").forEach(countUp);
 }
 
 function phoneLayout() {
@@ -894,6 +1032,11 @@ function scrollToHash() {
 }
 
 document.addEventListener("click", (event) => {
+  const bar = event.target.closest("[data-bar]");
+  if (bar) {
+    showBar(Number(bar.getAttribute("data-bar")));
+    return;
+  }
   const gameButton = event.target.closest("[data-game]");
   if (gameButton) {
     state.game = gameButton.getAttribute("data-game");
@@ -913,6 +1056,12 @@ document.addEventListener("click", (event) => {
   }
 });
 
+document.addEventListener("pointerover", (event) => {
+  if (event.pointerType !== "mouse" || !event.target.closest) return;
+  const bar = event.target.closest("[data-bar]");
+  if (bar) showBar(Number(bar.getAttribute("data-bar")));
+});
+
 document.addEventListener("scroll", syncChrome, { passive: true });
 
 const toTop = document.getElementById("to-top");
@@ -924,10 +1073,12 @@ if (toTop) {
 }
 
 let resizeTimer = 0;
+let lastWidth = window.innerWidth;
 window.addEventListener("resize", () => {
   window.clearTimeout(resizeTimer);
   resizeTimer = window.setTimeout(() => {
-    if (!data) return;
+    if (!data || window.innerWidth === lastWidth) return;
+    lastWidth = window.innerWidth;
     if (document.getElementById("game-panel")) renderGamePanel(false);
     if (document.getElementById("trend-panel")) renderTrendPanel(false);
   }, 150);

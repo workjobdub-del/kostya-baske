@@ -995,7 +995,382 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
   }
 }
 
+:root {
+  --fire: #ff5a1f;
+  --fire-2: #ffb21f;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-slam: cubic-bezier(0.3, 1.45, 0.5, 1);
+}
+
+@view-transition { navigation: auto; }
+
+.topbar { view-transition-name: topbar; }
+
+::view-transition-old(root) { animation: vt-out 220ms var(--ease-out) both; }
+::view-transition-new(root) { animation: vt-in 380ms var(--ease-slam) both; }
+
+@keyframes vt-out { to { opacity: 0; transform: translateX(-40px) skewX(8deg); } }
+@keyframes vt-in { from { opacity: 0; transform: translateX(60px) skewX(-10deg); } }
+
+body {
+  background:
+    radial-gradient(rgba(232, 184, 74, 0.07) 1px, transparent 1.4px) 0 0 / 12px 12px,
+    repeating-linear-gradient(118deg, transparent 0 38px, rgba(255, 90, 31, 0.035) 38px 40px),
+    radial-gradient(900px 460px at 100% -60px, rgba(255, 140, 40, 0.18), transparent 60%),
+    radial-gradient(700px 340px at -10% 25%, rgba(255, 90, 31, 0.1), transparent 60%),
+    linear-gradient(180deg, #161821 0%, var(--bg) 340px);
+}
+
+.modes a { transition: color 180ms ease; }
+
+.modes a[aria-current="page"] {
+  background: linear-gradient(100deg, #ffe08a, var(--gold) 40%, var(--fire-2) 65%, #ffe08a);
+  background-size: 220% 100%;
+  animation: heat 4s linear infinite;
+}
+
+@keyframes heat { to { background-position: 220% 0; } }
+
+#nav a { transition: color 180ms ease; }
+
+#nav a.active {
+  color: #fff3c4;
+  box-shadow: none;
+  background: linear-gradient(90deg, var(--fire), var(--fire-2)) bottom / 100% 2px no-repeat;
+}
+
+.player-card {
+  overflow: hidden;
+  isolation: isolate;
+  border-color: rgba(255, 178, 31, 0.45);
+  background:
+    linear-gradient(115deg, transparent 58%, rgba(255, 90, 31, 0.2) 58% 60%, transparent 60% 63%, rgba(255, 178, 31, 0.14) 63% 64%, transparent 64%),
+    linear-gradient(135deg, rgba(232, 184, 74, 0.2), transparent 38%),
+    linear-gradient(180deg, #252a36 0%, #10131a 100%);
+}
+
+.player-card[data-number]::after {
+  content: attr(data-number);
+  position: absolute;
+  z-index: -1;
+  right: 3%;
+  bottom: -0.2em;
+  font-family: var(--display);
+  font-size: clamp(11rem, 48vw, 21rem);
+  font-weight: 700;
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(243, 217, 138, 0.14);
+  transform: skewX(-10deg);
+  pointer-events: none;
+}
+
+.player-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 244, 210, 0.16) 48%, transparent 60%);
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+
+.jam .player-card::before { animation: sweep 1100ms 350ms var(--ease-out) both; }
+
+@keyframes sweep { to { transform: translateX(120%); } }
+
+.player-card h1 {
+  display: inline-block;
+  padding-right: 0.14em;
+  color: transparent;
+  background: linear-gradient(180deg, #fffaf0 0%, #ffe9a8 40%, var(--gold) 72%, #d9792a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(3px 3px 0 rgba(255, 90, 31, 0.75)) drop-shadow(2px 3px 0 rgba(0, 0, 0, 0.85));
+  transform: skewX(-9deg);
+  transform-origin: 0 100%;
+}
+
+.jam .player-card h1 { animation: slam 620ms 120ms var(--ease-slam) backwards; }
+
+@keyframes slam { from { opacity: 0; transform: scale(1.45) skewX(-9deg); } }
+
+.jam .player-card .kicker,
+.jam .player-card .hero-meta,
+.jam .player-card .summary,
+.jam .player-card .card-link,
+.jam .player-card .callout {
+  animation: rise 460ms var(--ease-out) backwards;
+}
+
+.jam .player-card .hero-meta { animation-delay: 380ms; }
+.jam .player-card .summary { animation-delay: 460ms; }
+.jam .player-card .card-link,
+.jam .player-card .callout { animation-delay: 540ms; }
+
+.chip { background: linear-gradient(100deg, #ffe08a, var(--gold) 50%, var(--fire-2)); }
+
+.shield {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 220, 140, 0.55), transparent 55%),
+    linear-gradient(180deg, #4a3a18, #17120a 72%);
+}
+
+.shield strong {
+  font-size: 3.4rem;
+  color: #fff1c2;
+  text-shadow: 2px 2px 0 var(--fire), 4px 4px 0 rgba(0, 0, 0, 0.7);
+}
+
+.jam .shield { animation: shield-in 700ms var(--ease-slam) backwards; }
+
+@keyframes shield-in { from { opacity: 0; transform: perspective(420px) rotateY(100deg) scale(0.6); } }
+
+.ticker {
+  overflow: hidden;
+  margin: -0.35rem 0 0.9rem;
+  padding: 0.45rem 0;
+  background: linear-gradient(90deg, var(--fire), var(--fire-2) 50%, var(--gold));
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+  color: #1a0d04;
+}
+
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 26s linear infinite;
+}
+
+.ticker span {
+  display: inline-block;
+  padding: 0 0.9rem;
+  font-family: var(--display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: skewX(-8deg);
+}
+
+.ticker span::before {
+  content: "★";
+  margin-right: 1.1rem;
+  opacity: 0.55;
+}
+
+@keyframes marquee { to { transform: translateX(-50%); } }
+
+.block {
+  position: relative;
+  border-color: rgba(232, 184, 74, 0.2);
+}
+
+.block::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 42%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--fire), var(--fire-2) 60%, transparent);
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
+
+.block h2 {
+  font-size: 1.75rem;
+  color: #fff3d0;
+  text-shadow: 2px 2px 0 rgba(255, 90, 31, 0.6), 3px 3px 0 rgba(0, 0, 0, 0.6);
+  transform: skewX(-8deg);
+  transform-origin: 0 100%;
+}
+
+.block h2::before {
+  width: 0.5rem;
+  height: 1.15rem;
+  background: linear-gradient(180deg, var(--fire-2), var(--fire));
+}
+
+.jam .reveal:not(.in) { opacity: 0; }
+
+.jam .reveal.in { animation: rise 460ms var(--ease-out) calc(var(--i, 0) * 55ms) backwards; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+
+.jam .block.in h2 { animation: h2-in 520ms var(--ease-slam) 80ms backwards; }
+
+@keyframes h2-in { from { opacity: 0; transform: translateX(-24px) skewX(-22deg); } }
+
+.jam .block.in::after { animation: stripe 700ms var(--ease-out) 120ms backwards; }
+
+@keyframes stripe { from { transform: scaleX(0); } }
+
+.kpi,
+.season-card,
+.news-card,
+.review,
+.source-card,
+.meter-block {
+  transition: transform 180ms var(--ease-out), border-color 180ms ease, background-color 180ms ease;
+}
+
+.kpi b {
+  color: #fff1c2;
+  text-shadow: 2px 2px 0 rgba(255, 90, 31, 0.65);
+  transform-origin: 0 100%;
+}
+
+.season-card strong {
+  color: #fff1c2;
+  text-shadow: 2px 2px 0 rgba(255, 90, 31, 0.55);
+  transform-origin: 0 100%;
+}
+
+.season-card.is-current {
+  border-color: var(--fire-2);
+  background: linear-gradient(160deg, rgba(255, 140, 40, 0.14), transparent 45%), #10131a;
+}
+
+.kpi b.is-landed,
+.season-card strong.is-landed,
+.shield strong.is-landed {
+  animation: land 360ms var(--ease-slam);
+}
+
+@keyframes land { 40% { transform: scale(1.18) skewX(-6deg); } }
+
+@media (hover: hover) {
+  .kpi:hover,
+  .season-card:hover,
+  .news-card:hover,
+  .review:hover,
+  .source-card:hover,
+  .meter-block:hover {
+    transform: translateY(-3px);
+    border-color: var(--fire-2);
+  }
+}
+
+.kpi:active,
+.season-card:active,
+.news-card:active,
+.review:active,
+.source-card:active,
+.meter-block:active {
+  transform: scale(0.98);
+  border-color: var(--fire-2);
+}
+
+.meter span { transform-origin: 0 50%; }
+
+.meter.is-current span { background: linear-gradient(90deg, var(--fire), var(--fire-2) 55%, var(--gold-2)); }
+
+.jam .meter-block.in .meter span { animation: meter-grow 600ms var(--ease-out) calc(var(--i, 0) * 55ms + 120ms) backwards; }
+
+@keyframes meter-grow { from { transform: scaleX(0); } }
+
+svg .bar {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.jam .block:not(.in) svg .bar { transform: scaleY(0); }
+
+.jam .block.in svg .bar { animation: grow 400ms var(--ease-slam) var(--d, 0ms) backwards; }
+
+@keyframes grow { from { transform: scaleY(0); } }
+
+.jam .block.in svg .bar-value { animation: fade 260ms ease var(--d, 0ms) backwards; }
+
+@keyframes fade { from { opacity: 0; } }
+
+svg .bar.is-fire { filter: drop-shadow(0 0 6px rgba(255, 110, 30, 0.75)); }
+
+.jam svg .fire-label { animation: flicker 1.6s ease-in-out infinite; }
+
+@keyframes flicker { 50% { opacity: 0.6; } }
+
+svg .bar-hit { cursor: pointer; }
+
+svg .bar-hit.is-picked { fill: rgba(243, 217, 138, 0.1); }
+
+.chart-key { font-size: 0.8125rem; }
+
+.swatch-fire { background: linear-gradient(0deg, var(--fire), var(--fire-2)); }
+
+.chart-readout {
+  min-height: 1.5em;
+  margin: 0 0 0.85rem;
+  color: var(--gold-2);
+  font-size: 0.875rem;
+}
+
+.segmented button {
+  transition: color 180ms ease, background 180ms ease, transform 180ms var(--ease-out);
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+
+.segmented button[aria-pressed="true"] {
+  border-color: transparent;
+  background: linear-gradient(100deg, var(--gold-2), var(--gold) 55%, var(--fire-2));
+  color: #1a1006;
+}
+
+.segmented button:active { transform: scale(0.96); }
+
+.jam .news-card { animation: pop 320ms var(--ease-slam) backwards; }
+
+@keyframes pop { from { opacity: 0; transform: translateY(8px) scale(0.97); } }
+
+.review {
+  border-left: 3px solid var(--fire-2);
+  background: linear-gradient(90deg, rgba(255, 140, 40, 0.08), transparent 40%), #10131a;
+}
+
+.callout {
+  border-left-color: var(--fire-2);
+  background: linear-gradient(90deg, rgba(255, 140, 40, 0.12), rgba(232, 184, 74, 0.05));
+}
+
+.to-top {
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  background: linear-gradient(100deg, var(--gold-2), var(--gold) 55%, var(--fire-2));
+  color: #1a1006;
+  border: 0;
+}
+
+@media (max-width: 720px) {
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+
+  .kpi {
+    min-height: 7rem;
+    padding: 0.75rem 0.7rem;
+  }
+
+  .kpi b { font-size: 2.3rem; }
+
+  .kpi span { letter-spacing: 0.06em; }
+
+  .player-card h1 { font-size: clamp(2.7rem, 13vw, 3.6rem); }
+
+  .block h2 { font-size: 1.5rem; }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
+
   html { scroll-behavior: auto; }
-  .topbar, #nav { transition: none; }
+
+  .topbar,
+  #nav { transition: none; }
+
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .player-card::before { display: none; }
 }
