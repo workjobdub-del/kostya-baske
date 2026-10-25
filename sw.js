@@ -2,7 +2,7 @@ importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 
 "use strict";
 
-const VERSION = "2026-10-25-5";
+const VERSION = "2026-10-25-6";
 const STATIC = `kostya-static-${VERSION}`;
 const DATA = "kostya-data";
 
@@ -11,8 +11,8 @@ const PRECACHE = [
   "./index.html",
   "./career.html",
   "./mama.html",
-  "./styles.css?v=2026-10-25-5",
-  "./app.js",
+  "./styles.css?v=2026-10-25-6",
+  "./app.js?v=2026-10-25-6",
   "./manifest.json",
   "./favicon.svg",
   "./logo.svg",
@@ -47,7 +47,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.endsWith("/sw.js")) return;
-  const freshCode = /\.(?:html|js)$/.test(url.pathname) || url.pathname.endsWith("/");
+  const freshCode = /\.(?:html|js|css)$/.test(url.pathname) || url.pathname.endsWith("/");
   if (/\/(?:data|news)\.json$/.test(url.pathname)) {
     event.respondWith(networkFirst(request, DATA));
     return;

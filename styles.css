@@ -357,7 +357,23 @@ body.header-hidden #nav.is-shown { top: 0; }
   text-transform: uppercase;
 }
 
-.card-link a:hover { color: white; }
+.card-link a:hover,
+.card-link button:hover { color: white; }
+
+.card-link button {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--gold-2);
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
 
 .block {
   margin: 0.85rem 0;
@@ -1309,6 +1325,13 @@ svg .bar-hit.is-picked { fill: rgba(243, 217, 138, 0.1); }
 
 .swatch-fire { background: linear-gradient(0deg, var(--fire), var(--fire-2)); }
 
+.swatch-mean {
+  width: 1.1rem;
+  height: 0;
+  background: transparent;
+  border-top: 2px dashed #f3d98a;
+}
+
 .chart-readout {
   min-height: 1.5em;
   margin: 0 0 0.85rem;
@@ -1614,6 +1637,203 @@ svg .bar-hit.is-picked { fill: rgba(243, 217, 138, 0.1); }
   .only-phone { display: block; }
   .stat-cards.only-phone,
   .game-cards.only-phone { display: grid; }
+
+  .kpi small,
+  .kpi span,
+  .season-card small,
+  .caption,
+  .legend,
+  .fact dt,
+  .bio-strip span,
+  .stat-card span,
+  .game-card dt,
+  .hero-stat span,
+  .meter-line,
+  .tag,
+  .scroll-hint,
+  .chart-readout {
+    font-size: 0.875rem;
+  }
+
+  .fact dt,
+  .bio-strip span,
+  .stat-card span,
+  .game-card dt,
+  .hero-stat span,
+  .tag,
+  .kpi span,
+  .meter-line {
+    color: var(--muted);
+  }
+
+  .col-extra { display: none; }
+
+  .table-scroll.standings {
+    box-shadow: inset -14px 0 12px -12px rgba(0, 0, 0, 0.8);
+  }
+}
+
+.term {
+  color: inherit;
+  text-decoration: underline dotted var(--gold);
+  text-underline-offset: 0.18em;
+  cursor: pointer;
+}
+
+.term-pop {
+  position: fixed;
+  z-index: 80;
+  margin: 0;
+  padding: 0.7rem 0.8rem;
+  background: #1a140c;
+  border: 1px solid var(--gold);
+  color: var(--ink);
+  font-size: 0.95rem;
+  line-height: 1.4;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+}
+
+.badge {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.08rem 0.4rem;
+  background: #2a2f3a;
+  color: var(--ink);
+  font-family: var(--display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-transform: none;
+  vertical-align: 0.1em;
+}
+
+.badge.is-win {
+  background: var(--gold);
+  color: #1a1006;
+}
+
+.badge.is-loss {
+  background: #6b717e;
+  color: #f4efe4;
+}
+
+.signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.7rem;
+  margin: 0.55rem 0 0;
+}
+
+.signal b { font-family: var(--display); }
+
+.signal.is-good,
+.ratio.is-good { color: var(--gold-2); }
+
+.signal.is-bad,
+.ratio.is-bad { color: #6b717e; }
+
+.signal.is-even { color: var(--muted); }
+
+.ratio,
+.share,
+.game-review {
+  margin: 0.45rem 0 0;
+  overflow-wrap: break-word;
+}
+
+.game-card .game-review,
+.game-card .ratio,
+.game-card .share,
+.game-card .signals,
+.game-card .caption { padding: 0 0.75rem; }
+
+.game-card .game-review { padding-bottom: 0.75rem; }
+
+.review-fold td { padding-top: 0; }
+
+.review-fold button {
+  min-height: var(--tap);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--gold-2);
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.review-fold .game-review { margin: 0 0 0.75rem; }
+
+.score-group { margin: 0 0 0.7rem; }
+
+.score-group h3 {
+  margin: 0 0 0.35rem;
+  color: var(--gold-2);
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.season-card .shoot-lines {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.shoot-lines span { display: block; }
+
+.scroll-hint {
+  margin: 0 0 0.4rem;
+  color: var(--muted);
+}
+
+.glossary {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.glossary-item {
+  padding: 0.7rem 0.75rem;
+  background: #10131a;
+  border-left: 3px solid var(--gold);
+}
+
+.glossary-item h3 {
+  margin: 0;
+  color: var(--gold-2);
+  font-size: 1.05rem;
+}
+
+.glossary-item p { margin: 0.3rem 0 0; }
+
+.guard-list {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.guard-list li + li { margin-top: 0.4rem; }
+
+.mama-group { margin-top: 1rem; }
+
+.mama-group h3 {
+  margin: 0 0 0.45rem;
+  color: var(--gold-2);
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.source-card small {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+@media (min-width: 721px) {
+  .glossary { grid-template-columns: 1fr 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {
