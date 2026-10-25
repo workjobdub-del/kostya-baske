@@ -62,7 +62,7 @@ function heading(id) {
   return item ? item.label : id;
 }
 
-function objectTable(columns, rows) {
+function objectTable(columns, rows, extraClass) {
   const head = columns.map((column) => `<th scope="col">${esc(column.label)}</th>`).join("");
   const body = rows
     .map((row) => {
@@ -72,7 +72,8 @@ function objectTable(columns, rows) {
       return `<tr class="${row.highlight ? "highlight" : ""}">${cells}</tr>`;
     })
     .join("");
-  return `<div class="table-scroll"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  const cls = extraClass ? ` ${extraClass}` : "";
+  return `<div class="table-scroll${cls}"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
 function arrayTable(columns, rows) {
@@ -80,7 +81,40 @@ function arrayTable(columns, rows) {
   const body = rows
     .map((row) => `<tr>${row.map((cell) => `<td>${esc(cell)}</td>`).join("")}</tr>`)
     .join("");
-  return `<div class="table-scroll"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  return `<div class="table-scroll only-desk"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+function scoreCards(columns, rows) {
+  const row = rows[0] || [];
+  const cards = columns
+    .map(
+      (label, index) =>
+        `<div class="stat-card"><b>${esc(row[index] ?? "")}</b><span>${esc(label)}</span></div>`
+    )
+    .join("");
+  return `<div class="stat-cards only-phone">${cards}</div>`;
+}
+
+function gameCards(tournament) {
+  const pointsCol = tournament.columns.find((column) => column.key === "points");
+  const cards = tournament.rows
+    .map((row) => {
+      const title = tournament.columns
+        .slice(0, 2)
+        .map((column) => row[column.key])
+        .filter((value) => value != null && value !== "")
+        .join(" · ");
+      const points = pointsCol ? formatCell(row.points, false) : "";
+      const rest = tournament.columns
+        .map(
+          (column) =>
+            `<div><dt>${esc(column.label)}</dt><dd>${formatCell(row[column.key], column.average)}</dd></div>`
+        )
+        .join("");
+      return `<details class="game-card"><summary><span>${esc(title)}</span><b>${points}</b></summary><dl>${rest}</dl></details>`;
+    })
+    .join("");
+  return `<div class="game-cards only-phone">${cards}</div>`;
 }
 
 function paragraphs(list) {
@@ -380,6 +414,46 @@ function renderNav() {
     .join("");
 }
 
+function currentSeason() {
+  const seasons = data.tournamentStats.seasons;
+  const live = seasons.find((season) => {
+    if (season.id !== "mos2627") return false;
+    const games = Number(String(season.games).split(" ")[0]);
+    return games > 0;
+  });
+  return live || seasons.find((season) => season.highlight) || seasons[seasons.length - 1];
+}
+
+function heightLine() {
+  const match = String(profileValue("Рост и вес")).match(/(\d+)\s*см/);
+  return match ? `${match[1]} см` : "";
+}
+
+function updatedLine() {
+  if (!data.updated) return "";
+  return `<p class="updated">Обновлено: ${esc(formatNewsDate(data.updated))}</p>`;
+}
+
+function heroStats() {
+  const season = currentSeason();
+  if (!season) return updatedLine();
+  const cells = [
+    ["Очки", season.points],
+    ["Подборы", season.rebounds],
+    ["Передачи", season.assists],
+    ["Перехваты", season.steals],
+  ]
+    .map(
+      ([label, value]) =>
+        `<div class="hero-stat"><b>${esc(formatAvg(value))}</b><span>${esc(label)}</span></div>`
+    )
+    .join("");
+  const sub = [heightLine(), season.name].filter(Boolean).join(" · ");
+  return `<div class="hero-stats" aria-label="Средние за сезон">${cells}</div>
+    <p class="hero-sub">${esc(sub)}</p>
+    ${updatedLine()}`;
+}
+
 function renderHero() {
   const player = data.player;
   const year = profileValue("Год рождения");
@@ -394,6 +468,7 @@ function renderHero() {
         <h1>${esc(player.name)}</h1>
         <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
         <p class="summary">${esc(player.summary)}</p>
+        ${heroStats()}
         <p class="card-link"><a href="career.html">Карьера</a><a href="mama.html">Для мамы</a></p>
       </div>
     </div>
@@ -461,6 +536,11 @@ function trendValue(viewId, category, seriesName) {
   return series.values[index];
 }
 
+function seasonYear(name) {
+  const match = String(name).match(/\d{4}\/\d{2}/);
+  return match ? match[0] : "";
+}
+
 function kpiCard(value, label, detail) {
   return `<article class="kpi">
     <b>${esc(value)}</b>
@@ -484,13 +564,17 @@ function renderCareerCards(career) {
     kpiCard(formatAvg(career.peakSteals.steals), "Больше всего перехватов", career.peakSteals.name),
     kpiCard(
       formatAvg(career.latest.rebounds),
-      "Подборы, 2025/26",
-      reboundsThen === null ? career.latest.name : `Год назад было ${formatAvg(reboundsThen)}`
+      `Подборы, ${seasonYear(career.latest.name) || "сезон"}`,
+      seasonYear(career.latest.name) === "2025/26" && reboundsThen !== null
+        ? `Год назад было ${formatAvg(reboundsThen)}`
+        : career.latest.name
     ),
     kpiCard(
       formatAvg(career.latest.assists),
-      "Передачи, 2025/26",
-      assistsThen === null ? career.latest.name : `Год назад было ${formatAvg(assistsThen)}`
+      `Передачи, ${seasonYear(career.latest.name) || "сезон"}`,
+      seasonYear(career.latest.name) === "2025/26" && assistsThen !== null
+        ? `Год назад было ${formatAvg(assistsThen)}`
+        : career.latest.name
     ),
   ];
   return `<div class="kpi-grid">${cards.join("")}</div>`;
@@ -578,7 +662,8 @@ function renderCareerPage() {
         <div class="player-card-copy">
           <h1>${esc(player.name)}</h1>
           <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
-          <p class="summary">${esc(player.summary)}</p>
+          <p class="summary">${esc(ruCount(career.games, "игра", "игры", "игр"))}, ${esc(ruCount(career.points, "очко", "очка", "очков"))}. Ниже — лучшие матчи и средние из этих журналов.</p>
+          ${updatedLine()}
           <p class="card-link"><a href="mama.html">Для мамы</a></p>
         </div>
       </div>
@@ -700,16 +785,18 @@ function renderMamaPage() {
       <h1>${esc(player.name)}</h1>
       <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
       <p class="summary">${esc(mama.summary)}</p>
+      ${updatedLine()}
       <aside class="callout">${anchor}</aside>
     </section>
     <section class="block" id="recent">
       <h2>Последние игры</h2>
       <p class="caption">Пять последних матчей сезона U12, с конца. Цифры из журнала.</p>
       <div class="reviews">${games}</div>
-      <article class="review">
-        <h3>${esc(mama.pending.title)}</h3>
-        <p>${esc(mama.pending.text)}</p>
-      </article>
+      ${
+        mama.pending && mama.pending.title
+          ? `<article class="review"><h3>${esc(mama.pending.title)}</h3><p>${esc(mama.pending.text)}</p></article>`
+          : ""
+      }
     </section>
     <section class="block" id="mama-notes">
       <h2>Что видно по цифрам</h2>
@@ -735,6 +822,7 @@ function renderLast() {
     <h2>${esc(heading("last"))}</h2>
     <p class="caption">${esc(block.caption)}</p>
     ${facts(block.facts)}
+    ${scoreCards(block.columns, block.rows)}
     ${arrayTable(block.columns, block.rows)}
     ${paragraphs(block.paragraphs)}
   </section>`;
@@ -766,7 +854,8 @@ function renderSeason() {
     <h2>${esc(heading("season"))}</h2>
     <p class="caption">${esc(block.caption)}</p>
     <div class="match-list">${matches}</div>
-    ${objectTable(block.standings.columns, block.standings.rows)}
+    ${block.plaque ? `<p class="plaque">${esc(block.plaque)}</p>` : ""}
+    ${objectTable(block.standings.columns, block.standings.rows, "standings")}
   </section>`;
 }
 
@@ -775,8 +864,9 @@ function renderStats() {
   return `<section class="block" id="stats">
     <h2>${esc(heading("stats"))}</h2>
     <p class="caption">${esc(block.caption)}</p>
-    ${objectTable(block.averageColumns, block.seasons)}
-    ${objectTable(block.shootingColumns, block.seasons)}
+    <div class="only-phone">${renderSeasonCards()}</div>
+    ${objectTable(block.averageColumns, block.seasons, "only-desk")}
+    ${objectTable(block.shootingColumns, block.seasons, "only-desk")}
     ${paragraphs(block.paragraphs)}
   </section>`;
 }
@@ -844,7 +934,7 @@ function renderGamePanel(restoreFocus) {
     state.game,
     "game",
     "Турнир"
-  )}${pointsChart(tournament)}${objectTable(tournament.columns, tournament.rows)}`;
+  )}${pointsChart(tournament)}${gameCards(tournament)}${objectTable(tournament.columns, tournament.rows, "only-desk")}`;
   if (restoreFocus) {
     const button = document.querySelector(`[data-game="${CSS.escape(state.game)}"]`);
     if (button) button.focus();
@@ -905,7 +995,7 @@ function render() {
 
 const REVEAL =
   ".block, .ticker, .kpi, .season-card, .meter-block, .review, .news-card, .fact, .bio-strip li, .match-row, .source-card, .panel";
-const COUNT = ".kpi b, .shield strong, .season-card strong";
+const COUNT = ".kpi b, .shield strong, .season-card strong, .hero-stat b";
 let revealer = null;
 
 function motionOk() {
@@ -958,11 +1048,11 @@ function animateIn() {
     el.style.setProperty("--i", String(Math.min(index, 7)));
     revealer.observe(el);
   });
-  root.querySelectorAll(".player-card .shield strong").forEach(countUp);
+  root.querySelectorAll(".player-card .shield strong, .hero-stat b").forEach(countUp);
 }
 
 function phoneLayout() {
-  return window.innerWidth <= 720;
+  return window.matchMedia("(max-width: 720px)").matches;
 }
 
 function syncChrome() {
@@ -975,13 +1065,15 @@ function syncChrome() {
   const showNav = document.body.dataset.page === "profile" && nav && !nav.hidden && (pastHero || !phoneLayout());
   if (nav) nav.classList.toggle("is-shown", Boolean(showNav));
   if (header) {
-    if (phoneLayout()) {
+    if (!phoneLayout()) {
+      header.classList.remove("is-hidden");
+    } else if (showNav) {
+      header.classList.add("is-hidden");
+    } else {
       const down = y > state.lastY + 8;
       const up = y < state.lastY - 8;
       if (y < 12 || up) header.classList.remove("is-hidden");
       else if (down && y > 40) header.classList.add("is-hidden");
-    } else {
-      header.classList.remove("is-hidden");
     }
     document.body.classList.toggle("header-hidden", header.classList.contains("is-hidden"));
   }
@@ -1084,8 +1176,57 @@ window.addEventListener("resize", () => {
   }, 150);
 });
 
+function showUpdateBanner(reg) {
+  if (document.getElementById("update-banner")) return;
+  const bar = document.createElement("div");
+  bar.id = "update-banner";
+  bar.className = "update-banner";
+  bar.setAttribute("role", "status");
+  bar.innerHTML = `<p>Доступно обновление</p><button type="button">Обновить</button>`;
+  bar.querySelector("button").addEventListener("click", () => {
+    if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+  });
+  document.body.appendChild(bar);
+  window.setTimeout(() => {
+    if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+  }, 4000);
+}
+
+function watchUpdates() {
+  if (!("serviceWorker" in navigator)) return Promise.resolve();
+  const hadController = Boolean(navigator.serviceWorker.controller);
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController || reloaded) return;
+    reloaded = true;
+    location.reload();
+  });
+  return navigator.serviceWorker
+    .register("sw.js")
+    .then((reg) => {
+      const arm = () => {
+        if (reg.waiting && navigator.serviceWorker.controller) showUpdateBanner(reg);
+      };
+      arm();
+      reg.addEventListener("updatefound", () => {
+        const worker = reg.installing;
+        if (!worker) return;
+        worker.addEventListener("statechange", arm);
+      });
+      if (hadController) return reg;
+      const kick = () => {
+        if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+      };
+      if (reg.installing) reg.installing.addEventListener("statechange", kick);
+      kick();
+      return navigator.serviceWorker.ready;
+    })
+    .catch(() => {});
+}
+
 async function init() {
   const status = document.getElementById("load-state");
+  await Promise.race([watchUpdates(), new Promise((resolve) => window.setTimeout(resolve, 2500))]);
   try {
     const response = await fetch("data.json");
     if (!response.ok) throw new Error(String(response.status));

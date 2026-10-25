@@ -1,4 +1,5 @@
 {
+  "updated": "2026-10-25",
   "player": {
     "name": "Костя Дербышев",
     "number": "7",
@@ -7,24 +8,89 @@
     "summary": "Разыгрывающий «Ростка-2014». Здесь последний разобранный матч, сезон 2026/27 и как меняется игра."
   },
   "nav": [
-    { "id": "last", "label": "Последний матч", "short": "Матч" },
-    { "id": "profile", "label": "Профиль", "short": "Профиль" },
-    { "id": "season", "label": "Сезон 2026/27", "short": "Сезон" },
-    { "id": "stats", "label": "Средние по турнирам", "short": "Турниры" },
-    { "id": "games", "label": "Все игры", "short": "Игры" },
-    { "id": "trend", "label": "Как изменилась игра", "short": "Динамика" },
-    { "id": "notes", "label": "Что получается", "short": "Оценка" },
-    { "id": "sources", "label": "Источники", "short": "Источники" }
+    {
+      "id": "last",
+      "label": "Последний матч",
+      "short": "Матч"
+    },
+    {
+      "id": "profile",
+      "label": "Профиль",
+      "short": "Профиль"
+    },
+    {
+      "id": "season",
+      "label": "Сезон 2026/27",
+      "short": "Сезон"
+    },
+    {
+      "id": "stats",
+      "label": "Средние по турнирам",
+      "short": "Турниры"
+    },
+    {
+      "id": "games",
+      "label": "Все игры",
+      "short": "Игры"
+    },
+    {
+      "id": "trend",
+      "label": "Как изменилась игра",
+      "short": "Динамика"
+    },
+    {
+      "id": "notes",
+      "label": "Что получается",
+      "short": "Оценка"
+    },
+    {
+      "id": "sources",
+      "label": "Источники",
+      "short": "Источники"
+    }
   ],
   "lastMatch": {
     "caption": "Последний матч, где уже есть личный протокол. Игра 24 октября 2026 с «Гольяново» в протоколе Кости ещё не разобрана.",
     "facts": [
-      { "label": "Матч", "value": "Тимирязевская 2015 U12 — Росток U12, 31:52" },
-      { "label": "Дата и стадия", "value": "21.02.2026, матч за 3-е место, дивизион U12(1)" },
-      { "label": "Результат", "value": "Победа, «Росток» занял 3-е место" }
+      {
+        "label": "Матч",
+        "value": "Тимирязевская 2015 U12 — Росток U12, 31:52"
+      },
+      {
+        "label": "Дата и стадия",
+        "value": "21.02.2026, матч за 3-е место, дивизион U12(1)"
+      },
+      {
+        "label": "Результат",
+        "value": "Победа, «Росток» занял 3-е место"
+      }
     ],
-    "columns": ["Старт", "Мин", "Очки", "2-очк.", "Штраф", "Подб (нап)", "Пер", "Перехв", "Потери", "Фолы"],
-    "rows": [["да", "10:24", "1", "0/1", "1/2", "4 (3)", "0", "0", "3", "1"]],
+    "columns": [
+      "Старт",
+      "Мин",
+      "Очки",
+      "2-очк.",
+      "Штраф",
+      "Подб (нап)",
+      "Пер",
+      "Перехв",
+      "Потери",
+      "Фолы"
+    ],
+    "rows": [
+      [
+        "да",
+        "10:24",
+        "1",
+        "0/1",
+        "1/2",
+        "4 (3)",
+        "0",
+        "0",
+        "3",
+        "1"
+      ]
+    ],
     "paragraphs": [
       "Вышел в старте и сыграл 10:24. В среднем за сезон U12 — 18:59. Команда закрыла матч рано.",
       "За эти 10 минут — 3 подбора в нападении. За сезон это лучший такой отрезок.",
@@ -33,20 +99,42 @@
   },
   "profile": {
     "items": [
-      { "label": "Команда", "value": "Росток-2014, группа А, Первый дивизион" },
-      { "label": "Турнир", "value": "Турнир Мосбаскет, юноши до 14 лет, сезон 2026/27" },
-      { "label": "Амплуа", "value": "Разыгрывающий" },
-      { "label": "Год рождения", "value": "2014" },
-      { "label": "Рост и вес", "value": "150 см, 42 кг" },
-      { "label": "Тренер", "value": "Земченко Даниил Андреевич" },
-      { "label": "Прошлые команды", "value": "КСШОР «Зоркий» (Красногорск), 2024/25; «Росток U12», 2025/26" }
+      {
+        "label": "Команда",
+        "value": "Росток-2014, группа А, Первый дивизион"
+      },
+      {
+        "label": "Турнир",
+        "value": "Турнир Мосбаскет, юноши до 14 лет, сезон 2026/27"
+      },
+      {
+        "label": "Амплуа",
+        "value": "Разыгрывающий"
+      },
+      {
+        "label": "Год рождения",
+        "value": "2014"
+      },
+      {
+        "label": "Рост и вес",
+        "value": "150 см, 42 кг"
+      },
+      {
+        "label": "Тренер",
+        "value": "Земченко Даниил Андреевич"
+      },
+      {
+        "label": "Прошлые команды",
+        "value": "КСШОР «Зоркий» (Красногорск), 2024/25; «Росток U12», 2025/26"
+      }
     ],
     "paragraphs": [
       "Из трёх разыгрывающих он самый высокий: 150 см. Двое других — 139 и 140 см. Средний рост команды около 149 см, средний вес около 41 кг."
     ]
   },
   "season": {
-    "caption": "На 25 октября 2026. В таблице группы эта игра ещё не стоит, поэтому у «Ростка» нули. Счёт команды есть в новостях: 62:37.",
+    "caption": "На 25 октября 2026. В таблице группы у «Ростка» 0 побед и 0 поражений.",
+    "plaque": "Таблица ещё не обновлена: победа 62:37",
     "matches": [
       {
         "title": "Росток-2014 — Гольяново-2014-2",
@@ -56,42 +144,161 @@
     ],
     "standings": {
       "columns": [
-        { "key": "team", "label": "Группа А" },
-        { "key": "played", "label": "И" },
-        { "key": "wins", "label": "В" },
-        { "key": "losses", "label": "П" },
-        { "key": "points", "label": "Очки" },
-        { "key": "scored", "label": "Забито" },
-        { "key": "conceded", "label": "Пропущено" }
+        {
+          "key": "team",
+          "label": "Группа А"
+        },
+        {
+          "key": "played",
+          "label": "И"
+        },
+        {
+          "key": "wins",
+          "label": "В"
+        },
+        {
+          "key": "losses",
+          "label": "П"
+        },
+        {
+          "key": "points",
+          "label": "Очки"
+        },
+        {
+          "key": "scored",
+          "label": "Забито"
+        },
+        {
+          "key": "conceded",
+          "label": "Пропущено"
+        }
       ],
       "rows": [
-        { "team": "1. Айбаскет-2014-2", "played": "1", "wins": "1", "losses": "0", "points": "2", "scored": "47", "conceded": "42" },
-        { "team": "2. К Пахра-2014-2", "played": "1", "wins": "0", "losses": "1", "points": "1", "scored": "42", "conceded": "47" },
-        { "team": "3. Тимирязевская-2014", "played": "0", "wins": "0", "losses": "0", "points": "0", "scored": "0", "conceded": "0" },
-        { "team": "4. Глория-2014-3", "played": "0", "wins": "0", "losses": "0", "points": "0", "scored": "0", "conceded": "0" },
-        { "team": "5. Гольяново-2014-2", "played": "0", "wins": "0", "losses": "0", "points": "0", "scored": "0", "conceded": "0" },
-        { "team": "6. Росток-2014", "played": "0", "wins": "0", "losses": "0", "points": "0", "scored": "0", "conceded": "0", "highlight": true },
-        { "team": "7. Тринта-2014-2", "played": "0", "wins": "0", "losses": "0", "points": "0", "scored": "0", "conceded": "0" }
+        {
+          "team": "1. Айбаскет-2014-2",
+          "played": "1",
+          "wins": "1",
+          "losses": "0",
+          "points": "2",
+          "scored": "47",
+          "conceded": "42"
+        },
+        {
+          "team": "2. К Пахра-2014-2",
+          "played": "1",
+          "wins": "0",
+          "losses": "1",
+          "points": "1",
+          "scored": "42",
+          "conceded": "47"
+        },
+        {
+          "team": "3. Тимирязевская-2014",
+          "played": "0",
+          "wins": "0",
+          "losses": "0",
+          "points": "0",
+          "scored": "0",
+          "conceded": "0"
+        },
+        {
+          "team": "4. Глория-2014-3",
+          "played": "0",
+          "wins": "0",
+          "losses": "0",
+          "points": "0",
+          "scored": "0",
+          "conceded": "0"
+        },
+        {
+          "team": "5. Гольяново-2014-2",
+          "played": "0",
+          "wins": "0",
+          "losses": "0",
+          "points": "0",
+          "scored": "0",
+          "conceded": "0"
+        },
+        {
+          "team": "6. Росток-2014",
+          "played": "0",
+          "wins": "0",
+          "losses": "0",
+          "points": "0",
+          "scored": "0",
+          "conceded": "0",
+          "highlight": true
+        },
+        {
+          "team": "7. Тринта-2014-2",
+          "played": "0",
+          "wins": "0",
+          "losses": "0",
+          "points": "0",
+          "scored": "0",
+          "conceded": "0"
+        }
       ]
     }
   },
   "tournamentStats": {
     "caption": "В среднем за игру",
     "averageColumns": [
-      { "key": "name", "label": "Сезон, турнир" },
-      { "key": "games", "label": "Игры (старт)" },
-      { "key": "minutes", "label": "Мин" },
-      { "key": "points", "label": "Очки", "average": true },
-      { "key": "rebounds", "label": "Подб", "average": true },
-      { "key": "assists", "label": "Пер", "average": true },
-      { "key": "steals", "label": "Перехв", "average": true },
-      { "key": "turnovers", "label": "Потери", "average": true }
+      {
+        "key": "name",
+        "label": "Сезон, турнир"
+      },
+      {
+        "key": "games",
+        "label": "Игры (старт)"
+      },
+      {
+        "key": "minutes",
+        "label": "Мин"
+      },
+      {
+        "key": "points",
+        "label": "Очки",
+        "average": true
+      },
+      {
+        "key": "rebounds",
+        "label": "Подб",
+        "average": true
+      },
+      {
+        "key": "assists",
+        "label": "Пер",
+        "average": true
+      },
+      {
+        "key": "steals",
+        "label": "Перехв",
+        "average": true
+      },
+      {
+        "key": "turnovers",
+        "label": "Потери",
+        "average": true
+      }
     ],
     "shootingColumns": [
-      { "key": "name", "label": "Сезон, турнир" },
-      { "key": "fg2", "label": "2-очковые" },
-      { "key": "fg3", "label": "3-очковые" },
-      { "key": "ft", "label": "Штрафные" }
+      {
+        "key": "name",
+        "label": "Сезон, турнир"
+      },
+      {
+        "key": "fg2",
+        "label": "2-очковые"
+      },
+      {
+        "key": "fg3",
+        "label": "3-очковые"
+      },
+      {
+        "key": "ft",
+        "label": "Штрафные"
+      }
     ],
     "seasons": [
       {
@@ -145,72 +352,323 @@
       {
         "id": "u12",
         "label": "Росток U12, 25/26",
-        "chart": { "labelKey": "date", "labelPrefix": 5, "valueKey": "points" },
+        "chart": {
+          "labelKey": "date",
+          "labelPrefix": 5,
+          "valueKey": "points"
+        },
         "columns": [
-          { "key": "date", "label": "Дата" },
-          { "key": "opponent", "label": "Соперник" },
-          { "key": "score", "label": "Счёт" },
-          { "key": "minutes", "label": "Мин" },
-          { "key": "points", "label": "Очки" },
-          { "key": "fg2", "label": "2-очк." },
-          { "key": "rebounds", "label": "Подб" },
-          { "key": "assists", "label": "Пер" },
-          { "key": "steals", "label": "Перехв" },
-          { "key": "turnovers", "label": "Потери" }
+          {
+            "key": "date",
+            "label": "Дата"
+          },
+          {
+            "key": "opponent",
+            "label": "Соперник"
+          },
+          {
+            "key": "score",
+            "label": "Счёт"
+          },
+          {
+            "key": "minutes",
+            "label": "Мин"
+          },
+          {
+            "key": "points",
+            "label": "Очки"
+          },
+          {
+            "key": "fg2",
+            "label": "2-очк."
+          },
+          {
+            "key": "rebounds",
+            "label": "Подб"
+          },
+          {
+            "key": "assists",
+            "label": "Пер"
+          },
+          {
+            "key": "steals",
+            "label": "Перехв"
+          },
+          {
+            "key": "turnovers",
+            "label": "Потери"
+          }
         ],
         "rows": [
-          { "date": "28.09.25", "opponent": "IBASKET U12", "score": "63:31, победа", "minutes": "20:53", "points": 2, "fg2": "1/6", "rebounds": 7, "assists": 1, "steals": 3, "turnovers": 4 },
-          { "date": "19.10.25", "opponent": "Первомайская U12", "score": "50:80, поражение", "minutes": "21:45", "points": 2, "fg2": "1/6", "rebounds": 6, "assists": 1, "steals": 0, "turnovers": 4 },
-          { "date": "26.10.25", "opponent": "Тринта 2015 U12", "score": "54:48, победа", "minutes": "24:35", "points": 2, "fg2": "1/3", "rebounds": 1, "assists": 0, "steals": 0, "turnovers": 3 },
-          { "date": "09.11.25", "opponent": "Тимирязевская 2015", "score": "58:39, победа", "minutes": "16:20", "points": 4, "fg2": "1/8", "rebounds": 5, "assists": 2, "steals": 1, "turnovers": 3 },
-          { "date": "16.11.25", "opponent": "IBASKET U12", "score": "59:17, победа", "minutes": "10:33", "points": 2, "fg2": "1/4", "rebounds": 1, "assists": 3, "steals": 1, "turnovers": 0 },
-          { "date": "07.12.25", "opponent": "Первомайская U12", "score": "36:76, поражение", "minutes": "29:51", "points": 9, "fg2": "2/14", "rebounds": 5, "assists": 0, "steals": 0, "turnovers": 8 },
-          { "date": "18.01.26", "opponent": "Тринта 2015 U12", "score": "37:35, победа", "minutes": "22:16", "points": 10, "fg2": "3/5", "rebounds": 3, "assists": 0, "steals": 5, "turnovers": 4 },
-          { "date": "01.02.26", "opponent": "Тимирязевская 2015", "score": "64:44, победа", "minutes": "18:49", "points": 11, "fg2": "4/6", "rebounds": 2, "assists": 2, "steals": 1, "turnovers": 1 },
-          { "date": "15.02.26", "opponent": "Тринта 2015 U12, полуфинал", "score": "51:53, поражение", "minutes": "14:28", "points": 0, "fg2": "0/4", "rebounds": 2, "assists": 3, "steals": 0, "turnovers": 2 },
-          { "date": "21.02.26", "opponent": "Тимирязевская 2015, за 3-е", "score": "52:31, победа", "minutes": "10:24", "points": 1, "fg2": "0/1", "rebounds": 4, "assists": 0, "steals": 0, "turnovers": 3 }
+          {
+            "date": "28.09.25",
+            "opponent": "IBASKET U12",
+            "score": "63:31, победа",
+            "minutes": "20:53",
+            "points": 2,
+            "fg2": "1/6",
+            "rebounds": 7,
+            "assists": 1,
+            "steals": 3,
+            "turnovers": 4
+          },
+          {
+            "date": "19.10.25",
+            "opponent": "Первомайская U12",
+            "score": "50:80, поражение",
+            "minutes": "21:45",
+            "points": 2,
+            "fg2": "1/6",
+            "rebounds": 6,
+            "assists": 1,
+            "steals": 0,
+            "turnovers": 4
+          },
+          {
+            "date": "26.10.25",
+            "opponent": "Тринта 2015 U12",
+            "score": "54:48, победа",
+            "minutes": "24:35",
+            "points": 2,
+            "fg2": "1/3",
+            "rebounds": 1,
+            "assists": 0,
+            "steals": 0,
+            "turnovers": 3
+          },
+          {
+            "date": "09.11.25",
+            "opponent": "Тимирязевская 2015",
+            "score": "58:39, победа",
+            "minutes": "16:20",
+            "points": 4,
+            "fg2": "1/8",
+            "rebounds": 5,
+            "assists": 2,
+            "steals": 1,
+            "turnovers": 3
+          },
+          {
+            "date": "16.11.25",
+            "opponent": "IBASKET U12",
+            "score": "59:17, победа",
+            "minutes": "10:33",
+            "points": 2,
+            "fg2": "1/4",
+            "rebounds": 1,
+            "assists": 3,
+            "steals": 1,
+            "turnovers": 0
+          },
+          {
+            "date": "07.12.25",
+            "opponent": "Первомайская U12",
+            "score": "36:76, поражение",
+            "minutes": "29:51",
+            "points": 9,
+            "fg2": "2/14",
+            "rebounds": 5,
+            "assists": 0,
+            "steals": 0,
+            "turnovers": 8
+          },
+          {
+            "date": "18.01.26",
+            "opponent": "Тринта 2015 U12",
+            "score": "37:35, победа",
+            "minutes": "22:16",
+            "points": 10,
+            "fg2": "3/5",
+            "rebounds": 3,
+            "assists": 0,
+            "steals": 5,
+            "turnovers": 4
+          },
+          {
+            "date": "01.02.26",
+            "opponent": "Тимирязевская 2015",
+            "score": "64:44, победа",
+            "minutes": "18:49",
+            "points": 11,
+            "fg2": "4/6",
+            "rebounds": 2,
+            "assists": 2,
+            "steals": 1,
+            "turnovers": 1
+          },
+          {
+            "date": "15.02.26",
+            "opponent": "Тринта 2015 U12, полуфинал",
+            "score": "51:53, поражение",
+            "minutes": "14:28",
+            "points": 0,
+            "fg2": "0/4",
+            "rebounds": 2,
+            "assists": 3,
+            "steals": 0,
+            "turnovers": 2
+          },
+          {
+            "date": "21.02.26",
+            "opponent": "Тимирязевская 2015, за 3-е",
+            "score": "52:31, победа",
+            "minutes": "10:24",
+            "points": 1,
+            "fg2": "0/1",
+            "rebounds": 4,
+            "assists": 0,
+            "steals": 0,
+            "turnovers": 3
+          }
         ]
       },
       {
         "id": "fb",
         "label": "Быстрый прорыв, 24/25",
         "columns": [
-          { "key": "stage", "label": "Этап" },
-          { "key": "opponent", "label": "Соперник" },
-          { "key": "score", "label": "Счёт команды" },
-          { "key": "points", "label": "Очки" }
+          {
+            "key": "stage",
+            "label": "Этап"
+          },
+          {
+            "key": "opponent",
+            "label": "Соперник"
+          },
+          {
+            "key": "score",
+            "label": "Счёт команды"
+          },
+          {
+            "key": "points",
+            "label": "Очки"
+          }
         ],
         "rows": [
-          { "stage": "1-й этап", "opponent": "Урал-Грейт", "score": "11:68", "points": 0 },
-          { "stage": "1-й этап", "opponent": "Тверь", "score": "3:41", "points": 0 },
-          { "stage": "1-й этап", "opponent": "Тринта", "score": "19:41", "points": 6 },
-          { "stage": "1-й этап", "opponent": "СШОР Гомельского", "score": "18:52", "points": 4 },
-          { "stage": "1-й этап", "opponent": "Росток, за 7-е", "score": "17:38", "points": 2 },
-          { "stage": "3-й этап", "opponent": "Нагорная", "score": "14:56", "points": 2 },
-          { "stage": "3-й этап", "opponent": "Орбита", "score": "7:59", "points": 0 },
-          { "stage": "3-й этап", "opponent": "Марсово поле", "score": "24:43", "points": 4 },
-          { "stage": "3-й этап", "opponent": "СШОР №1 Самара", "score": "19:44", "points": 13 },
-          { "stage": "3-й этап", "opponent": "СШОР №2 «ДАР»", "score": "20:41", "points": 8 }
+          {
+            "stage": "1-й этап",
+            "opponent": "Урал-Грейт",
+            "score": "11:68",
+            "points": 0
+          },
+          {
+            "stage": "1-й этап",
+            "opponent": "Тверь",
+            "score": "3:41",
+            "points": 0
+          },
+          {
+            "stage": "1-й этап",
+            "opponent": "Тринта",
+            "score": "19:41",
+            "points": 6
+          },
+          {
+            "stage": "1-й этап",
+            "opponent": "СШОР Гомельского",
+            "score": "18:52",
+            "points": 4
+          },
+          {
+            "stage": "1-й этап",
+            "opponent": "Росток, за 7-е",
+            "score": "17:38",
+            "points": 2
+          },
+          {
+            "stage": "3-й этап",
+            "opponent": "Нагорная",
+            "score": "14:56",
+            "points": 2
+          },
+          {
+            "stage": "3-й этап",
+            "opponent": "Орбита",
+            "score": "7:59",
+            "points": 0
+          },
+          {
+            "stage": "3-й этап",
+            "opponent": "Марсово поле",
+            "score": "24:43",
+            "points": 4
+          },
+          {
+            "stage": "3-й этап",
+            "opponent": "СШОР №1 Самара",
+            "score": "19:44",
+            "points": 13
+          },
+          {
+            "stage": "3-й этап",
+            "opponent": "СШОР №2 «ДАР»",
+            "score": "20:41",
+            "points": 8
+          }
         ]
       },
       {
         "id": "mu",
         "label": "Движение вверх, 24/25",
         "columns": [
-          { "key": "opponent", "label": "Соперник" },
-          { "key": "score", "label": "Счёт команды" },
-          { "key": "points", "label": "Очки" }
+          {
+            "key": "opponent",
+            "label": "Соперник"
+          },
+          {
+            "key": "score",
+            "label": "Счёт команды"
+          },
+          {
+            "key": "points",
+            "label": "Очки"
+          }
         ],
         "rows": [
-          { "opponent": "BULLDOGS", "score": "32:14, победа", "points": 16 },
-          { "opponent": "Пегас", "score": "74:2, победа", "points": 14 },
-          { "opponent": "PFBC 2014", "score": "38:31, победа", "points": 6 },
-          { "opponent": "Белые тигры", "score": "69:11, победа", "points": 14 },
-          { "opponent": "Созвездие", "score": "66:17, победа", "points": 8 },
-          { "opponent": "Пламя", "score": "44:7, победа", "points": 8 },
-          { "opponent": "Созвездие, полуфинал", "score": "39:18, победа", "points": 8 },
-          { "opponent": "Созвездие, полуфинал", "score": "71:32, победа", "points": 15 },
-          { "opponent": "BULLDOGS, финал", "score": "42:43, поражение", "points": 13 }
+          {
+            "opponent": "BULLDOGS",
+            "score": "32:14, победа",
+            "points": 16
+          },
+          {
+            "opponent": "Пегас",
+            "score": "74:2, победа",
+            "points": 14
+          },
+          {
+            "opponent": "PFBC 2014",
+            "score": "38:31, победа",
+            "points": 6
+          },
+          {
+            "opponent": "Белые тигры",
+            "score": "69:11, победа",
+            "points": 14
+          },
+          {
+            "opponent": "Созвездие",
+            "score": "66:17, победа",
+            "points": 8
+          },
+          {
+            "opponent": "Пламя",
+            "score": "44:7, победа",
+            "points": 8
+          },
+          {
+            "opponent": "Созвездие, полуфинал",
+            "score": "39:18, победа",
+            "points": 8
+          },
+          {
+            "opponent": "Созвездие, полуфинал",
+            "score": "71:32, победа",
+            "points": 15
+          },
+          {
+            "opponent": "BULLDOGS, финал",
+            "score": "42:43, поражение",
+            "points": 13
+          }
         ]
       }
     ]
@@ -222,19 +680,58 @@
       {
         "id": "avg",
         "label": "Игра",
-        "categories": ["Очки", "Подборы", "Передачи", "Перехваты"],
+        "categories": [
+          "Очки",
+          "Подборы",
+          "Передачи",
+          "Перехваты"
+        ],
         "series": [
-          { "name": "2024/25", "values": [3.9, 2.3, 0.5, 0.6] },
-          { "name": "2025/26", "values": [4.3, 3.6, 1.2, 1.1] }
+          {
+            "name": "2024/25",
+            "values": [
+              3.9,
+              2.3,
+              0.5,
+              0.6
+            ]
+          },
+          {
+            "name": "2025/26",
+            "values": [
+              4.3,
+              3.6,
+              1.2,
+              1.1
+            ]
+          }
         ]
       },
       {
         "id": "ctrl",
         "label": "Контроль мяча",
-        "categories": ["Потери", "Фолы", "Фолы на нём"],
+        "categories": [
+          "Потери",
+          "Фолы",
+          "Фолы на нём"
+        ],
         "series": [
-          { "name": "2024/25", "values": [3.5, 1.4, 1.3] },
-          { "name": "2025/26", "values": [3.2, 0.6, 1.5] }
+          {
+            "name": "2024/25",
+            "values": [
+              3.5,
+              1.4,
+              1.3
+            ]
+          },
+          {
+            "name": "2025/26",
+            "values": [
+              3.2,
+              0.6,
+              1.5
+            ]
+          }
         ]
       }
     ]
@@ -289,7 +786,7 @@
     ],
     "pending": {
       "title": "24.10.2026 · Гольяново",
-      "text": "Команда выиграла 62:37. Это счёт из новости клуба, не личная строка Кости. Его очков за этот матч на сайте нет."
+      "text": "Команда сыграла 62:37. Это счёт команды, не личная строка. Очков Кости за этот матч на сайте нет."
     },
     "goodHeading": "Что уже получается",
     "workHeading": "Над чем работать",
@@ -325,5 +822,8 @@
         "href": "https://быстрыйпрорыв.рф/comps/detail.php?ID=2293"
       }
     ]
+  },
+  "sync": {
+    "compId": 153217
   }
 }
