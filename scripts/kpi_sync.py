@@ -92,8 +92,137 @@ def norm_opponent(text: str) -> str:
     return re.sub(r"\s+", " ", str(text or "").lower().replace("ё", "е"))
 
 
-def row_key(date: str, opponent: str) -> tuple[str, str]:
-    return str(date or "").strip(), norm_opponent(opponent)
+def norm_opponent_key(text: str) -> str:
+    s = norm_opponent(text)
+    s = re.sub(r'[«»"\'\u201c\u201d]', "", s)
+    s = re.sub(r"\s*,\s*.*$", "", s)
+    s = re.sub(r"\s+(полуфинал|финал|матч за|за \d+[-–].*).*$", "", s, flags=re.I)
+    s = re.sub(r"\b(u12|u13|u14|2012|2013|2014|2015|2016|2017)\b", " ", s)
+    s = re.sub(r"[-–—]\s*\d+\b", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def opponent_tokens(text: str) -> set[str]:
+    key = norm_opponent_key(text)
+    return {t for t in re.split(r"[\s\-–—]+", key) if len(t) >= 3}
+
+
+def opponents_match(site: str, source: str) -> bool:
+    a = norm_opponent_key(site)
+    b = norm_opponent_key(source)
+    if not a or not b:
+        return False
+    if a == b or a in b or b in a:
+        return True
+    ta, tb = opponent_tokens(site), opponent_tokens(source)
+    if not ta or not tb:
+        return False
+    return bool(ta & tb)
+
+
+def journal_score_parts(score_text: str) -> tuple[int, int] | None:
+    match = re.search(r"(\d+)\s*:\s*(\d+)", str(score_text or ""))
+    if not match:
+        return None
+    return int(match.group(1)), int(match.group(2))
+
+
+def entry_from_api_row(item: dict) -> dict | None:
+    if nz(item.get("Seconds")) <= 0:
+        return None
+    when = short_date(parse_game_date(item))
+    if not when:
+        return None
+    game = item.get("Game") or {}
+    gid = game.get("GameID")
+    opponent = opponent_from_item(item)
+    kpi = item.get("KPI")
+    if not isinstance(kpi, (int, float)):
+        kpi = kpi_from_row(item)
+    return {
+        "date": when,
+        "sourceOpponent": opponent,
+        "kpi": round(float(kpi), 1),
+        "plusMinus": nz(item.get("PlusMinus")),
+        "gameId": gid if isinstance(gid, int) else None,
+        "points": nz(item.get("Points")),
+    }
+
+
+def build_match_index(game_rows: list[dict]) -> dict[str, Any]:
+    by_id: dict[int, dict] = {}
+    by_date: dict[str, list[dict]] = {}
+    for item in game_rows:
+        entry = entry_from_api_row(item)
+        if not entry:
+            continue
+        gid = entry.get("gameId")
+        if isinstance(gid, int):
+            by_id[gid] = entry
+        by_date.setdefault(entry["date"], []).append(entry)
+    return {"by_id": by_id, "by_date": by_date}
+
+
+def match_log_row(row: dict, index: dict[str, Any], used: set[int] | None = None) -> dict | None:
+    used = used if used is not None else set()
+    gid = row.get("gameId")
+    if isinstance(gid, int) and gid in index["by_id"]:
+        return index["by_id"][gid]
+    date = str(row.get("date") or "").strip()
+    pool = [c for c in (index["by_date"].get(date) or []) if c.get("gameId") not in used]
+    if not pool:
+        pool = list(index["by_date"].get(date) or [])
+    if not pool:
+        return None
+    if len(pool) == 1:
+        return pool[0]
+    site_opp = str(row.get("opponent") or "")
+    matched = [c for c in pool if opponents_match(site_opp, c.get("sourceOpponent") or "")]
+    if len(matched) == 1:
+        return matched[0]
+    if not matched:
+        matched = pool
+    if len(matched) == 1:
+        return matched[0]
+    points = row.get("points")
+    if isinstance(points, (int, float)):
+        by_pts = [c for c in matched if c.get("points") == int(points)]
+        if len(by_pts) == 1:
+            return by_pts[0]
+    best = None
+    best_hits = 0
+    site_tokens = opponent_tokens(site_opp)
+    for c in matched:
+        hits = len(site_tokens & opponent_tokens(c.get("sourceOpponent") or ""))
+        if hits > best_hits:
+            best_hits = hits
+            best = c
+    return best if best is not None else matched[0]
+
+
+def patch_log_rows(data: dict, indices: dict[str, dict[str, Any]]) -> int:
+    touched = 0
+    for tournament in (data.get("gameLogs") or {}).get("tournaments") or []:
+        tid = tournament.get("id")
+        index = indices.get(tid)
+        if not index:
+            continue
+        used: set[int] = set()
+        protocol = 0
+        for row in tournament.get("rows") or []:
+            hit = match_log_row(row, index, used)
+            if not hit:
+                continue
+            row["kpi"] = hit["kpi"]
+            row["plusMinus"] = hit["plusMinus"]
+            if hit.get("gameId"):
+                row["gameId"] = hit["gameId"]
+                used.add(int(hit["gameId"]))
+            protocol += 1
+            touched += 1
+        tournament["protocolGames"] = protocol
+    return touched
 
 
 def aggregate_games(game_rows: list[dict]) -> dict[str, Any] | None:
@@ -145,31 +274,6 @@ def fetch_comp_games(comp_id: int, team_id: int) -> list[dict]:
     return rows
 
 
-def build_index(game_rows: list[dict]) -> dict[tuple[str, str], dict]:
-    index: dict[tuple[str, str], dict] = {}
-    for item in game_rows:
-        when = short_date(parse_game_date(item))
-        if not when:
-            continue
-        game = item.get("Game") or {}
-        opponent = opponent_from_item(item)
-        if not opponent:
-            continue
-        kpi = item.get("KPI")
-        if not isinstance(kpi, (int, float)):
-            kpi = kpi_from_row(item)
-        entry = {
-            "kpi": round(float(kpi), 1) if isinstance(kpi, (int, float)) else kpi_from_row(item),
-            "plusMinus": nz(item.get("PlusMinus")),
-            "gameId": game.get("GameID") if isinstance(game.get("GameID"), int) else None,
-        }
-        index[row_key(when, opponent)] = entry
-        opp_short = opponent.split(",")[0].strip()
-        if opp_short != opponent:
-            index[row_key(when, opp_short)] = entry
-    return index
-
-
 def parse_game_date(item: dict):
     import update_stats
 
@@ -203,38 +307,6 @@ def ensure_log_columns(data: dict) -> None:
             if extra["key"] not in keys:
                 columns.append(copy.deepcopy(extra))
         tournament["columns"] = columns
-
-
-def patch_log_rows(data: dict, index: dict[tuple[str, str], dict]) -> int:
-    touched = 0
-    for tournament in (data.get("gameLogs") or {}).get("tournaments") or []:
-        for row in tournament.get("rows") or []:
-            hit = index.get(row_key(row.get("date", ""), row.get("opponent", "")))
-            if not hit:
-                for alt in fuzzy_keys(row.get("date", ""), row.get("opponent", "")):
-                    hit = index.get(alt)
-                    if hit:
-                        break
-            if not hit:
-                continue
-            row["kpi"] = hit["kpi"]
-            row["plusMinus"] = hit["plusMinus"]
-            if hit.get("gameId"):
-                row["gameId"] = hit["gameId"]
-            touched += 1
-    return touched
-
-
-def fuzzy_keys(date: str, opponent: str) -> list[tuple[str, str]]:
-    base = norm_opponent(opponent)
-    keys = []
-    for part in re.split(r"[,·]", opponent):
-        part = part.strip()
-        if part:
-            keys.append(row_key(date, part))
-    if "тринта" in base:
-        keys.append(row_key(date, "Тринта 2015 U12"))
-    return keys
 
 
 def season_metrics(data: dict, season: dict) -> dict[str, Any] | None:
@@ -377,16 +449,27 @@ def match_same(a: dict | None, b: dict | None) -> bool:
     return a.get("date") == b.get("date") and norm_opponent(a.get("opponent")) == norm_opponent(b.get("opponent"))
 
 
-def maybe_update_best(kpi: dict, index: dict, raw_by_game: dict[int, dict], cache: dict, notes: list[str]) -> None:
+def journal_row_for_game(data: dict, game_id: int) -> dict | None:
+    for tournament in (data.get("gameLogs") or {}).get("tournaments") or []:
+        for row in tournament.get("rows") or []:
+            if row.get("gameId") == game_id:
+                return row
+    return None
+
+
+def maybe_update_best(
+    kpi: dict, by_id: dict[int, dict], data: dict, cache: dict, notes: list[str]
+) -> None:
     best = kpi.get("best") or {}
     best_kpi = float(best.get("kpi") or -999)
-    for (_d, _o), entry in index.items():
-        game_id = entry.get("gameId")
-        if not game_id:
+    mvp_id = (kpi.get("mvp") or {}).get("gameId")
+    for game_id, entry in by_id.items():
+        if mvp_id and game_id == mvp_id:
             continue
-        raw = raw_by_game.get(game_id)
-        if not raw:
+        ours = float(entry.get("kpi") or 0)
+        if ours <= best_kpi:
             continue
+        row = journal_row_for_game(data, game_id)
         try:
             online = cache.get(str(game_id))
             if online is None:
@@ -395,7 +478,7 @@ def maybe_update_best(kpi: dict, index: dict, raw_by_game: dict[int, dict], cach
         except Exception:
             continue
         max_kpi = None
-        ours = None
+        player_kpi = None
         for team in (online or {}).get("GameTeams") or []:
             for person in team.get("Players") or []:
                 if nz(person.get("Seconds")) <= 0:
@@ -404,25 +487,23 @@ def maybe_update_best(kpi: dict, index: dict, raw_by_game: dict[int, dict], cach
                 if max_kpi is None or val > max_kpi:
                     max_kpi = val
                 if person.get("PersonID") == PERSON_ID:
-                    ours = val
-        if ours is None or max_kpi is None or ours < max_kpi:
+                    player_kpi = val
+        if player_kpi is None or max_kpi is None or player_kpi < max_kpi:
             continue
-        if ours <= best_kpi:
-            continue
+        best_kpi = ours
         kpi["best"] = {
-            "date": _d,
-            "opponent": _o,
-            "score": raw.get("score", ""),
-            "result": raw.get("result", ""),
-            "tournament": raw.get("tournament", ""),
-            "line": raw.get("line", ""),
-            "href": raw.get("href", ""),
+            "date": entry.get("date") or (row or {}).get("date", ""),
+            "opponent": (row or {}).get("opponent") or entry.get("sourceOpponent", ""),
+            "score": (row or {}).get("score", ""),
+            "result": "",
+            "tournament": "",
+            "line": "",
+            "href": f"https://moscow.ilovebasket.ru/games/{game_id}",
             "gameId": game_id,
             "kpi": round(ours, 1),
             "mvp": False,
         }
-        best_kpi = ours
-        notes.append(f"kpi: лучший матч по КПИ обновлён ({_d})")
+        notes.append(f"kpi: лучший матч по КПИ обновлён ({kpi['best']['date']})")
 
 
 def refresh_trend(data: dict, season_api: dict[str, dict]) -> None:
@@ -501,7 +582,43 @@ def apply_season_plus_minus(season: dict, tournament: dict | None, tournament_id
         season["plusMinusTotal"] = int(round(avg * games))
 
 
-def refresh_season_cards(data: dict) -> None:
+def refresh_career_notes(data: dict) -> None:
+    seasons = (data.get("tournamentStats") or {}).get("seasons") or []
+    fb = next((s for s in seasons if "Быстрый прорыв" in str(s.get("name") or "")), None)
+    mlbl = next(
+        (s for s in seasons if "МЛБЛ" in str(s.get("name") or "") and s.get("highlight")),
+        None,
+    )
+    if not fb or not mlbl:
+        return
+    notes = data.setdefault("notes", {})
+
+    def num(value) -> str:
+        if value is None:
+            return "—"
+        return str(value).replace(".", ",")
+
+    tail = list(notes.get("pros") or [])[4:]
+    pros = [
+        f"Передачи: было {num(fb.get('assists'))} за игру, стало {num(mlbl.get('assists'))}",
+        f"Подборы: было {num(fb.get('rebounds'))}, стало {num(mlbl.get('rebounds'))}",
+        f"Перехваты: {num(mlbl.get('steals'))} за игру, почти вдвое больше",
+        "Фолов меньше: 0,6 против 1,4. Соперники фолят на нём чаще",
+    ]
+    if mlbl.get("kpiPerGame") is not None:
+        pros.append(f"КПИ за игру в МЛБЛ: {num(mlbl.get('kpiPerGame'))} (все {mlbl.get('protocolGames') or 10} игр с протоколом)")
+    notes["pros"] = pros + tail[:2]
+
+    cons = list(notes.get("cons") or [])
+    if mlbl.get("kpiPerGame") is not None and cons:
+        cons[0] = (
+            f"Потери: {num(mlbl.get('turnovers'))} за игру при {num(mlbl.get('assists'))} передачи. "
+            f"КПИ за игру в МЛБЛ — {num(mlbl.get('kpiPerGame'))}"
+        )
+        notes["cons"] = cons
+
+
+def refresh_season_cards(data: dict, aggregates: dict[str, dict]) -> None:
     name_map = [
         ("Быстрый прорыв", "fb"),
         ("МЛБЛ-Дети", "u12"),
@@ -518,16 +635,22 @@ def refresh_season_cards(data: dict) -> None:
                 break
         if season.get("id") == "mos2627":
             tid = "mos2627"
-        tournament = None
-        if tid:
-            tournament = next((t for t in data["gameLogs"]["tournaments"] if t.get("id") == tid), None)
-        if not tid and not tournament:
+        if not tid or tid not in aggregates:
+            if tid:
+                apply_season_plus_minus(season, _tournament(data, tid), tid)
             continue
-        vals = [r.get("kpi") for r in (tournament.get("rows") or []) if r.get("kpi") is not None] if tournament else []
-        if vals:
-            season["kpiPerGame"] = round(sum(float(v) for v in vals) / len(vals), 1)
-        if tid:
-            apply_season_plus_minus(season, tournament, tid)
+        agg = aggregate_games(aggregates[tid].get("_raw") or [])
+        if agg:
+            season["kpiPerGame"] = agg["kpiGame"]
+            season["plusMinusPerGame"] = agg["plusMinus"]
+            season["plusMinusTotal"] = int(round(agg["plusMinus"] * agg["games"]))
+            season["protocolGames"] = agg["games"]
+        else:
+            apply_season_plus_minus(season, _tournament(data, tid), tid)
+
+
+def _tournament(data: dict, tid: str) -> dict | None:
+    return next((t for t in data["gameLogs"]["tournaments"] if t.get("id") == tid), None)
 
 
 def build_metrics(active: dict, was: dict, team: dict | None) -> list[dict]:
@@ -559,9 +682,9 @@ def refresh_kpi(data: dict, notes: list[str]) -> None:
     # Протоколы GetOnline не пишем в JSON — там есть PersonID.
     cache: dict[str, Any] = {}
 
-    index: dict[tuple[str, str], dict] = {}
+    indices: dict[str, dict[str, Any]] = {}
     aggregates: dict[str, dict] = {}
-    raw_by_game: dict[int, dict] = {}
+    all_by_id: dict[int, dict] = {}
 
     for comp_id, team_id, tournament_id in KPI_SOURCES:
         try:
@@ -570,27 +693,16 @@ def refresh_kpi(data: dict, notes: list[str]) -> None:
             notes.append(f"kpi: comp {comp_id} не прочитан ({type(exc).__name__})")
             continue
         aggregates[tournament_id] = {"_raw": rows}
-        index.update(build_index(rows))
-        for item in rows:
-            game = item.get("Game") or {}
-            gid = game.get("GameID")
-            if isinstance(gid, int):
-                when = short_date(parse_game_date(item))
-                opp = opponent_from_item(item)
-                raw_by_game[gid] = {
-                    "score": "",
-                    "result": "",
-                    "tournament": "",
-                    "line": "",
-                    "href": f"https://moscow.ilovebasket.ru/games/{gid}",
-                }
+        idx = build_match_index(rows)
+        indices[tournament_id] = idx
+        all_by_id.update(idx["by_id"])
 
-    if not index:
+    if not indices:
         notes.append("kpi: индекс игр пуст, прежние значения на месте")
         return
 
     ensure_log_columns(data)
-    patched = patch_log_rows(data, index)
+    patched = patch_log_rows(data, indices)
     notes.append(f"kpi: строк журнала с КПИ — {patched}")
 
     season_api = season_metrics_from_api(aggregates)
@@ -648,7 +760,14 @@ def refresh_kpi(data: dict, notes: list[str]) -> None:
         kpi["best"]["mvp"] = False
 
     if not match_same(kpi.get("best"), kpi.get("mvp")):
-        maybe_update_best(kpi, index, raw_by_game, cache, notes)
+        maybe_update_best(kpi, all_by_id, data, cache, notes)
 
     refresh_trend(data, season_api)
-    refresh_season_cards(data)
+    refresh_season_cards(data, aggregates)
+    try:
+        from update_stats import refresh_mama_notes
+
+        refresh_mama_notes(data)
+        refresh_career_notes(data)
+    except Exception:
+        pass
