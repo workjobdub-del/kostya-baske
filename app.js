@@ -746,14 +746,21 @@ function renderKpiBlock() {
   const tiles = block.metrics
     .map((metric) => {
       const was = kpiFormatWas(metric);
+      const scope = metric.scope ? `<p class="kpi-scope">${esc(metric.scope)}</p>` : "";
       const team =
         metric.team != null && metric.team !== ""
-          ? `<span class="kpi-team">в среднем по команде: ${esc(String(metric.id === "ts" ? `${metric.team}%` : metric.team))}</span>`
+          ? `<span class="kpi-team">в среднем по команде: ${esc(String(metric.id === "ts" ? `${metric.team}%` : metric.team))}${
+              metric.teamScope ? ` (${esc(metric.teamScope)})` : ""
+            }</span>`
           : "";
+      const wasLine = was
+        ? `<p class="kpi-was">было ${esc(was)}${metric.wasScope ? ` · ${esc(metric.wasScope)}` : ""}</p>`
+        : "";
       return `<article class="kpi-tile">
         <h3>${term(metric.label, metric.label)} ${metric.hint ? `<abbr class="term kpi-hint" tabindex="0" role="button" aria-expanded="false" data-term="${esc(metric.hint)}">?</abbr>` : ""}</h3>
         <p class="kpi-value">${kpiFormatMetric(metric)} ${kpiDelta(metric)}</p>
-        ${was ? `<p class="kpi-was">было ${esc(was)}</p>` : ""}
+        ${scope}
+        ${wasLine}
         ${team}
       </article>`;
     })
@@ -761,12 +768,22 @@ function renderKpiBlock() {
   const tour =
     block.tournaments && block.tournaments.length
       ? `<p class="kpi-split">${block.tournaments
-          .map((item) => `${esc(item.label)}: КПИ ${formatPlain(item.kpiGame)} (${item.games} игр)`)
+          .map((item) => {
+            const kpi20 =
+              item.kpi20 != null ? `, КПИ/20 ${formatPlain(item.kpi20)}` : "";
+            return `${esc(item.label)}: КПИ ${formatPlain(item.kpiGame)} (${item.games} игр${kpi20})${
+              item.scope ? ` · ${esc(item.scope)}` : ""
+            }`;
+          })
           .join(" · ")}</p>`
       : "";
+  const headlineScope = block.scopeHeadline
+    ? `<p class="kpi-scope-headline">${esc(block.scopeHeadline)}</p>`
+    : "";
   return `<section class="block" id="kpi">
     <h2>Ключевые показатели (KPI)</h2>
     ${block.caption ? `<p class="caption">${esc(block.caption)}</p>` : ""}
+    ${headlineScope}
     ${badges.join("")}
     <div class="kpi-profile-grid">${tiles}</div>
     ${tour}
@@ -910,7 +927,14 @@ function renderSeasonCards() {
   const cards = data.tournamentStats.seasons
     .map((season) => {
       const games = String(season.games).match(/(\d+)\s*\((\d+)\)/);
-      const gamesText = games ? `${games[1]} игр, ${games[2]} в старте` : `${season.games} игр`;
+      let gamesText;
+      if (games && games[1] === games[2]) {
+        gamesText = `${games[1]} игр, все с протоколом KPI`;
+      } else if (games) {
+        gamesText = `${games[1]} игр, ${games[2]} в старте`;
+      } else {
+        gamesText = `${season.games} игр`;
+      }
       return `<article class="season-card${season.highlight ? " is-current" : ""}">
         <p>${esc(season.name)}</p>
         <strong>${formatAvg(season.points)}</strong>
