@@ -358,8 +358,22 @@ def season_metrics(data: dict, season: dict) -> dict[str, Any] | None:
     }
 
 
+def tournament_metrics_from_api(aggregates: dict[str, dict]) -> dict[str, dict]:
+    """Per-tournament aggregates from the same PlayerStats rows as the journal."""
+    out: dict[str, dict] = {}
+    for tid in ("u12", "pm2526", "mos2627", "fb"):
+        if tid not in aggregates:
+            continue
+        agg = aggregate_games(aggregates[tid].get("_raw") or [])
+        if agg:
+            out[tid] = agg
+    return out
+
+
 def season_metrics_from_api(aggregates: dict[str, dict]) -> dict[str, dict]:
-    out = {}
+    out: dict[str, dict] = {}
+    tour = tournament_metrics_from_api(aggregates)
+    out.update(tour)
     if "u12" in aggregates and "pm2526" in aggregates:
         combined = []
         for key in ("u12", "pm2526"):
@@ -367,15 +381,19 @@ def season_metrics_from_api(aggregates: dict[str, dict]) -> dict[str, dict]:
         agg = aggregate_games(combined)
         if agg:
             out["2526"] = agg
-    if "mos2627" in aggregates:
-        agg = aggregate_games(aggregates["mos2627"].get("_raw") or [])
-        if agg:
-            out["2627"] = agg
-    if "fb" in aggregates:
-        agg = aggregate_games(aggregates["fb"].get("_raw") or [])
-        if agg:
-            out["2425"] = agg
+    if "mos2627" in tour:
+        out["2627"] = tour["mos2627"]
+    if "fb" in tour:
+        out["2425"] = tour["fb"]
     return out
+
+
+def scope_season(label: str, games: int) -> str:
+    return f"Сезон {label}, {games} игр"
+
+
+def scope_tournament(label: str, games: int) -> str:
+    return f"{label}, {games} игр"
 
 
 def team_avg_mlbl(raw_games: list[dict], cache: dict, notes: list[str]) -> dict[str, Any] | None:
@@ -524,8 +542,8 @@ def refresh_trend(data: dict, season_api: dict[str, dict]) -> None:
         kpi_val = None
         if "Быстрый" in name and "2425" in season_api:
             kpi_val = season_api["2425"].get("kpiGame")
-        elif "МЛБЛ" in name and "2526" in season_api:
-            kpi_val = season_api["2526"].get("kpiGame")
+        elif "МЛБЛ" in name and "u12" in season_api:
+            kpi_val = season_api["u12"].get("kpiGame")
         elif "2627" in name and "2627" in season_api:
             kpi_val = season_api["2627"].get("kpiGame")
         if kpi_val is not None:
@@ -543,11 +561,12 @@ def refresh_trend(data: dict, season_api: dict[str, dict]) -> None:
     eff["categories"] = ["КПИ за игру", "+/−"]
     eff["series"] = []
     mapping = [
-        ("Быстрый прорыв, 2024/25", "2425"),
-        ("МЛБЛ-Дети U12, 2025/26", "2526"),
+        ("Быстрый прорыв, 2024/25", "2425", None),
+        ("МЛБЛ-Дети U12, 2025/26", "u12", season_api.get("u12")),
     ]
-    for label, sid in mapping:
-        metrics = season_api.get(sid) or (FALLBACK_WAS_2425 if sid == "2425" else None)
+    for label, sid, metrics in mapping:
+        if metrics is None:
+            metrics = season_api.get(sid) or (FALLBACK_WAS_2425 if sid == "2425" else None)
         if not metrics:
             continue
         eff["series"].append(
@@ -598,7 +617,6 @@ def refresh_career_notes(data: dict) -> None:
             return "—"
         return str(value).replace(".", ",")
 
-    tail = list(notes.get("pros") or [])[4:]
     pros = [
         f"Передачи: было {num(fb.get('assists'))} за игру, стало {num(mlbl.get('assists'))}",
         f"Подборы: было {num(fb.get('rebounds'))}, стало {num(mlbl.get('rebounds'))}",
@@ -607,7 +625,7 @@ def refresh_career_notes(data: dict) -> None:
     ]
     if mlbl.get("kpiPerGame") is not None:
         pros.append(f"КПИ за игру в МЛБЛ: {num(mlbl.get('kpiPerGame'))} (все {mlbl.get('protocolGames') or 10} игр с протоколом)")
-    notes["pros"] = pros + tail[:2]
+    notes["pros"] = pros
 
     cons = list(notes.get("cons") or [])
     if mlbl.get("kpiPerGame") is not None and cons:
@@ -641,10 +659,12 @@ def refresh_season_cards(data: dict, aggregates: dict[str, dict]) -> None:
             continue
         agg = aggregate_games(aggregates[tid].get("_raw") or [])
         if agg:
+            n = agg["games"]
             season["kpiPerGame"] = agg["kpiGame"]
             season["plusMinusPerGame"] = agg["plusMinus"]
             season["plusMinusTotal"] = int(round(agg["plusMinus"] * agg["games"]))
-            season["protocolGames"] = agg["games"]
+            season["protocolGames"] = n
+            season["games"] = f"{n} ({n})"
         else:
             apply_season_plus_minus(season, _tournament(data, tid), tid)
 
@@ -653,7 +673,15 @@ def _tournament(data: dict, tid: str) -> dict | None:
     return next((t for t in data["gameLogs"]["tournaments"] if t.get("id") == tid), None)
 
 
-def build_metrics(active: dict, was: dict, team: dict | None) -> list[dict]:
+def build_metrics(
+    active: dict,
+    was: dict,
+    team: dict | None,
+    *,
+    active_scope: str,
+    was_scope: str,
+    team_scope: str | None,
+) -> list[dict]:
     items = []
     for key, label, hint, higher in METRIC_DEFS:
         entry = {
@@ -663,15 +691,26 @@ def build_metrics(active: dict, was: dict, team: dict | None) -> list[dict]:
             "value": active.get(key),
             "was": was.get(key) if was else None,
             "higher": higher,
+            "scope": active_scope,
         }
+        if was and was.get(key) is not None:
+            entry["wasScope"] = was_scope
         if key == "kpi20" and team and team.get("kpi20") is not None:
             entry["team"] = team.get("kpi20")
+            if team_scope:
+                entry["teamScope"] = team_scope
         if key == "ts" and team and team.get("ts") is not None:
             entry["team"] = round(team["ts"] * 100)
+            if team_scope:
+                entry["teamScope"] = team_scope
         if key == "astTo" and team and team.get("astTo") is not None:
             entry["team"] = team.get("astTo")
+            if team_scope:
+                entry["teamScope"] = team_scope
         if key == "stl20" and team and team.get("stl20") is not None:
             entry["team"] = team.get("stl20")
+            if team_scope:
+                entry["teamScope"] = team_scope
         items.append(entry)
     return items
 
@@ -729,12 +768,28 @@ def refresh_kpi(data: dict, notes: list[str]) -> None:
     kpi["activeLabel"] = SEASON_2627["label"] if active_id == "2627" else SEASON_2526["label"]
     kpi["wasSeasonId"] = was_id
     kpi["wasLabel"] = SEASON_2425["label"] if was_id == "2425" else SEASON_2526["label"]
+    active_games = int(active.get("games") or 0)
+    was_games = int(was.get("games") or 0)
+    active_scope = scope_season(kpi["activeLabel"], active_games)
+    was_scope = scope_season(kpi["wasLabel"].split(",")[0].strip(), was_games) if was_id == "2425" else scope_season(kpi["wasLabel"], was_games)
+    team_scope = scope_tournament("МЛБЛ-Дети U12", season_api.get("u12", {}).get("games") or 0) if team else None
+
     if games_2627 < 3:
-        kpi["caption"] = f"Пока в сезоне 2026/27 мало игр с протоколом — цифры за {kpi['activeLabel']}."
+        kpi["caption"] = f"Пока в сезоне 2026/27 мало игр с протоколом — цифры за {kpi['activeLabel']} ({active_games} игр, МЛБЛ + ПМ)."
     else:
         kpi["caption"] = f"Сезон {kpi['activeLabel']}. «Было» — {kpi['wasLabel']}."
 
-    kpi["metrics"] = build_metrics(active, was, team or old_kpi.get("teamAvg"))
+    kpi["scopeHeadline"] = active_scope
+    kpi["wasScopeHeadline"] = was_scope
+
+    kpi["metrics"] = build_metrics(
+        active,
+        was,
+        team or old_kpi.get("teamAvg"),
+        active_scope=active_scope,
+        was_scope=was_scope,
+        team_scope=team_scope,
+    )
     if team:
         kpi["teamAvg"] = team
     elif old_kpi.get("teamAvg"):
@@ -746,7 +801,16 @@ def refresh_kpi(data: dict, notes: list[str]) -> None:
         raw = aggregates.get(tid, {}).get("_raw") or []
         agg = aggregate_games(raw)
         if agg:
-            kpi["tournaments"].append({"id": tid, "label": label, "games": agg["games"], "kpiGame": agg["kpiGame"]})
+            kpi["tournaments"].append(
+                {
+                    "id": tid,
+                    "label": label,
+                    "games": agg["games"],
+                    "kpiGame": agg["kpiGame"],
+                    "kpi20": agg["kpi20"],
+                    "scope": scope_tournament(label, agg["games"]),
+                }
+            )
 
     kpi.pop("sync", None)
 

@@ -1576,7 +1576,9 @@ svg .bar-hit.is-picked { fill: rgba(243, 217, 138, 0.1); }
 
 .kpi-was,
 .kpi-team,
-.kpi-split {
+.kpi-split,
+.kpi-scope,
+.kpi-scope-headline {
   margin: 0.25rem 0 0;
   color: var(--muted);
   font-size: 0.82rem;
