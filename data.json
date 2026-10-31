@@ -182,48 +182,48 @@
       "rows": [
         {
           "team": "1. Тринта-2014-2",
-          "played": "1",
-          "wins": "1",
+          "played": "2",
+          "wins": "2",
           "losses": "0",
-          "points": "2",
-          "scored": "57",
-          "conceded": "17"
+          "points": "4",
+          "scored": "99",
+          "conceded": "54"
         },
         {
           "team": "2. Айбаскет-2014-2",
+          "played": "2",
+          "wins": "1",
+          "losses": "1",
+          "points": "3",
+          "scored": "84",
+          "conceded": "84"
+        },
+        {
+          "team": "3. Тимирязевская-2014",
           "played": "1",
           "wins": "1",
           "losses": "0",
           "points": "2",
-          "scored": "47",
-          "conceded": "42"
+          "scored": "42",
+          "conceded": "16"
         },
         {
-          "team": "3. К Пахра-2014-2",
+          "team": "4. Глория-2014-3",
+          "played": "2",
+          "wins": "0",
+          "losses": "2",
+          "points": "2",
+          "scored": "33",
+          "conceded": "99"
+        },
+        {
+          "team": "5. К Пахра-2014-2",
           "played": "1",
           "wins": "0",
           "losses": "1",
           "points": "1",
           "scored": "42",
           "conceded": "47"
-        },
-        {
-          "team": "4. Глория-2014-3",
-          "played": "1",
-          "wins": "0",
-          "losses": "1",
-          "points": "1",
-          "scored": "17",
-          "conceded": "57"
-        },
-        {
-          "team": "5. Тимирязевская-2014",
-          "played": "0",
-          "wins": "0",
-          "losses": "0",
-          "points": "0",
-          "scored": "0",
-          "conceded": "0"
         },
         {
           "team": "6. Гольяново-2014-2",
