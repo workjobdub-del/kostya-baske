@@ -38,16 +38,16 @@ LOG_LABELS = {
 FIXED_GAME_REVIEWS = {
     1088400: {
         "aiReview": (
-            "Первый матч Кости в новом сезоне за «Росток» 2014 в дивизионе U14 (1): вышел со скамейки "
-            "и провёл на площадке почти 11 минут — заметно меньше, чем 19 минут в среднем в прошлом сезоне. "
-            "Команда уступила Takeshot Academy 63:84. Статистика у Кости пустая: один неточный двухочковый, "
-            "ни подбора, ни передачи, ни перехвата и одна потеря. Зато без фолов, а за его минуты команда "
-            "проиграла 10 очков — меньше половины от итогового отставания. Для старта сезона в старшем "
-            "возрасте важно закрепиться в ротации и набрать игровые минуты."
+            "Первая игра Кости после перелома ноги в августе и первая за «Росток» 2014 в дивизионе U14 (1). "
+            "Он вышел со скамейки и провёл на площадке почти 11 минут: после долгого перерыва это нормальный объём, "
+            "до привычных 19 минут за игру ещё предстоит вернуться. Команда уступила Takeshot Academy 63:84. "
+            "В цифрах пока пусто: один неточный двухочковый и одна потеря. Зато без фолов, а за его минуты команда "
+            "проиграла 10 очков, меньше половины итогового отставания. Главное сейчас — спокойно втянуться "
+            "и постепенно набирать минуты."
         ),
         "aiMama": (
-            "Первая игра сезона позади: Костя вышел на площадку против сильного соперника, "
-            "держался спокойно и не нарушал правила — дальше будет только увереннее!"
+            "Костя снова на площадке после перелома! Первая игра позади: он сыграл почти 11 минут против сильного "
+            "соперника, держался спокойно и не нарушал правила. Дальше будет только увереннее!"
         ),
     },
 }
@@ -581,7 +581,9 @@ def build_mama_notes(data):
     old_steals = as_float(before.get("steals"))
     fouls_now, fouls_before = fouls_pair(data, current, previous)
     percent, _made, _attempts = shot_percent(current.get("fg2"))
-    strong = season_token(current.get("name")) in ("u12", "быстр", "2627")
+    strong = season_token(current.get("name")) in ("u12", "быстр")
+    if season_token(current.get("name")) == "2627" and season_games(current) < 3:
+        strong = False
     goods = []
     works = []
 
@@ -1170,8 +1172,22 @@ def apply_fixed_review(row: dict) -> None:
     if not fixed:
         return
     for key, value in fixed.items():
-        if value and not row.get(key):
+        if value:
             row[key] = value
+
+
+def sync_fixed_reviews(data: dict) -> None:
+    for tournament in (data.get("gameLogs") or {}).get("tournaments") or []:
+        for row in tournament.get("rows") or []:
+            apply_fixed_review(row)
+    last = data.get("lastMatch")
+    rows = season_rows(data)
+    if last and rows:
+        latest = rows[-1]
+        if latest.get("aiReview") and last.get("facts"):
+            fact = next((f.get("value") or "" for f in last.get("facts") or [] if f.get("label") == "Матч"), "")
+            if str(latest.get("opponent") or "") in fact:
+                last["aiReview"] = latest["aiReview"]
 
 
 def ensure_log(data, log_id=MOS_LOG_ID, label: str | None = None):
@@ -2134,6 +2150,7 @@ def main():
     if combined_stats:
         apply_protocols(data, combined_stats, notes)
     refresh_u14_schedule(data, u14_games, notes)
+    sync_fixed_reviews(data)
     try:
         from kpi_sync import refresh_kpi
 

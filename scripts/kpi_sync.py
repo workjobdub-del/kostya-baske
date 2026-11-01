@@ -632,9 +632,17 @@ def refresh_career_notes(data: dict) -> None:
     ]
     if mlbl.get("kpiPerGame") is not None:
         pros.append(f"КПИ за игру в МЛБЛ: {num(mlbl.get('kpiPerGame'))} (все {mlbl.get('protocolGames') or 10} игр с протоколом)")
+    u14 = next(
+        (t for t in (data.get("gameLogs") or {}).get("tournaments") or [] if t.get("id") == "u14circ2627"),
+        None,
+    )
+    if u14 and (u14.get("rows") or []):
+        pros.append(
+            "После перелома ноги в августе снова вышел на площадку: первая игра U14 — почти 11 минут без фолов"
+        )
     notes["pros"] = pros
 
-    cons = list(notes.get("cons") or [])
+    cons = [line for line in (notes.get("cons") or []) if "круговом U14" not in line]
     if mlbl.get("kpiPerGame") is not None and cons:
         cons[0] = (
             f"Потери: {num(mlbl.get('turnovers'))} за игру при {num(mlbl.get('assists'))} передачи. "
