@@ -24,10 +24,11 @@ KPI_SOURCES = [
     (108682, 53315, "u12"),
     (108871, 38431, "pm2526"),
     (153217, 38872, "mos2627"),
+    (144801, 79167, "u14circ2627"),
 ]
 
 SEASON_2526 = {"id": "2526", "label": "2025/26", "tournamentIds": ("u12", "pm2526")}
-SEASON_2627 = {"id": "2627", "label": "2026/27", "tournamentIds": ("mos2627",)}
+SEASON_2627 = {"id": "2627", "label": "2026/27", "tournamentIds": ("mos2627", "u14circ2627")}
 SEASON_2425 = {"id": "2425", "label": "2024/25, «Быстрый прорыв»", "tournamentIds": ("fb",)}
 
 FALLBACK_WAS_2425 = {
@@ -361,7 +362,7 @@ def season_metrics(data: dict, season: dict) -> dict[str, Any] | None:
 def tournament_metrics_from_api(aggregates: dict[str, dict]) -> dict[str, dict]:
     """Per-tournament aggregates from the same PlayerStats rows as the journal."""
     out: dict[str, dict] = {}
-    for tid in ("u12", "pm2526", "mos2627", "fb"):
+    for tid in ("u12", "pm2526", "mos2627", "u14circ2627", "fb"):
         if tid not in aggregates:
             continue
         agg = aggregate_games(aggregates[tid].get("_raw") or [])
@@ -381,8 +382,14 @@ def season_metrics_from_api(aggregates: dict[str, dict]) -> dict[str, dict]:
         agg = aggregate_games(combined)
         if agg:
             out["2526"] = agg
-    if "mos2627" in tour:
-        out["2627"] = tour["mos2627"]
+    if "u14circ2627" in aggregates or "mos2627" in aggregates:
+        combined = []
+        for key in ("mos2627", "u14circ2627"):
+            if key in aggregates:
+                combined.extend(aggregates[key].get("_raw") or [])
+        agg = aggregate_games(combined)
+        if agg:
+            out["2627"] = agg
     if "fb" in tour:
         out["2425"] = tour["fb"]
     return out
@@ -642,7 +649,8 @@ def refresh_season_cards(data: dict, aggregates: dict[str, dict]) -> None:
         ("МЛБЛ-Дети", "u12"),
         ("Первенство Москвы", "pm2526"),
         ("2026/27", "mos2627"),
-        ("Движение", "mu"),
+        ("U14 (1)", "u14circ2627"),
+        ("Круговой", "u14circ2627"),
     ]
     for season in (data.get("tournamentStats") or {}).get("seasons") or []:
         name = str(season.get("name") or "")
@@ -748,7 +756,10 @@ def refresh_kpi(data: dict, notes: list[str]) -> None:
     if "2425" not in season_api:
         season_api["2425"] = copy.deepcopy(FALLBACK_WAS_2425)
 
-    games_2627 = len([g for g in aggregates.get("mos2627", {}).get("_raw") or [] if nz(g.get("Seconds"))])
+    games_2627 = sum(
+        len([g for g in aggregates.get(tid, {}).get("_raw") or [] if nz(g.get("Seconds"))])
+        for tid in ("mos2627", "u14circ2627")
+    )
     if games_2627 >= 3 and "2627" in season_api:
         active_id, was_id = "2627", "2526"
     else:
@@ -796,7 +807,12 @@ def refresh_kpi(data: dict, notes: list[str]) -> None:
         kpi["teamAvg"] = old_kpi["teamAvg"]
 
     kpi["tournaments"] = []
-    labels = {"u12": "МЛБЛ-Дети U12", "pm2526": "Первенство Москвы", "mos2627": "2026/27"}
+    labels = {
+        "u12": "МЛБЛ-Дети U12",
+        "pm2526": "Первенство Москвы",
+        "mos2627": "Мосбаскет 26/27",
+        "u14circ2627": "U14 (1), 26/27",
+    }
     for tid, label in labels.items():
         raw = aggregates.get(tid, {}).get("_raw") or []
         agg = aggregate_games(raw)
@@ -828,6 +844,15 @@ def refresh_kpi(data: dict, notes: list[str]) -> None:
 
     refresh_trend(data, season_api)
     refresh_season_cards(data, aggregates)
+    if "2627" in season_api:
+        agg = season_api["2627"]
+        for season in (data.get("tournamentStats") or {}).get("seasons") or []:
+            if season.get("id") == "mos2627" or str(season.get("name") or "").startswith("2026/27"):
+                season["kpiPerGame"] = agg["kpiGame"]
+                season["plusMinusPerGame"] = agg["plusMinus"]
+                season["plusMinusTotal"] = int(round(agg["plusMinus"] * agg["games"]))
+                season["protocolGames"] = agg["games"]
+                break
     try:
         from update_stats import refresh_mama_notes
 
