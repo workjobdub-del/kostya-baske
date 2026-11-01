@@ -1311,7 +1311,7 @@ function renderSeason() {
   const u14Block =
     u14 && u14.matches && u14.matches.length
       ? `<section class="block u14-schedule" id="u14-schedule">
-    <h3>${esc(u14.label || "Круговой турнир U14")}</h3>
+    <h3>${esc(u14.label || "МЛБЛ U14")}</h3>
     ${u14.caption ? `<p class="caption">${esc(u14.caption)}</p>` : ""}
     <div class="match-list">${u14.matches
       .map(

@@ -31,12 +31,14 @@ U14_COMP_ID = 144801
 U14_LOG_ID = "u14circ2627"
 MOS_LOG_ID = "mos2627"
 PROTOCOL_LOG_IDS = (MOS_LOG_ID, U14_LOG_ID)
+U14_COMP_LABEL = "МЛБЛ U14, 26/27"
+U14_OUR_NAME = "Росток-2014"
 LOG_LABELS = {
     MOS_LOG_ID: "Росток-2014, 26/27",
-    U14_LOG_ID: "U14 (1), 26/27",
+    U14_LOG_ID: U14_COMP_LABEL,
 }
 REVIEW_1088400 = (
-    "Вторая игра Кости после перелома ноги в августе и первая за «Росток» 2014 в дивизионе U14 (1). "
+    "Вторая игра Кости после перелома ноги в августе и первая в МЛБЛ в этом сезоне. "
     "Он вышел со скамейки и провёл на площадке почти 11 минут: после долгого перерыва это нормальный объём, "
     "до привычных 19 минут за игру ещё предстоит вернуться. Команда уступила Takeshot Academy 63:84. "
     "В цифрах пока пусто: один неточный двухочковый и одна потеря. Зато без фолов, а за его минуты команда "
@@ -116,6 +118,41 @@ LOG_COLUMNS = [
 
 def today() -> date:
     return datetime.now(MSK).date()
+
+
+def strip_u14_suffix(name: str) -> str:
+    text = str(name or "").strip()
+    if text.endswith(" U14"):
+        return text[:-4].strip()
+    return text
+
+
+def normalize_u14_side(name: str, *, our_team: bool = False) -> str:
+    text = strip_u14_suffix(str(name or ""))
+    if text == U14_OUR_NAME:
+        return U14_OUR_NAME
+    if our_team and re.search(r"2014", text) and ("ШВСМ" in text or "Росток" in text):
+        return U14_OUR_NAME
+    if re.search(r"2013", text) and ("ШВСМ" in text or "Росток" in text):
+        return "Росток-2013"
+    return text
+
+
+def normalize_u14_opponent(name: str) -> str:
+    return normalize_u14_side(name, our_team=False)
+
+
+def normalize_u14_match_title(title: str) -> str:
+    if " — " not in title:
+        return title
+    left, right = title.split(" — ", 1)
+    return f"{normalize_u14_side(left, our_team=True)} — {normalize_u14_side(right, our_team=False)}"
+
+
+def normalize_u14_game(game: dict) -> None:
+    game["our"] = U14_OUR_NAME
+    game["opp"] = normalize_u14_opponent(game.get("opp"))
+    game["comp"] = U14_COMP_LABEL
 
 
 def fetch(url: str) -> bytes:
@@ -667,21 +704,22 @@ def team_games(calendar, team_id=TEAM_ID):
         our = game.get("ShortTeamNameAru") if home else game.get("ShortTeamNameBru")
         if not opponent or not our:
             continue
-        games.append(
-            {
-                "id": game.get("GameID"),
-                "date": when,
-                "time": str(game.get("GameTimeMsk") or game.get("GameTime") or ""),
-                "arena": str(game.get("ArenaRu") or ""),
-                "opp": str(opponent),
-                "our": str(our),
-                "status": game.get("GameStatus") if isinstance(game.get("GameStatus"), int) else None,
-                "score_a": game.get("ScoreA") if isinstance(game.get("ScoreA"), int) else None,
-                "score_b": game.get("ScoreB") if isinstance(game.get("ScoreB"), int) else None,
-                "home": home,
-                "comp": str(game.get("CompNameRu") or ""),
-            }
-        )
+        entry = {
+            "id": game.get("GameID"),
+            "date": when,
+            "time": str(game.get("GameTimeMsk") or game.get("GameTime") or ""),
+            "arena": str(game.get("ArenaRu") or ""),
+            "opp": str(opponent),
+            "our": str(our),
+            "status": game.get("GameStatus") if isinstance(game.get("GameStatus"), int) else None,
+            "score_a": game.get("ScoreA") if isinstance(game.get("ScoreA"), int) else None,
+            "score_b": game.get("ScoreB") if isinstance(game.get("ScoreB"), int) else None,
+            "home": home,
+            "comp": str(game.get("CompNameRu") or ""),
+        }
+        if team_id == U14_TEAM_ID:
+            normalize_u14_game(entry)
+        games.append(entry)
     games.sort(key=lambda item: (item["date"], item["time"]))
     return games
 
@@ -928,7 +966,7 @@ def plaque_for(rows, matches):
     return ""
 
 
-def season_object(rows, group_name):
+def season_object(rows, group_name, *, season_id=MOS_LOG_ID):
     letter = ""
     match = re.search(r"Группа\s+([АБВГA-D])", group_name or "")
     if match:
@@ -936,7 +974,7 @@ def season_object(rows, group_name):
         letter = f", группа {letter}"
     starts = sum(1 for row in rows if row.get("started") is True)
     return {
-        "id": "mos2627",
+        "id": season_id,
         "name": f"2026/27{letter}, Росток-2014",
         "games": f"{len(rows)} ({starts})",
         "minutes": avg_minutes(rows),
@@ -1303,6 +1341,10 @@ def ensure_log(data, log_id=MOS_LOG_ID, label: str | None = None):
     tournaments = data["gameLogs"]["tournaments"]
     found = next((item for item in tournaments if item.get("id") == log_id), None)
     if found:
+        if label:
+            found["label"] = label
+        elif log_id in LOG_LABELS:
+            found["label"] = LOG_LABELS[log_id]
         return found
     found = {
         "id": log_id,
@@ -1322,27 +1364,66 @@ def protocol_dates_for_log(data, log_id: str) -> set[str]:
     return {str(row.get("date")) for row in log.get("rows") or [] if row.get("date")}
 
 
-def merge_season_2627_card(data, rows: list[dict]) -> None:
-    if not rows:
-        return
-    season = season_object(
-        rows,
-        "Круговой турнир U14 (1) и Мосбаскет",
-    )
-    season["id"] = MOS_LOG_ID
-    season["name"] = "2026/27, круговой U14 (1) + Мосбаскет, Росток-2014"
-    season["highlight"] = len(rows) >= 5
-    seasons = data["tournamentStats"]["seasons"]
+def upsert_season_card(seasons: list, card_id: str, rows: list[dict], name: str, group_name: str, *, highlight: bool) -> None:
+    if rows:
+        season = season_object(rows, group_name, season_id=card_id)
+        season["name"] = name
+        season["highlight"] = highlight
+    else:
+        season = {
+            "id": card_id,
+            "name": name,
+            "games": "0 (0)",
+            "minutes": "—",
+            "points": 0.0,
+            "rebounds": 0.0,
+            "assists": 0.0,
+            "steals": 0.0,
+            "turnovers": 0.0,
+            "fg2": "0/0",
+            "fg3": "0/0",
+            "ft": "0/0",
+            "highlight": False,
+            "protocolGames": 0,
+        }
+        for key in ("kpiPerGame", "plusMinusPerGame", "plusMinusTotal"):
+            season.pop(key, None)
     for item in seasons:
-        if item.get("id") == MOS_LOG_ID or str(item.get("name", "")).startswith("2026/27"):
+        if item.get("id") == card_id:
             for key, value in season.items():
                 item[key] = value
-            break
-    else:
-        seasons.append(season)
-    if season.get("highlight"):
+            for key in ("kpiPerGame", "plusMinusPerGame", "plusMinusTotal"):
+                if key not in season:
+                    item.pop(key, None)
+            return
+    seasons.append(season)
+
+
+def sync_season_2627_cards(data) -> None:
+    seasons = data["tournamentStats"]["seasons"]
+    mos_log = next((t for t in data["gameLogs"]["tournaments"] if t.get("id") == MOS_LOG_ID), None)
+    u14_log = next((t for t in data["gameLogs"]["tournaments"] if t.get("id") == U14_LOG_ID), None)
+    mos_rows = list((mos_log or {}).get("rows") or [])
+    u14_rows = list((u14_log or {}).get("rows") or [])
+    upsert_season_card(
+        seasons,
+        MOS_LOG_ID,
+        mos_rows,
+        "2026/27, Первенство Москвы (Мосбаскет), Росток-2014",
+        "Группа А, Первенство Москвы",
+        highlight=len(mos_rows) >= 5,
+    )
+    upsert_season_card(
+        seasons,
+        U14_LOG_ID,
+        u14_rows,
+        "2026/27, МЛБЛ U14, 26/27",
+        "",
+        highlight=False,
+    )
+    if any(item.get("highlight") for item in seasons if item.get("id") in (MOS_LOG_ID, U14_LOG_ID)):
         for item in seasons:
-            if item.get("id") != MOS_LOG_ID and not str(item.get("name", "")).startswith("2026/27"):
+            if item.get("id") not in (MOS_LOG_ID, U14_LOG_ID) and not str(item.get("name", "")).startswith("2026/27"):
                 item.pop("highlight", None)
 
 
@@ -1370,14 +1451,15 @@ def apply_protocols(data, stats, notes):
         notes.append(f"личный протокол: новых игр {added}")
     else:
         notes.append("личный протокол: новых игр нет")
-    all_rows = []
-    for log_id in PROTOCOL_LOG_IDS:
-        log = next((t for t in data["gameLogs"]["tournaments"] if t.get("id") == log_id), None)
-        if log and log.get("rows"):
-            all_rows.extend(log["rows"])
-    if not all_rows:
+    if not any(
+        (log or {}).get("rows")
+        for log in (
+            next((t for t in data["gameLogs"]["tournaments"] if t.get("id") == lid), None)
+            for lid in PROTOCOL_LOG_IDS
+        )
+    ):
         return {stat["date"] for stat in stats}
-    merge_season_2627_card(data, all_rows)
+    sync_season_2627_cards(data)
     latest = max(stats, key=lambda item: item["when"])
     latest_log = logs.get(latest.get("logId") or MOS_LOG_ID) or ensure_log(data)
     rows = latest_log["rows"]
@@ -1566,7 +1648,7 @@ def fetch_u14_stats(games, notes) -> list:
         if not isinstance(payload, dict) or not isinstance(payload.get("GameStats"), list):
             raise ValueError("player-stats")
     except Exception as exc:
-        notes.append(f"круговой U14: протокол не прочитан ({type(exc).__name__})")
+        notes.append(f"МЛБЛ U14: протокол не прочитан ({type(exc).__name__})")
         return stats
     for item in payload["GameStats"]:
         stat = stat_from_log(item)
@@ -1574,7 +1656,7 @@ def fetch_u14_stats(games, notes) -> list:
             continue
         calendar_game = by_id.get(stat.get("gameId"))
         if calendar_game:
-            stat["comp"] = calendar_game.get("comp") or "Круговой турнир, U14 (1)"
+            stat["comp"] = calendar_game.get("comp") or U14_COMP_LABEL
             stat["our_name"] = calendar_game["our"]
             stat["opponent"] = calendar_game["opp"]
             pair = our_score_pair(calendar_game)
@@ -1583,12 +1665,14 @@ def fetch_u14_stats(games, notes) -> list:
                 stat["score"] = f"{pair[0]}:{pair[1]}, {result_word(*pair)}"
                 stat["result"] = result_word(*pair)
         else:
-            stat["comp"] = "Круговой турнир, U14 (1)"
+            stat["comp"] = U14_COMP_LABEL
+            stat["our_name"] = U14_OUR_NAME
+            stat["opponent"] = normalize_u14_opponent(stat.get("opponent"))
         stat["logId"] = U14_LOG_ID
         seen.add(stat.get("gameId"))
         stats.append(stat)
     if stats:
-        notes.append(f"круговой U14: игр с протоколом {len(stats)}")
+        notes.append(f"МЛБЛ U14: игр с протоколом {len(stats)}")
     return stats
 
 
@@ -1596,9 +1680,9 @@ def refresh_u14_schedule(data, games, notes) -> None:
     if not games:
         return
     schedule = data.setdefault("u14Schedule", {})
-    schedule["label"] = "Круговой турнир U14 (1), 26/27"
+    schedule["label"] = U14_COMP_LABEL
     schedule["caption"] = (
-        "Расписание ШВСМ «Росток» 2014 U14. Официальная таблица этого турнира на сайте не показывается."
+        "Расписание «Росток-2014» в МЛБЛ U14. Официальная таблица этого турнира на сайте не показывается."
     )
     data.setdefault("sync", {})["u14CompId"] = U14_COMP_ID
     now = today()
@@ -1607,20 +1691,24 @@ def refresh_u14_schedule(data, games, notes) -> None:
     try:
         matches = merge_matches(old_matches, games, protocol_dates, now, away_host_first=True)
     except Exception:
-        notes.append("круговой U14: расписание не собрал")
+        notes.append("МЛБЛ U14: расписание не собрал")
         return
-    if matches != old_matches:
-        schedule["matches"] = matches
-        notes.append("круговой U14: расписание обновлено")
+    for match in matches:
+        title = match.get("title")
+        if title:
+            match["title"] = normalize_u14_match_title(str(title))
+    schedule["matches"] = matches
+    if matches != old_matches or schedule.get("label") != U14_COMP_LABEL:
+        notes.append("МЛБЛ U14: расписание обновлено")
 
 
 def load_u14_games(notes) -> list:
     try:
         games = team_games_widget(U14_TEAM_ID)
     except Exception as exc:
-        notes.append(f"круговой U14: календарь не прочитан ({type(exc).__name__})")
+        notes.append(f"МЛБЛ U14: календарь не прочитан ({type(exc).__name__})")
         return []
-    print(f"круговой U14: игр команды {len(games)}", flush=True)
+    print(f"МЛБЛ U14: игр команды {len(games)}", flush=True)
     return games
 
 
@@ -2237,6 +2325,68 @@ def deliver_pushes(data, news, before_games, before_news, notes, sender=None):
             notes.append("пуш: тестовое уведомление не ушло")
 
 
+PROFILE_TOURNAMENT = "Первенство Москвы (Мосбаскет, группа А) и МЛБЛ U14, сезон 2026/27"
+STATS_PARAGRAPH_2627 = (
+    "«Движение вверх» — любительская лига, соперники там слабее. «Быстрый прорыв» — сильный турнир своего года. "
+    "Сезон 2025/26 — два турнира: МЛБЛ-Дети U12 и Первенство Москвы (юноши 2014 г.р.). "
+    "Сезон 2026/27 — Первенство Москвы (Мосбаскет, группа А) и МЛБЛ U14. "
+    "В базе 35 игр с личными протоколами или очками. Раньше сезона 2024/25 записей нет."
+)
+MAMA_SEASON_SUMMARY = (
+    "За два с небольшим сезона в базе 35 игр Кости и 194 очка. В 2024/25 за «Зоркий» он набирал в любительской лиге "
+    "«Движение вверх» по 11,3 очка за игру, лучшая игра 16 очков, и дошёл с командой до финала. В том же сезоне "
+    "в сильнейшем турнире своего года, «Быстром прорыве», было трудно всей команде, но там у него лучшая игра — "
+    "13 очков из 19 командных. В 2025/26 он играл сразу в двух турнирах: в МЛБЛ-Дети U12 (1-й дивизион) стал чаще "
+    "отдавать пас, подбирать и перехватывать, выдал три игры подряд по 9–11 очков, а команда взяла бронзу; "
+    "в Первенстве Москвы на 1-м этапе сыграл пять матчей подряд в октябре — там соперники сильнее, в среднем "
+    "2 очка за игру. В 2026/27 после перелома ноги в августе он снова выходит за «Росток-2014»: в Мосбаскете "
+    "первая игра после травмы — победа над «Гольяново» 24 октября (6 очков по данным семьи); в МЛБЛ U14 — "
+    "разобранный личный протокол 31 октября, поражение 63:84 от Takeshot Academy (вторая игра после травмы, "
+    "почти 11 минут со скамейки)."
+)
+U14_SOURCE_TITLE = "МЛБЛ U14, 26/27"
+U14_SOURCE_NOTE = "Расписание и протоколы «Росток-2014» в МЛБЛ U14. Таблица на сайте Кости не показывается."
+
+
+def refresh_display_copy(data: dict) -> None:
+    profile = data.setdefault("profile", {})
+    for item in profile.get("items") or []:
+        if item.get("label") == "Турнир":
+            item["value"] = PROFILE_TOURNAMENT
+        elif item.get("label") == "Команда":
+            item["value"] = "Росток-2014, группа А, Первенство Москвы (Мосбаскет)"
+    stats = data.setdefault("tournamentStats", {})
+    paragraphs = stats.get("paragraphs") or []
+    if paragraphs:
+        paragraphs[0] = STATS_PARAGRAPH_2627
+    for tournament in (data.get("gameLogs") or {}).get("tournaments") or []:
+        tid = tournament.get("id")
+        if tid in LOG_LABELS:
+            tournament["label"] = LOG_LABELS[tid]
+        if tid != U14_LOG_ID:
+            continue
+        for row in tournament.get("rows") or []:
+            row["opponent"] = normalize_u14_opponent(row.get("opponent"))
+            apply_fixed_review(row)
+    for link in (data.get("sources") or {}).get("links") or []:
+        href = str(link.get("href") or "")
+        if "144801" in href:
+            link["title"] = U14_SOURCE_TITLE
+            link["note"] = U14_SOURCE_NOTE
+    schedule = data.get("u14Schedule") or {}
+    schedule["label"] = U14_COMP_LABEL
+    schedule["caption"] = (
+        "Расписание «Росток-2014» в МЛБЛ U14. Официальная таблица этого турнира на сайте не показывается."
+    )
+    for match in schedule.get("matches") or []:
+        title = match.get("title")
+        if title:
+            match["title"] = normalize_u14_match_title(str(title))
+    mama = data.setdefault("mama", {})
+    if not str(mama.get("seasonSummary") or "").startswith("KEEP"):
+        mama["seasonSummary"] = MAMA_SEASON_SUMMARY
+
+
 def load(name):
     return json.loads((ROOT / name).read_text(encoding="utf-8"))
 
@@ -2269,6 +2419,7 @@ def main():
     except Exception as exc:
         notes.append(f"kpi: не обновил ({type(exc).__name__})")
     refresh_mama_notes(data)
+    refresh_display_copy(data)
     review_games(data, notes)
     merge_posts(news, fetch_telegram(notes) + fetch_club(notes), notes)
     deliver_pushes(data, news, before_games, before_news, notes)
