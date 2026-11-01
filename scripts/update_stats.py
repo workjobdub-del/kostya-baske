@@ -26,6 +26,53 @@ ROOT = Path(__file__).resolve().parents[1]
 API = "https://reg.infobasket.su"
 PARENT_COMP = 142760
 TEAM_ID = 38872
+U14_TEAM_ID = 79167
+U14_COMP_ID = 144801
+U14_LOG_ID = "u14circ2627"
+MOS_LOG_ID = "mos2627"
+PROTOCOL_LOG_IDS = (MOS_LOG_ID, U14_LOG_ID)
+LOG_LABELS = {
+    MOS_LOG_ID: "Росток-2014, 26/27",
+    U14_LOG_ID: "U14 (1), 26/27",
+}
+REVIEW_1088400 = (
+    "Вторая игра Кости после перелома ноги в августе и первая за «Росток» 2014 в дивизионе U14 (1). "
+    "Он вышел со скамейки и провёл на площадке почти 11 минут: после долгого перерыва это нормальный объём, "
+    "до привычных 19 минут за игру ещё предстоит вернуться. Команда уступила Takeshot Academy 63:84. "
+    "В цифрах пока пусто: один неточный двухочковый и одна потеря. Зато без фолов, а за его минуты команда "
+    "проиграла 10 очков, меньше половины итогового отставания. Главное сейчас — спокойно втянуться "
+    "и постепенно набирать минуты."
+)
+MAMA_1088400 = (
+    "Костя снова на площадке после перелома! Вторая игра после травмы: он сыграл почти 11 минут против сильного "
+    "соперника, держался спокойно и не нарушал правила. Дальше будет только увереннее!"
+)
+FIXED_GAME_REVIEWS = {
+    1088400: {"aiReview": REVIEW_1088400, "aiMama": MAMA_1088400},
+}
+
+MANUAL_GAME_TEMPLATES = {
+    1130166: {
+        "gameId": 1130166,
+        "date": "24.10.26",
+        "logId": MOS_LOG_ID,
+        "oppToken": "Гольяново",
+        "title": "Росток-2014 — Гольяново-2014-2",
+        "detail": "24 октября, 16:00, зал «Росток». Победа 62:37.",
+        "status": "У Кости 6 очков — по данным семьи, официального протокола пока нет",
+        "points": 6,
+        "source": "семья",
+        "noPush": True,
+        "aiReview": (
+            "Первая игра Кости после перелома ноги в августе и старт Первенства Москвы. "
+            "Команда уверенно обыграла «Гольяново» 62:37, а Костя набрал 6 очков — хорошее возвращение. "
+            "Остальные цифры появятся, когда выйдет официальный протокол."
+        ),
+        "aiMama": (
+            "Костя вернулся после перелома сразу с победы и сам забил 6 очков — отличное начало сезона!"
+        ),
+    },
+}
 ONESIGNAL_APP_ID = "7a9c32d2-ee00-46aa-9cfd-009842e4dab4"
 SITE = "https://workjobdub-del.github.io/kostya-baske/"
 TAG_GAMES = "Игры"
@@ -372,7 +419,21 @@ def log_rows(data, season):
     token = season_token((season or {}).get("name"))
     if (season or {}).get("id") == "mos2627":
         token = "2627"
-    wanted = {"u12": "u12", "pm25": "pm2526", "быстр": "fb", "движен": "mu", "2627": "mos2627"}.get(token)
+    wanted = {
+        "u12": "u12",
+        "pm25": "pm2526",
+        "быстр": "fb",
+        "движен": "mu",
+        "2627": MOS_LOG_ID,
+        "u14": U14_LOG_ID,
+        "кругов": U14_LOG_ID,
+    }.get(token)
+    if (season or {}).get("id") == MOS_LOG_ID or str((season or {}).get("name") or "").startswith("2026/27"):
+        rows = []
+        for tournament in (data.get("gameLogs") or {}).get("tournaments") or []:
+            if tournament.get("id") in PROTOCOL_LOG_IDS:
+                rows.extend(tournament.get("rows") or [])
+        return rows
     for tournament in (data.get("gameLogs") or {}).get("tournaments") or []:
         if tournament.get("id") == wanted:
             return tournament.get("rows") or []
@@ -542,7 +603,9 @@ def build_mama_notes(data):
     old_steals = as_float(before.get("steals"))
     fouls_now, fouls_before = fouls_pair(data, current, previous)
     percent, _made, _attempts = shot_percent(current.get("fg2"))
-    strong = season_token(current.get("name")) in ("u12", "быстр", "2627")
+    strong = season_token(current.get("name")) in ("u12", "быстр")
+    if season_token(current.get("name")) == "2627" and season_games(current) < 3:
+        strong = False
     goods = []
     works = []
 
@@ -587,19 +650,19 @@ def walk_comps(nodes, found):
         walk_comps(node.get("Children"), found)
 
 
-def team_games(calendar):
+def team_games(calendar, team_id=TEAM_ID):
     games = []
     if not isinstance(calendar, list):
         raise ValueError("calendar")
     for game in calendar:
         if not isinstance(game, dict):
             continue
-        if TEAM_ID not in (game.get("TeamAid"), game.get("TeamBid")):
+        if team_id not in (game.get("TeamAid"), game.get("TeamBid")):
             continue
         when = parse_ru_date(str(game.get("GameDate") or ""))
         if not when:
             continue
-        home = game.get("TeamAid") == TEAM_ID
+        home = game.get("TeamAid") == team_id
         opponent = game.get("ShortTeamNameBru") if home else game.get("ShortTeamNameAru")
         our = game.get("ShortTeamNameAru") if home else game.get("ShortTeamNameBru")
         if not opponent or not our:
@@ -727,9 +790,14 @@ def stat_from_log(item):
     return stat_from_player(item, None)
 
 
-def calendar_for(comp_id):
+def calendar_for(comp_id, team_id=TEAM_ID):
     calendar = api(f"/Comp/GetCalendar/?comps={comp_id}&format=json")
-    return team_games(calendar)
+    return team_games(calendar, team_id)
+
+
+def team_games_widget(team_id: int):
+    calendar = api(f"/Widget/TeamGames/{team_id}?format=json")
+    return team_games(calendar, team_id)
 
 
 def choose_comps(saved):
@@ -807,8 +875,12 @@ def parse_standings(payload):
     return rows
 
 
-def format_match(game, has_protocol, now):
+def format_match(game, has_protocol, now, *, away_host_first=False):
     when = f"{game['date'].day} {MONTHS[game['date'].month - 1]}"
+    if away_host_first and not game["home"]:
+        title = f"{game['opp']} — {game['our']}"
+    else:
+        title = f"{game['our']} — {game['opp']}"
     clock = f", {game['time']}" if game["time"] else ""
     arena = f", зал «{game['arena']}»" if game["arena"] else ""
     score = ""
@@ -822,10 +894,10 @@ def format_match(game, has_protocol, now):
     else:
         status = "Ещё не сыгран"
     detail = f"{when}{clock}{arena}.{score}"
-    return {"title": f"{game['our']} — {game['opp']}", "detail": detail, "status": status}
+    return {"title": title, "detail": detail, "status": status}
 
 
-def merge_matches(old, games, protocol_dates, now):
+def merge_matches(old, games, protocol_dates, now, *, away_host_first=False):
     merged = []
     for game in games:
         if game["status"] != 1 and game["date"] < now:
@@ -840,7 +912,7 @@ def merge_matches(old, games, protocol_dates, now):
             if kept:
                 merged.append(kept)
                 continue
-        merged.append(format_match(game, short_date(game["date"]) in protocol_dates, now))
+        merged.append(format_match(game, short_date(game["date"]) in protocol_dates, now, away_host_first=away_host_first))
     return merged
 
 
@@ -1114,14 +1186,127 @@ def kind_line(stat) -> str:
     return "По протоколу: " + ", ".join(bits) + "."
 
 
-def ensure_log(data):
+def apply_fixed_review(row: dict) -> None:
+    game_id = row.get("gameId")
+    if not isinstance(game_id, int):
+        return
+    fixed = FIXED_GAME_REVIEWS.get(game_id)
+    if not fixed:
+        return
+    for key, value in fixed.items():
+        if value:
+            row[key] = value
+
+
+def sync_fixed_reviews(data: dict) -> None:
+    for tournament in (data.get("gameLogs") or {}).get("tournaments") or []:
+        for row in tournament.get("rows") or []:
+            apply_fixed_review(row)
+    last = data.get("lastMatch")
+    rows = season_rows(data)
+    if last and rows:
+        latest = rows[-1]
+        if latest.get("aiReview") and last.get("facts"):
+            fact = next((f.get("value") or "" for f in last.get("facts") or [] if f.get("label") == "Матч"), "")
+            if str(latest.get("opponent") or "") in fact:
+                last["aiReview"] = latest["aiReview"]
+
+
+def protocol_row_for_game(data: dict, log_id: str, game_id: int) -> dict | None:
+    tournament = next((t for t in (data.get("gameLogs") or {}).get("tournaments") or [] if t.get("id") == log_id), None)
+    if not tournament:
+        return None
+    for row in tournament.get("rows") or []:
+        if row.get("gameId") == game_id:
+            return row
+    return None
+
+
+def sync_manual_games_storage(data: dict, notes: list[str]) -> None:
+    manual = data.setdefault("manualGames", {})
+    for game_id, template in MANUAL_GAME_TEMPLATES.items():
+        key = str(game_id)
+        row = protocol_row_for_game(data, template.get("logId") or MOS_LOG_ID, game_id)
+        if row:
+            if key in manual:
+                del manual[key]
+                notes.append(f"ручная игра {game_id}: есть официальный протокол, запись снята")
+            continue
+        if key not in manual:
+            manual[key] = copy.deepcopy(template)
+            notes.append(f"ручная игра {game_id}: запись семьи на месте")
+        else:
+            for field, value in template.items():
+                manual[key][field] = value
+
+
+def mark_manual_games_no_push(data: dict) -> None:
+    sent = data.setdefault("pushSent", {"games": [], "news": [], "seeded": False})
+    sent.setdefault("games", [])
+    for entry in (data.get("manualGames") or {}).values():
+        if not entry.get("noPush"):
+            continue
+        game_id = entry.get("gameId")
+        if not isinstance(game_id, int):
+            continue
+        key = f"id:{game_id}"
+        if key not in sent["games"]:
+            sent["games"].append(key)
+
+
+def overlay_manual_on_matches(matches: list[dict], manual: dict) -> None:
+    for match in matches:
+        title = str(match.get("title") or "")
+        for entry in manual.values():
+            if not isinstance(entry, dict):
+                continue
+            token = str(entry.get("oppToken") or "")
+            if not token or token not in title:
+                continue
+            match["gameId"] = entry.get("gameId")
+            match["detail"] = entry.get("detail") or match.get("detail")
+            match["status"] = entry.get("status") or match.get("status")
+            if entry.get("aiReview"):
+                match["aiReview"] = entry["aiReview"]
+            if entry.get("aiMama"):
+                match["aiMama"] = entry["aiMama"]
+            break
+
+
+def refresh_mama_pending_manual(data: dict) -> None:
+    entry = (data.get("manualGames") or {}).get("1130166")
+    if not entry:
+        return
+    pending = (data.get("mama") or {}).get("pending") or {}
+    if "Гольяново" not in str(pending.get("title") or ""):
+        return
+    points = entry.get("points")
+    shown = f"{points} очков" if isinstance(points, int) else "очки"
+    data.setdefault("mama", {})["pending"] = {
+        "title": pending.get("title") or "24.10.2026 · Гольяново",
+        "text": (
+            f"Команда выиграла 62:37. У Кости {shown} — по данным семьи; "
+            "официального личного протокола на сайте пока нет."
+        ),
+    }
+
+
+def apply_manual_games(data: dict, notes: list[str]) -> None:
+    sync_manual_games_storage(data, notes)
+    mark_manual_games_no_push(data)
+    overlay_manual_on_matches((data.get("season") or {}).get("matches") or [], data.get("manualGames") or {})
+    refresh_mama_pending_manual(data)
+
+
+def ensure_log(data, log_id=MOS_LOG_ID, label: str | None = None):
+    label = label or LOG_LABELS[log_id]
     tournaments = data["gameLogs"]["tournaments"]
-    found = next((item for item in tournaments if item.get("id") == "mos2627"), None)
+    found = next((item for item in tournaments if item.get("id") == log_id), None)
     if found:
         return found
     found = {
-        "id": "mos2627",
-        "label": "Росток-2014, 26/27",
+        "id": log_id,
+        "label": label,
         "chart": {"labelKey": "date", "labelPrefix": 5, "valueKey": "points"},
         "columns": LOG_COLUMNS,
         "rows": [],
@@ -1130,43 +1315,77 @@ def ensure_log(data):
     return found
 
 
-def apply_protocols(data, stats, notes):
-    if not stats:
-        notes.append("личный протокол: в API пока нет строк игрока, блок «Последний матч» не трогал")
+def protocol_dates_for_log(data, log_id: str) -> set[str]:
+    log = next((t for t in data["gameLogs"]["tournaments"] if t.get("id") == log_id), None)
+    if not log:
         return set()
-    log = ensure_log(data)
-    known = {row.get("date") for row in log["rows"]}
-    added = 0
-    for stat in sorted(stats, key=lambda item: item["when"]):
-        if stat["date"] in known:
-            continue
-        log["rows"].append(public_row(stat))
-        known.add(stat["date"])
-        added += 1
-    if added:
-        notes.append(f"личный протокол: новых игр {added}")
-    else:
-        notes.append("личный протокол: новых игр нет")
-    if not log["rows"]:
-        return {stat["date"] for stat in stats}
-    group = next((stat.get("comp") or "" for stat in reversed(stats) if stat.get("comp")), "")
-    season = season_object(log["rows"], group)
+    return {str(row.get("date")) for row in log.get("rows") or [] if row.get("date")}
+
+
+def merge_season_2627_card(data, rows: list[dict]) -> None:
+    if not rows:
+        return
+    season = season_object(
+        rows,
+        "Круговой турнир U14 (1) и Мосбаскет",
+    )
+    season["id"] = MOS_LOG_ID
+    season["name"] = "2026/27, круговой U14 (1) + Мосбаскет, Росток-2014"
+    season["highlight"] = len(rows) >= 5
     seasons = data["tournamentStats"]["seasons"]
     for item in seasons:
-        if item.get("id") == "mos2627" or str(item.get("name", "")).startswith("2026/27"):
+        if item.get("id") == MOS_LOG_ID or str(item.get("name", "")).startswith("2026/27"):
             for key, value in season.items():
                 item[key] = value
             break
     else:
         seasons.append(season)
-    for item in seasons:
-        if item.get("id") != "mos2627" and not str(item.get("name", "")).startswith("2026/27"):
-            item.pop("highlight", None)
-    data["gameLogs"]["defaultId"] = "mos2627"
+    if season.get("highlight"):
+        for item in seasons:
+            if item.get("id") != MOS_LOG_ID and not str(item.get("name", "")).startswith("2026/27"):
+                item.pop("highlight", None)
+
+
+def apply_protocols(data, stats, notes):
+    if not stats:
+        notes.append("личный протокол: в API пока нет строк игрока, блок «Последний матч» не трогал")
+        return set()
+    added = 0
+    logs: dict[str, dict] = {}
+    known: dict[str, set] = {}
+    for stat in sorted(stats, key=lambda item: item["when"]):
+        log_id = stat.get("logId") or MOS_LOG_ID
+        log = logs.get(log_id) or ensure_log(data, log_id, LOG_LABELS.get(log_id))
+        logs[log_id] = log
+        keys = known.setdefault(log_id, {row.get("gameId") or row.get("date") for row in log["rows"]})
+        key = stat.get("gameId") or stat["date"]
+        if key in keys:
+            continue
+        row = public_row(stat)
+        apply_fixed_review(row)
+        log["rows"].append(row)
+        keys.add(key)
+        added += 1
+    if added:
+        notes.append(f"личный протокол: новых игр {added}")
+    else:
+        notes.append("личный протокол: новых игр нет")
+    all_rows = []
+    for log_id in PROTOCOL_LOG_IDS:
+        log = next((t for t in data["gameLogs"]["tournaments"] if t.get("id") == log_id), None)
+        if log and log.get("rows"):
+            all_rows.extend(log["rows"])
+    if not all_rows:
+        return {stat["date"] for stat in stats}
+    merge_season_2627_card(data, all_rows)
     latest = max(stats, key=lambda item: item["when"])
-    rows = log["rows"]
+    latest_log = logs.get(latest.get("logId") or MOS_LOG_ID) or ensure_log(data)
+    rows = latest_log["rows"]
     data["lastMatch"] = {
-        "caption": f"Последний личный протокол: {long_date(latest['when'])}, {latest['opponent']}, {latest['our']}:{latest['their']}.",
+        "caption": (
+            f"Последний личный протокол: {long_date(latest['when'])}, {latest['opponent']}, "
+            f"{latest['our']}:{latest['their']}."
+        ),
         "facts": [
             {"label": "Матч", "value": f"{latest['our_name']} — {latest['opponent']}, {latest['our']}:{latest['their']}"},
             {"label": "Дата и стадия", "value": long_date(latest["when"]) + (f", {latest['comp']}" if latest.get("comp") else "")},
@@ -1187,6 +1406,9 @@ def apply_protocols(data, stats, notes):
         ]],
         "paragraphs": paragraphs_for(latest, rows),
     }
+    data["lastMatch"]["notice"] = (
+        f"Это последний матч, по которому есть личная статистика ({latest['date']}, {latest.get('comp') or latest_log.get('label')})."
+    )
     mama = data["mama"]["games"]
     have = {item.get("date") for item in mama}
     for stat in sorted(stats, key=lambda item: item["when"], reverse=True):
@@ -1226,8 +1448,9 @@ def update_basket(data, notes):
         comps = choose_comps(saved)
     except Exception as exc:
         notes.append(f"календарь: источник не принят ({type(exc).__name__}), матчи и таблица прежние")
+        apply_manual_games(data, notes)
         refresh_body(data, notes)
-        return
+        return []
     chosen, games = comps[-1]
     data.setdefault("sync", {})["compId"] = chosen
     if chosen != saved:
@@ -1257,6 +1480,7 @@ def update_basket(data, notes):
                 stat["our_name"] = calendar_game["our"]
                 stat["opponent"] = calendar_game["opp"]
             seen.add(stat.get("gameId"))
+            stat["logId"] = MOS_LOG_ID
             stats.append(stat)
     if read_any:
         finished = [game for game in games if game["status"] == 1 and game["id"] not in seen]
@@ -1274,11 +1498,12 @@ def update_basket(data, notes):
                 continue
             stat = stat_from_player(player, game)
             if stat and stat.get("gameId") not in seen:
+                stat["logId"] = MOS_LOG_ID
                 stats.append(stat)
                 seen.add(stat.get("gameId"))
-    protocol_dates = apply_protocols(data, stats, notes) if read_any else set()
+    protocol_dates = {stat["date"] for stat in stats} | protocol_dates_for_log(data, MOS_LOG_ID)
     if not read_any:
-        notes.append("личный протокол: журнал не прочитан, прежние строки на месте")
+        notes.append("личный протокол Мосбаскет: журнал не прочитан, прежние строки на месте")
     try:
         rows = parse_standings(api(f"/Widget/CompTeamResults/{chosen}?format=json"))
     except Exception:
@@ -1314,6 +1539,7 @@ def update_basket(data, notes):
         notes.append("календарь: список матчей обновлён")
     elif matches is not None:
         notes.append("календарь: новых матчей нет")
+    apply_manual_games(data, notes)
     if rows is not None and matches is not None:
         data["season"]["plaque"] = plaque_for(rows, matches)
     pending = pending_game(games, protocol_dates, old_matches, now)
@@ -1326,6 +1552,76 @@ def update_basket(data, notes):
             data["mama"]["pending"] = pending
             notes.append("игра без протокола: плашка обновлена")
     refresh_body(data, notes)
+    return stats if read_any else []
+
+
+def fetch_u14_stats(games, notes) -> list:
+    stats = []
+    seen = set()
+    by_id = {game["id"]: game for game in games}
+    try:
+        payload = api(
+            f"/Widget/PlayerStats/{PERSON_ID}?format=json&compId={U14_COMP_ID}&team={U14_TEAM_ID}&filter=1"
+        )
+        if not isinstance(payload, dict) or not isinstance(payload.get("GameStats"), list):
+            raise ValueError("player-stats")
+    except Exception as exc:
+        notes.append(f"круговой U14: протокол не прочитан ({type(exc).__name__})")
+        return stats
+    for item in payload["GameStats"]:
+        stat = stat_from_log(item)
+        if not stat or stat.get("gameId") in seen:
+            continue
+        calendar_game = by_id.get(stat.get("gameId"))
+        if calendar_game:
+            stat["comp"] = calendar_game.get("comp") or "Круговой турнир, U14 (1)"
+            stat["our_name"] = calendar_game["our"]
+            stat["opponent"] = calendar_game["opp"]
+            pair = our_score_pair(calendar_game)
+            if pair:
+                stat["our"], stat["their"] = pair
+                stat["score"] = f"{pair[0]}:{pair[1]}, {result_word(*pair)}"
+                stat["result"] = result_word(*pair)
+        else:
+            stat["comp"] = "Круговой турнир, U14 (1)"
+        stat["logId"] = U14_LOG_ID
+        seen.add(stat.get("gameId"))
+        stats.append(stat)
+    if stats:
+        notes.append(f"круговой U14: игр с протоколом {len(stats)}")
+    return stats
+
+
+def refresh_u14_schedule(data, games, notes) -> None:
+    if not games:
+        return
+    schedule = data.setdefault("u14Schedule", {})
+    schedule["label"] = "Круговой турнир U14 (1), 26/27"
+    schedule["caption"] = (
+        "Расписание ШВСМ «Росток» 2014 U14. Официальная таблица этого турнира на сайте не показывается."
+    )
+    data.setdefault("sync", {})["u14CompId"] = U14_COMP_ID
+    now = today()
+    old_matches = schedule.get("matches") or []
+    protocol_dates = protocol_dates_for_log(data, U14_LOG_ID)
+    try:
+        matches = merge_matches(old_matches, games, protocol_dates, now, away_host_first=True)
+    except Exception:
+        notes.append("круговой U14: расписание не собрал")
+        return
+    if matches != old_matches:
+        schedule["matches"] = matches
+        notes.append("круговой U14: расписание обновлено")
+
+
+def load_u14_games(notes) -> list:
+    try:
+        games = team_games_widget(U14_TEAM_ID)
+    except Exception as exc:
+        notes.append(f"круговой U14: календарь не прочитан ({type(exc).__name__})")
+        return []
+    print(f"круговой U14: игр команды {len(games)}", flush=True)
+    return games
 
 
 def pending_game(games, protocol_dates, old_matches, now):
@@ -1817,10 +2113,13 @@ def game_key(row) -> str:
 
 
 def season_rows(data):
-    for tournament in data["gameLogs"]["tournaments"]:
-        if tournament.get("id") == "mos2627":
-            return tournament.get("rows") or []
-    return []
+    rows = []
+    for log_id in PROTOCOL_LOG_IDS:
+        tournament = next((item for item in data["gameLogs"]["tournaments"] if item.get("id") == log_id), None)
+        if tournament:
+            rows.extend(tournament.get("rows") or [])
+    rows.sort(key=lambda row: parse_ru_date(row.get("date") or "") or date.min)
+    return rows
 
 
 def game_push_text(row) -> str:
@@ -1954,7 +2253,15 @@ def main():
     before_news = [post.get("link") for post in news.get("posts") or [] if post.get("tag") == "2014"]
     u12_before = copy.deepcopy(next(item["rows"] for item in data["gameLogs"]["tournaments"] if item["id"] == "u12"))
     notes = []
-    update_basket(data, notes)
+    u14_games = load_u14_games(notes)
+    mos_stats = update_basket(data, notes)
+    u14_stats = fetch_u14_stats(u14_games, notes) if u14_games else []
+    combined_stats = (mos_stats or []) + (u14_stats or [])
+    if combined_stats:
+        apply_protocols(data, combined_stats, notes)
+    refresh_u14_schedule(data, u14_games, notes)
+    sync_fixed_reviews(data)
+    apply_manual_games(data, notes)
     try:
         from kpi_sync import refresh_kpi
 

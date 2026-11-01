@@ -581,6 +581,7 @@ function seasonFor(tournament) {
   if (tournament.id === "fb") return seasons.find((season) => season.name.includes("Быстрый")) || null;
   if (tournament.id === "mu") return seasons.find((season) => season.name.includes("Движение")) || null;
   if (tournament.id === "mos2627") return seasons.find((season) => season.id === "mos2627") || null;
+  if (tournament.id === "u14circ2627") return seasons.find((season) => season.id === "mos2627") || null;
   return null;
 }
 
@@ -1300,15 +1301,36 @@ function renderSeason() {
         <div>
           <h3>${esc(match.title)}</h3>
           <p>${esc(match.detail)}</p>
+          ${match.aiReview ? `<p class="game-review">${esc(match.aiReview)}</p>` : ""}
         </div>
         ${match.status ? `<span class="status">${esc(match.status)}</span>` : ""}
       </article>`
     )
     .join("");
+  const u14 = data.u14Schedule;
+  const u14Block =
+    u14 && u14.matches && u14.matches.length
+      ? `<section class="block u14-schedule" id="u14-schedule">
+    <h3>${esc(u14.label || "Круговой турнир U14")}</h3>
+    ${u14.caption ? `<p class="caption">${esc(u14.caption)}</p>` : ""}
+    <div class="match-list">${u14.matches
+      .map(
+        (match) => `<article class="match-row">
+        <div>
+          <h3>${esc(match.title)}</h3>
+          <p>${esc(match.detail)}</p>
+        </div>
+        ${match.status ? `<span class="status">${esc(match.status)}</span>` : ""}
+      </article>`
+      )
+      .join("")}</div>
+  </section>`
+      : "";
   return `<section class="block" id="season">
     <h2>${esc(heading("season"))}</h2>
     <p class="caption">${esc(block.caption)}</p>
     <div class="match-list">${matches}</div>
+    ${u14Block}
     ${block.plaque ? `<p class="plaque">${esc(block.plaque)}</p>` : ""}
     ${objectTable(block.standings.columns, block.standings.rows, "standings")}
   </section>`;
