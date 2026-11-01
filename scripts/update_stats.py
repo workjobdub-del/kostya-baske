@@ -50,6 +50,29 @@ MAMA_1088400 = (
 FIXED_GAME_REVIEWS = {
     1088400: {"aiReview": REVIEW_1088400, "aiMama": MAMA_1088400},
 }
+
+MANUAL_GAME_TEMPLATES = {
+    1130166: {
+        "gameId": 1130166,
+        "date": "24.10.26",
+        "logId": MOS_LOG_ID,
+        "oppToken": "Гольяново",
+        "title": "Росток-2014 — Гольяново-2014-2",
+        "detail": "24 октября, 16:00, зал «Росток». Победа 62:37.",
+        "status": "У Кости 6 очков — по данным семьи, официального протокола пока нет",
+        "points": 6,
+        "source": "семья",
+        "noPush": True,
+        "aiReview": (
+            "Первая игра Кости после перелома ноги в августе и старт Первенства Москвы. "
+            "Команда уверенно обыграла «Гольяново» 62:37, а Костя набрал 6 очков — хорошее возвращение. "
+            "Остальные цифры появятся, когда выйдет официальный протокол."
+        ),
+        "aiMama": (
+            "Костя вернулся после перелома сразу с победы и сам забил 6 очков — отличное начало сезона!"
+        ),
+    },
+}
 ONESIGNAL_APP_ID = "7a9c32d2-ee00-46aa-9cfd-009842e4dab4"
 SITE = "https://workjobdub-del.github.io/kostya-baske/"
 TAG_GAMES = "Игры"
@@ -1189,6 +1212,92 @@ def sync_fixed_reviews(data: dict) -> None:
                 last["aiReview"] = latest["aiReview"]
 
 
+def protocol_row_for_game(data: dict, log_id: str, game_id: int) -> dict | None:
+    tournament = next((t for t in (data.get("gameLogs") or {}).get("tournaments") or [] if t.get("id") == log_id), None)
+    if not tournament:
+        return None
+    for row in tournament.get("rows") or []:
+        if row.get("gameId") == game_id:
+            return row
+    return None
+
+
+def sync_manual_games_storage(data: dict, notes: list[str]) -> None:
+    manual = data.setdefault("manualGames", {})
+    for game_id, template in MANUAL_GAME_TEMPLATES.items():
+        key = str(game_id)
+        row = protocol_row_for_game(data, template.get("logId") or MOS_LOG_ID, game_id)
+        if row:
+            if key in manual:
+                del manual[key]
+                notes.append(f"ручная игра {game_id}: есть официальный протокол, запись снята")
+            continue
+        if key not in manual:
+            manual[key] = copy.deepcopy(template)
+            notes.append(f"ручная игра {game_id}: запись семьи на месте")
+        else:
+            for field, value in template.items():
+                manual[key][field] = value
+
+
+def mark_manual_games_no_push(data: dict) -> None:
+    sent = data.setdefault("pushSent", {"games": [], "news": [], "seeded": False})
+    sent.setdefault("games", [])
+    for entry in (data.get("manualGames") or {}).values():
+        if not entry.get("noPush"):
+            continue
+        game_id = entry.get("gameId")
+        if not isinstance(game_id, int):
+            continue
+        key = f"id:{game_id}"
+        if key not in sent["games"]:
+            sent["games"].append(key)
+
+
+def overlay_manual_on_matches(matches: list[dict], manual: dict) -> None:
+    for match in matches:
+        title = str(match.get("title") or "")
+        for entry in manual.values():
+            if not isinstance(entry, dict):
+                continue
+            token = str(entry.get("oppToken") or "")
+            if not token or token not in title:
+                continue
+            match["gameId"] = entry.get("gameId")
+            match["detail"] = entry.get("detail") or match.get("detail")
+            match["status"] = entry.get("status") or match.get("status")
+            if entry.get("aiReview"):
+                match["aiReview"] = entry["aiReview"]
+            if entry.get("aiMama"):
+                match["aiMama"] = entry["aiMama"]
+            break
+
+
+def refresh_mama_pending_manual(data: dict) -> None:
+    entry = (data.get("manualGames") or {}).get("1130166")
+    if not entry:
+        return
+    pending = (data.get("mama") or {}).get("pending") or {}
+    if "Гольяново" not in str(pending.get("title") or ""):
+        return
+    points = entry.get("points")
+    shown = f"{points} очков" if isinstance(points, int) else "очки"
+    data.setdefault("mama", {})["pending"] = {
+        "title": pending.get("title") or "24.10.2026 · Гольяново",
+        "text": (
+            f"Команда выиграла 62:37. У Кости {shown} — по данным семьи; "
+            "официального личного протокола на сайте пока нет."
+        ),
+    }
+
+
+def apply_manual_games(data: dict, notes: list[str]) -> None:
+    sync_manual_games_storage(data, notes)
+    mark_manual_games_no_push(data)
+    overlay_manual_on_matches((data.get("season") or {}).get("matches") or [], data.get("manualGames") or {})
+    refresh_mama_pending_manual(data)
+
+
 def ensure_log(data, log_id=MOS_LOG_ID, label: str | None = None):
     label = label or LOG_LABELS[log_id]
     tournaments = data["gameLogs"]["tournaments"]
@@ -1339,6 +1448,7 @@ def update_basket(data, notes):
         comps = choose_comps(saved)
     except Exception as exc:
         notes.append(f"календарь: источник не принят ({type(exc).__name__}), матчи и таблица прежние")
+        apply_manual_games(data, notes)
         refresh_body(data, notes)
         return []
     chosen, games = comps[-1]
@@ -1429,6 +1539,7 @@ def update_basket(data, notes):
         notes.append("календарь: список матчей обновлён")
     elif matches is not None:
         notes.append("календарь: новых матчей нет")
+    apply_manual_games(data, notes)
     if rows is not None and matches is not None:
         data["season"]["plaque"] = plaque_for(rows, matches)
     pending = pending_game(games, protocol_dates, old_matches, now)
@@ -2150,6 +2261,7 @@ def main():
         apply_protocols(data, combined_stats, notes)
     refresh_u14_schedule(data, u14_games, notes)
     sync_fixed_reviews(data)
+    apply_manual_games(data, notes)
     try:
         from kpi_sync import refresh_kpi
 

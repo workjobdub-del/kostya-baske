@@ -1301,6 +1301,7 @@ function renderSeason() {
         <div>
           <h3>${esc(match.title)}</h3>
           <p>${esc(match.detail)}</p>
+          ${match.aiReview ? `<p class="game-review">${esc(match.aiReview)}</p>` : ""}
         </div>
         ${match.status ? `<span class="status">${esc(match.status)}</span>` : ""}
       </article>`
