@@ -551,6 +551,8 @@ def refresh_trend(data: dict, season_api: dict[str, dict]) -> None:
             kpi_val = season_api["2425"].get("kpiGame")
         elif "МЛБЛ" in name and "u12" in season_api:
             kpi_val = season_api["u12"].get("kpiGame")
+        elif "МЛБЛ U14" in name and "u14circ2627" in season_api:
+            kpi_val = season_api["u14circ2627"].get("kpiGame")
         elif "2627" in name and "2627" in season_api:
             kpi_val = season_api["2627"].get("kpiGame")
         if kpi_val is not None:
@@ -570,6 +572,7 @@ def refresh_trend(data: dict, season_api: dict[str, dict]) -> None:
     mapping = [
         ("Быстрый прорыв, 2024/25", "2425", None),
         ("МЛБЛ-Дети U12, 2025/26", "u12", season_api.get("u12")),
+        ("МЛБЛ U14, 26/27", "u14circ2627", season_api.get("u14circ2627")),
     ]
     for label, sid, metrics in mapping:
         if metrics is None:
@@ -583,6 +586,39 @@ def refresh_trend(data: dict, season_api: dict[str, dict]) -> None:
             }
         )
     trend["views"] = views
+
+
+def refresh_trend_u14_avg(data: dict) -> None:
+    card = next(
+        (s for s in (data.get("tournamentStats") or {}).get("seasons") or [] if s.get("id") == "u14circ2627"),
+        None,
+    )
+    if not card or not card.get("games") or str(card.get("games", "")).startswith("0"):
+        return
+    trend = data.setdefault("trend", {})
+    avg = next((v for v in (trend.get("views") or []) if v.get("id") == "avg"), None)
+    if not avg:
+        return
+    cats = list(avg.get("categories") or [])
+    name = "МЛБЛ U14, 26/27"
+    series = next((s for s in avg.get("series") or [] if s.get("name") == name), None)
+    if not series:
+        series = {"name": name, "values": [0.0] * (len(cats) - 1)}
+        avg.setdefault("series", []).append(series)
+    values = [
+        card.get("points"),
+        card.get("rebounds"),
+        card.get("assists"),
+        card.get("steals"),
+    ]
+    while len(values) < len(cats) - 1:
+        values.append(0.0)
+    if card.get("kpiPerGame") is not None:
+        if len(values) < len(cats):
+            values.append(card["kpiPerGame"])
+        else:
+            values[len(cats) - 1] = card["kpiPerGame"]
+    series["values"] = values
 
 
 def season_games_count(season: dict) -> int:
@@ -638,12 +674,12 @@ def refresh_career_notes(data: dict) -> None:
     )
     if u14 and (u14.get("rows") or []):
         pros.append(
-            "После перелома ноги в августе возвращение продолжается: в круговом U14 — вторая игра после травмы, "
+            "После перелома ноги в августе возвращение продолжается: в МЛБЛ U14 — вторая игра после травмы, "
             "почти 11 минут без фолов"
         )
     notes["pros"] = pros
 
-    cons = [line for line in (notes.get("cons") or []) if "круговом U14" not in line]
+    cons = [line for line in (notes.get("cons") or []) if "круговом U14" not in line and "МЛБЛ U14" not in line[:20]]
     if mlbl.get("kpiPerGame") is not None and cons:
         cons[0] = (
             f"Потери: {num(mlbl.get('turnovers'))} за игру при {num(mlbl.get('assists'))} передачи. "
@@ -658,6 +694,7 @@ def refresh_season_cards(data: dict, aggregates: dict[str, dict]) -> None:
         ("МЛБЛ-Дети", "u12"),
         ("Первенство Москвы", "pm2526"),
         ("2026/27", "mos2627"),
+        ("МЛБЛ U14", "u14circ2627"),
         ("U14 (1)", "u14circ2627"),
         ("Круговой", "u14circ2627"),
     ]
@@ -670,6 +707,8 @@ def refresh_season_cards(data: dict, aggregates: dict[str, dict]) -> None:
                 break
         if season.get("id") == "mos2627":
             tid = "mos2627"
+        if season.get("id") == "u14circ2627":
+            tid = "u14circ2627"
         if not tid or tid not in aggregates:
             if tid:
                 apply_season_plus_minus(season, _tournament(data, tid), tid)
@@ -820,7 +859,7 @@ def refresh_kpi(data: dict, notes: list[str]) -> None:
         "u12": "МЛБЛ-Дети U12",
         "pm2526": "Первенство Москвы",
         "mos2627": "Мосбаскет 26/27",
-        "u14circ2627": "U14 (1), 26/27",
+        "u14circ2627": "МЛБЛ U14, 26/27",
     }
     for tid, label in labels.items():
         raw = aggregates.get(tid, {}).get("_raw") or []
@@ -853,15 +892,7 @@ def refresh_kpi(data: dict, notes: list[str]) -> None:
 
     refresh_trend(data, season_api)
     refresh_season_cards(data, aggregates)
-    if "2627" in season_api:
-        agg = season_api["2627"]
-        for season in (data.get("tournamentStats") or {}).get("seasons") or []:
-            if season.get("id") == "mos2627" or str(season.get("name") or "").startswith("2026/27"):
-                season["kpiPerGame"] = agg["kpiGame"]
-                season["plusMinusPerGame"] = agg["plusMinus"]
-                season["plusMinusTotal"] = int(round(agg["plusMinus"] * agg["games"]))
-                season["protocolGames"] = agg["games"]
-                break
+    refresh_trend_u14_avg(data)
     try:
         from update_stats import refresh_mama_notes
 
