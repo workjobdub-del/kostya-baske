@@ -2087,7 +2087,7 @@ def assert_safe(data, news, u12_before):
     for forbidden in ("424578", "Кириллович", "26.03.2014"):
         if forbidden in blob:
             raise SystemExit(f"остановка: в данных оказалось «{forbidden}», файлы не записал")
-    if data["player"]["name"] != "Костя Дербышев" or str(data["player"].get("number")) != "7":
+    if data["player"]["name"] != "Костя Д." or str(data["player"].get("number")) != "7":
         raise SystemExit("остановка: имя или номер изменились бы, файлы не записал")
     u12 = next(item for item in data["gameLogs"]["tournaments"] if item.get("id") == "u12")
     before_core = [_log_row_core(row) for row in u12_before]
