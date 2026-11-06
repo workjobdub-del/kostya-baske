@@ -707,7 +707,7 @@ function heroStats() {
     ${updatedLine()}`;
 }
 
-const ASSET_V = "2026-11-06-01";
+const ASSET_V = "2026-11-06-02";
 const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
 const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
 
@@ -1507,7 +1507,9 @@ function render() {
   document.getElementById("load-state").hidden = true;
   document.getElementById("app").hidden = false;
   animateIn();
-  renderNotify();
+  try {
+    renderNotify();
+  } catch (error) {}
   syncChrome();
   if (savedView) restoreView(savedView);
   else scrollToHash();
@@ -1838,6 +1840,33 @@ async function loadJson(name, attempts = 3) {
   throw lastError;
 }
 
+function pushOptedIn(OneSignal) {
+  try {
+    return Boolean(OneSignal && OneSignal.User && OneSignal.User.PushSubscription && OneSignal.User.PushSubscription.optedIn);
+  } catch (error) {
+    return false;
+  }
+}
+
+function applyNotifyTags(box, tags) {
+  const tagMap = tags && typeof tags === "object" ? tags : {};
+  const games = box.querySelector("[data-tag='games']");
+  const news = box.querySelector("[data-tag='news']");
+  const hasOurTags = Object.prototype.hasOwnProperty.call(tagMap, TAG_GAMES)
+    || Object.prototype.hasOwnProperty.call(tagMap, TAG_NEWS);
+  if (!hasOurTags) {
+    if (games) games.checked = true;
+    void saveNotifyTagsWithRetry().catch(() => {});
+    return;
+  }
+  if (games && Object.prototype.hasOwnProperty.call(tagMap, TAG_GAMES)) {
+    games.checked = tagMap[TAG_GAMES] === "1";
+  }
+  if (news && Object.prototype.hasOwnProperty.call(tagMap, TAG_NEWS)) {
+    news.checked = tagMap[TAG_NEWS] === "1";
+  }
+}
+
 function renderNotify() {
   const app = document.getElementById("app");
   if (!app || app.hidden) return;
@@ -1849,7 +1878,7 @@ function renderNotify() {
     app.appendChild(box);
   }
   const OneSignal = window.oneSignal;
-  const opted = Boolean(OneSignal && OneSignal.User.PushSubscription.optedIn);
+  const opted = pushOptedIn(OneSignal);
   const gamesOn = box.querySelector("[data-tag='games']");
   const newsOn = box.querySelector("[data-tag='news']");
   const keepGames = gamesOn ? gamesOn.checked : true;
@@ -1872,24 +1901,16 @@ function renderNotify() {
     </div>
     <p class="notify-note" data-notify-note hidden></p>`;
   if (OneSignal && opted) {
-    OneSignal.User.getTags()
-      .then((tags) => {
-        const tagMap = tags && typeof tags === "object" ? tags : {};
-        const games = box.querySelector("[data-tag='games']");
-        const news = box.querySelector("[data-tag='news']");
-        const hasOurTags = Object.prototype.hasOwnProperty.call(tagMap, TAG_GAMES)
-          || Object.prototype.hasOwnProperty.call(tagMap, TAG_NEWS);
-        if (!hasOurTags) {
-          if (games) games.checked = true;
-          void saveNotifyTagsWithRetry().catch(() => {});
-          return;
-        }
-        if (games && Object.prototype.hasOwnProperty.call(tagMap, TAG_GAMES)) {
-          games.checked = tagMap[TAG_GAMES] === "1";
-        }
-        if (news && Object.prototype.hasOwnProperty.call(tagMap, TAG_NEWS)) {
-          news.checked = tagMap[TAG_NEWS] === "1";
-        }
+    let tags = null;
+    try {
+      tags = OneSignal.User.getTags();
+    } catch (error) {
+      tags = null;
+    }
+    Promise.resolve(tags)
+      .then((resolved) => {
+        if (!box.isConnected) return;
+        applyNotifyTags(box, resolved);
       })
       .catch(() => {});
   }
@@ -1901,10 +1922,10 @@ async function saveNotifyTags() {
   if (!OneSignal || !box) return;
   const games = box.querySelector("[data-tag='games']").checked;
   const news = box.querySelector("[data-tag='news']").checked;
-  if (games) await OneSignal.User.addTag(TAG_GAMES, "1");
-  else await OneSignal.User.removeTag(TAG_GAMES);
-  if (news) await OneSignal.User.addTag(TAG_NEWS, "1");
-  else await OneSignal.User.removeTag(TAG_NEWS);
+  if (games) await Promise.resolve(OneSignal.User.addTag(TAG_GAMES, "1"));
+  else await Promise.resolve(OneSignal.User.removeTag(TAG_GAMES));
+  if (news) await Promise.resolve(OneSignal.User.addTag(TAG_NEWS, "1"));
+  else await Promise.resolve(OneSignal.User.removeTag(TAG_NEWS));
 }
 
 async function saveNotifyTagsWithRetry() {
@@ -1977,7 +1998,7 @@ function notifyNote(text) {
 
 document.addEventListener("change", (event) => {
   const input = event.target.closest("[data-tag]");
-  if (!input || !window.oneSignal || !window.oneSignal.User.PushSubscription.optedIn) return;
+  if (!input || !pushOptedIn(window.oneSignal)) return;
   saveNotifyTags().catch(() => notifyNote("Не удалось сохранить выбор тем."));
 });
 
@@ -1991,7 +2012,13 @@ document.addEventListener("click", (event) => {
   }
   const action = button.getAttribute("data-notify");
   if (action === "off") {
-    OneSignal.User.PushSubscription.optOut().then(() => renderNotify()).catch(() => notifyNote("Не удалось выключить."));
+    try {
+      Promise.resolve(OneSignal.User.PushSubscription.optOut())
+        .then(() => renderNotify())
+        .catch(() => notifyNote("Не удалось выключить."));
+    } catch (error) {
+      notifyNote("Не удалось выключить.");
+    }
     return;
   }
   void enableNotifications(OneSignal);
@@ -2542,7 +2569,8 @@ function humanError(error) {
   if (/^HTTP\s+\d+/.test(text) || text.startsWith("unexpected")) {
     return "Не удалось загрузить данные. Проверьте интернет и попробуйте ещё раз.";
   }
-  return text;
+  if (/[А-Яа-яЁё]/.test(text)) return text;
+  return "Не удалось обновить данные. Попробуйте ещё раз.";
 }
 
 function setSync(text, kind) {
