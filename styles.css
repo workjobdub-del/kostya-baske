@@ -2122,3 +2122,214 @@ svg .bar-hit.is-picked { fill: rgba(243, 217, 138, 0.1); }
 
   .player-card::before { display: none; }
 }
+
+.sync-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.sync-bar .updated {
+  flex: 1 1 12rem;
+  margin: 0;
+}
+
+.sync-actions {
+  display: flex;
+  flex: 1 1 16rem;
+  align-items: stretch;
+  gap: 0.4rem;
+}
+
+.sync-refresh,
+.sync-settings,
+.icon-button,
+.body-chip,
+.sheet-actions button {
+  min-height: var(--tap);
+  min-width: var(--tap);
+  border: 0;
+  cursor: pointer;
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sync-refresh {
+  flex: 1 1 auto;
+  padding: 0.35rem 0.85rem;
+  background: linear-gradient(100deg, var(--gold-2), var(--gold) 55%, var(--fire-2));
+  color: #1a1006;
+  line-height: 1.1;
+}
+
+.sync-refresh.is-busy {
+  position: relative;
+  padding-left: 2.2rem;
+}
+
+.sync-refresh.is-busy::before {
+  content: "";
+  position: absolute;
+  left: 0.7rem;
+  top: 50%;
+  width: 0.95rem;
+  height: 0.95rem;
+  margin-top: -0.48rem;
+  border: 2px solid rgba(26, 16, 6, 0.28);
+  border-top-color: #1a1006;
+  border-radius: 50%;
+  animation: sync-spin 0.7s linear infinite;
+}
+
+@keyframes sync-spin { to { transform: rotate(360deg); } }
+
+.sync-settings,
+.icon-button,
+.body-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.55rem;
+  background: transparent;
+  color: var(--gold-2);
+  border: 1px solid var(--line);
+}
+
+.sync-settings,
+.icon-button {
+  flex: 0 0 var(--tap);
+  width: var(--tap);
+  padding: 0;
+}
+
+.sync-settings svg,
+.icon-button svg {
+  display: block;
+}
+
+.sync-refresh:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.sync-status {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.sync-status:empty { display: none; }
+.sync-status.is-ok { color: var(--good); }
+.sync-status.is-error { color: var(--work); }
+.sync-status.is-loading { color: var(--gold-2); }
+
+.body-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.hero-sub .body-chip {
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: var(--font);
+  font-weight: 650;
+}
+
+.sheet[hidden] { display: none !important; }
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.62);
+}
+
+.sheet-card {
+  width: min(34rem, 100%);
+  max-height: min(92vh, 42rem);
+  overflow: auto;
+  padding: 1rem 1rem 1.15rem;
+  background: #141820;
+  border: 1px solid var(--gold);
+  color: var(--ink);
+}
+
+.sheet-card h2 {
+  margin: 0 0 0.45rem;
+  font-family: var(--display);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.sheet-card label {
+  display: block;
+  margin: 0.7rem 0 0.35rem;
+  color: var(--muted);
+  font-family: var(--display);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sheet-card input {
+  display: block;
+  width: 100%;
+  min-height: var(--tap);
+  margin-top: 0.3rem;
+  padding: 0 0.75rem;
+  background: #07080c;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  font: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.sheet-steps {
+  margin: 0.4rem 0 0.8rem;
+  padding-left: 1.15rem;
+  color: var(--muted);
+}
+
+.sheet-steps li + li { margin-top: 0.35rem; }
+
+.sheet-note,
+.sheet-error {
+  margin: 0.35rem 0 0.7rem;
+}
+
+.sheet-error { color: var(--work); }
+
+.sheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.sheet-actions button.is-on {
+  background: linear-gradient(100deg, var(--gold-2), var(--gold) 55%, var(--fire-2));
+  color: #1a1006;
+  padding: 0 0.9rem;
+}
+
+.sheet-actions button.is-off {
+  background: transparent;
+  color: var(--gold-2);
+  border: 1px solid var(--line);
+  padding: 0 0.75rem;
+}
+
+@media (min-width: 721px) {
+  .sheet { align-items: center; }
+}

@@ -15,6 +15,18 @@ on:
         description: "Заново сделать ИИ-разбор последней игры с протоколом"
         type: boolean
         default: false
+      height_cm:
+        description: "Ручной рост, см (120–220). Пусто — не менять."
+        type: string
+        default: ""
+      weight_kg:
+        description: "Ручной вес, кг (25–120). Пусто — не менять."
+        type: string
+        default: ""
+      clear_manual_body:
+        description: "Сбросить ручные рост и вес и снова брать их из протокола"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -31,6 +43,9 @@ jobs:
       PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
       PUSH_TEST: ${{ github.event.inputs.test_push == 'true' && '1' || '0' }}
       AI_REGEN: ${{ github.event.inputs.regen_ai == 'true' && '1' || '0' }}
+      HEIGHT_CM: ${{ github.event.inputs.height_cm }}
+      WEIGHT_KG: ${{ github.event.inputs.weight_kg }}
+      CLEAR_MANUAL_BODY: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.clear_manual_body == 'true' && '1' || '0' }}
     steps:
       - name: Забрать main
         uses: actions/checkout@v4
