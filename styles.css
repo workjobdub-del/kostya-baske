@@ -2709,6 +2709,151 @@ html, body { overflow-x: clip; }
 
 #standings .fold + .fold { margin-top: 0.55rem; }
 
+.record-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+
+.record-grid .kpi {
+  min-height: 0;
+  padding: 0.75rem 0.7rem;
+}
+
+.record-grid .kpi b { font-size: 1.85rem; }
+
+.timeline {
+  list-style: none;
+  margin: 0.2rem 0 0.4rem;
+  padding: 0;
+}
+
+.timeline-season {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.15rem minmax(0, 1fr);
+  gap: 0.7rem;
+  padding-bottom: 1.15rem;
+}
+
+.timeline-season::before {
+  content: "";
+  position: absolute;
+  left: 0.42rem;
+  top: 0.55rem;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.timeline-season:last-child::before { bottom: 0.8rem; }
+
+.timeline-marker {
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-top: 0.28rem;
+  border-radius: 50%;
+  background: #242833;
+  border: 2px solid rgba(255, 255, 255, 0.38);
+  position: relative;
+  z-index: 1;
+}
+
+.timeline-season.is-now .timeline-marker {
+  background: var(--gold);
+  border-color: var(--gold-2);
+  box-shadow: 0 0 0 4px rgba(232, 184, 74, 0.22);
+}
+
+.timeline-kicker {
+  margin: 0 0 0.15rem;
+  color: var(--gold-2);
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.timeline-body h2 {
+  margin: 0 0 0.45rem;
+  font-family: var(--font);
+  font-size: 1.22rem;
+  letter-spacing: 0;
+  text-shadow: none;
+  transform: none;
+}
+
+.milestones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.milestones li {
+  padding: 0.22rem 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.tour-list { display: grid; gap: 0.65rem; }
+
+.tour-card {
+  padding: 0.8rem 0.85rem 0.7rem;
+  background: #10131a;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+}
+
+.tour-card h3 {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+
+.tour-card strong {
+  display: block;
+  margin-top: 0.25rem;
+  font-family: var(--display);
+  font-size: 2.15rem;
+  line-height: 1;
+  color: var(--gold-2);
+}
+
+.tour-card > span,
+.tour-card .caption { color: var(--muted); }
+
+.tour-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.7rem;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tour-stats b { font-family: var(--display); }
+
+.tour-matches { margin-top: 0.65rem; }
+
+.tour-matches summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.tour-card.is-live { border-color: rgba(232, 184, 74, 0.35); }
+
+@media (min-width: 721px) {
+  .record-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
 .opp-link {
   border: 0;
   background: transparent;
