@@ -657,14 +657,31 @@ function currentSeason() {
   return live || seasons.find((season) => season.highlight) || seasons[seasons.length - 1];
 }
 
-function heightLine() {
-  const match = String(profileValue("Рост и вес")).match(/(\d+)\s*см/);
-  return match ? `${match[1]} см` : "";
+function parseBody(text) {
+  const height = String(text || "").match(/(\d+)\s*см/);
+  const weight = String(text || "").match(/(\d+)\s*кг/);
+  return {
+    height: height ? Number(height[1]) : null,
+    weight: weight ? Number(weight[1]) : null,
+  };
+}
+
+function heightLabel() {
+  const parsed = parseBody(profileValue("Рост и вес"));
+  if (!parsed.height) return "";
+  return parsed.weight ? `${parsed.height} см · ${parsed.weight} кг` : `${parsed.height} см`;
 }
 
 function updatedLine() {
-  if (!data.updated) return "";
-  return `<p class="updated">Обновлено: ${esc(formatNewsDate(data.updated))}</p>`;
+  const when = data.updated ? `Обновлено: ${esc(formatNewsDate(data.updated))}` : "Статистика";
+  return `<div class="sync-bar">
+      <p class="updated">${when}</p>
+      <div class="sync-actions">
+        <button type="button" class="sync-refresh" data-sync="refresh">Обновить статистику</button>
+        <button type="button" class="sync-settings" data-sync="settings" aria-label="Настройки синхронизации">${ICON_GEAR}</button>
+      </div>
+      <p class="sync-status" data-sync-status role="status"></p>
+    </div>`;
 }
 
 function heroStats() {
@@ -681,13 +698,18 @@ function heroStats() {
         `<div class="hero-stat"><b>${esc(formatAvg(value))}</b><span>${esc(label)}</span></div>`
     )
     .join("");
-  const sub = [heightLine(), season.name].filter(Boolean).join(" · ");
+  const bits = [];
+  const height = heightLabel();
+  if (height) bits.push(`<button type="button" class="body-chip" data-edit-body>${esc(height)}</button>`);
+  if (season.name) bits.push(`<span>${esc(season.name)}</span>`);
   return `<div class="hero-stats" aria-label="Средние за сезон">${cells}</div>
-    <p class="hero-sub">${esc(sub)}</p>
+    <p class="hero-sub">${bits.join('<span class="hero-dot"> · </span>')}</p>
     ${updatedLine()}`;
 }
 
-const ASSET_V = "2026-10-25-18";
+const ASSET_V = "2026-11-06-01";
+const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
+const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
 
 function siteLogoMark() {
   return `<div class="player-logo"><img src="logo.png?v=${ASSET_V}" width="995" height="978" alt="DERBYSHEV 7"></div>`;
@@ -1025,10 +1047,13 @@ function renderCareerPage() {
   }
   const year = profileValue("Год рождения");
   const bio = data.profile.items
-    .map(
-      (item) =>
-        `<li class="${String(item.value).length > 24 ? "is-wide" : ""}"><span>${esc(item.label)}</span><strong>${esc(item.value)}</strong></li>`
-    )
+    .map((item) => {
+      const wide = item.label === "Рост и вес" || String(item.value).length > 24 ? "is-wide" : "";
+      if (item.label === "Рост и вес") {
+        return `<li class="${wide}"><span>${esc(item.label)}</span><strong class="body-line"><span>${esc(item.value)}</span><button type="button" class="icon-button" data-edit-body aria-label="Изменить рост и вес">${ICON_PENCIL}</button></strong></li>`;
+      }
+      return `<li class="${wide}"><span>${esc(item.label)}</span><strong>${esc(item.value)}</strong></li>`;
+    })
     .join("");
   document.getElementById("app").innerHTML = `<section class="player-card" id="top"${numberAttr()}>
       <p class="kicker">Карьера${year ? ` · ${esc(year)}` : ""}</p>
@@ -1076,7 +1101,7 @@ function renderCareerPage() {
 }
 
 function renderTeamPage() {
-  document.getElementById("app").innerHTML = `${renderSeason()}${renderNewsSection()}`;
+  document.getElementById("app").innerHTML = `${updatedLine()}${renderSeason()}${renderNewsSection()}`;
   renderNewsPanel(false);
 }
 
@@ -1286,9 +1311,18 @@ function renderGlossary() {
 
 function renderProfile() {
   const block = data.profile;
+  const cards = block.items
+    .map((item) => {
+      const wide = item.label === "Рост и вес" || String(item.value).length > 24 ? " is-wide" : "";
+      if (item.label === "Рост и вес") {
+        return `<div class="fact${wide}"><dt>${esc(item.label)}</dt><dd class="body-line"><span>${esc(item.value)}</span><button type="button" class="icon-button" data-edit-body aria-label="Изменить рост и вес">${ICON_PENCIL}</button></dd></div>`;
+      }
+      return `<div class="fact${wide}"><dt>${esc(item.label)}</dt><dd>${factValue(item)}</dd></div>`;
+    })
+    .join("");
   return `<section class="block" id="profile">
     <h2>${esc(heading("profile"))}</h2>
-    ${facts(block.items)}
+    <dl class="facts">${cards}</dl>
     ${paragraphs(block.paragraphs)}
   </section>`;
 }
@@ -1434,6 +1468,8 @@ function renderTrendPanel(restoreFocus) {
 }
 
 function render() {
+  const savedView = keepView ? captureView() : null;
+  keepView = false;
   clearLoadState(document.getElementById("load-state"));
   const page = document.body.dataset.page;
   const titles = {
@@ -1473,7 +1509,9 @@ function render() {
   animateIn();
   renderNotify();
   syncChrome();
-  scrollToHash();
+  if (savedView) restoreView(savedView);
+  else scrollToHash();
+  paintSyncStatus();
 }
 
 const REVEAL =
@@ -1637,6 +1675,18 @@ function openTerm(node) {
 }
 
 document.addEventListener("click", (event) => {
+  const syncButton = event.target.closest("[data-sync]");
+  if (syncButton) {
+    event.preventDefault();
+    onSyncClick(syncButton.getAttribute("data-sync"));
+    return;
+  }
+  const editBody = event.target.closest("[data-edit-body]");
+  if (editBody) {
+    event.preventDefault();
+    openBodySheet();
+    return;
+  }
   const termNode = event.target.closest(".term");
   if (termNode) {
     event.preventDefault();
@@ -1690,7 +1740,10 @@ document.addEventListener("pointerover", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") closeTerm();
+  if (event.key === "Escape") {
+    closeSheets();
+    closeTerm();
+  }
   const termNode = event.target.closest && event.target.closest(".term");
   if (termNode && (event.key === "Enter" || event.key === " ")) {
     event.preventDefault();
@@ -2292,20 +2345,718 @@ function initServiceWorkerAutoUpdate() {
     .catch(() => {});
 }
 
+let sourceData = null;
+let keepView = false;
+const syncState = { text: "", kind: "", busy: false };
+const TOKEN_KEY = "kostya-github-token";
+const BODY_KEY = "kostya-manual-body";
+const GH_REPO = "workjobdub-del/kostya-baske";
+const GH_WORKFLOW = "update-stats.yml";
+const GH_BRANCH = "main";
+const RAW_ROOT = "https://raw.githubusercontent.com/workjobdub-del/kostya-baske/main/";
+
+function cloneData(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function validBody(height, weight) {
+  return Number.isInteger(height) && Number.isInteger(weight) && height >= 120 && height <= 220 && weight >= 25 && weight <= 120;
+}
+
+function bodyStamp(record) {
+  if (!record) return 0;
+  const time = Date.parse(record.updatedAt || "");
+  return Number.isFinite(time) ? time : 0;
+}
+
+function readToken() {
+  try {
+    return (localStorage.getItem(TOKEN_KEY) || "").trim();
+  } catch (error) {
+    return "";
+  }
+}
+
+function writeToken(value) {
+  localStorage.setItem(TOKEN_KEY, value);
+}
+
+function clearToken() {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+function readLocalBody() {
+  try {
+    const raw = localStorage.getItem(BODY_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    if (parsed.reset === true && typeof parsed.updatedAt === "string") return { reset: true, updatedAt: parsed.updatedAt };
+    const height = Number(parsed.height);
+    const weight = Number(parsed.weight);
+    if (!validBody(height, weight) || typeof parsed.updatedAt !== "string") return null;
+    return { height, weight, updatedAt: parsed.updatedAt };
+  } catch (error) {
+    return null;
+  }
+}
+
+function writeLocalBody(record) {
+  try {
+    localStorage.setItem(BODY_KEY, JSON.stringify(record));
+  } catch (error) {}
+}
+
+function clearLocalBody() {
+  try {
+    localStorage.removeItem(BODY_KEY);
+  } catch (error) {}
+}
+
+function normalizeServerBody(manual) {
+  if (!manual || typeof manual !== "object") return null;
+  if (manual.reset === true && typeof manual.updatedAt === "string") return { reset: true, updatedAt: manual.updatedAt };
+  const height = Number(manual.height);
+  const weight = Number(manual.weight);
+  if (!validBody(height, weight) || typeof manual.updatedAt !== "string") return null;
+  return { height, weight, updatedAt: manual.updatedAt };
+}
+
+function chooseBody(serverManual) {
+  const local = readLocalBody();
+  const server = normalizeServerBody(serverManual);
+  if (server && server.reset) {
+    if (local && !local.reset && bodyStamp(local) > bodyStamp(server)) return local;
+    writeLocalBody({ reset: true, updatedAt: server.updatedAt });
+    return null;
+  }
+  if (server) {
+    if (local && !local.reset && bodyStamp(local) > bodyStamp(server)) return local;
+    writeLocalBody({ height: server.height, weight: server.weight, updatedAt: server.updatedAt });
+    return { height: server.height, weight: server.weight, updatedAt: server.updatedAt };
+  }
+  if (local && !local.reset) return local;
+  return null;
+}
+
+function bodyParagraph(height, weight) {
+  const tallest = 140;
+  let lead;
+  if (height > tallest) lead = `Из трёх разыгрывающих он самый высокий: ${height} см при ${weight} кг.`;
+  else if (height === tallest) lead = `Из трёх разыгрывающих он делит самый высокий рост: ${height} см при ${weight} кг.`;
+  else lead = `Из трёх разыгрывающих он не самый высокий: ${height} см при ${weight} кг.`;
+  let compared;
+  if (height > 149) compared = "Это выше среднего роста команды (около 149 см).";
+  else if (height < 149) compared = "Это ниже среднего роста команды (около 149 см).";
+  else compared = "Это как раз средний рост команды (около 149 см).";
+  return `${lead} Двое других — 139 и 140 см. ${compared} Средний вес команды около 41 кг.`;
+}
+
+function paragraphOk(text, height, weight) {
+  const centimeters = Array.from(String(text || "").matchAll(/(\d+)\s*см/g)).map((item) => Number(item[1]));
+  const allowed = new Set([height, 139, 140, 149]);
+  if (!centimeters.includes(height) || centimeters.some((item) => !allowed.has(item))) return false;
+  if (height > 140) {
+    if (text.includes("не самый высокий") || !text.includes("самый высокий")) return false;
+  } else if (height < 140) {
+    if (!text.includes("не самый высокий")) return false;
+  } else if (!text.includes("делит") || text.includes("не самый высокий")) return false;
+  if (text.includes("выше среднего") && height <= 149) return false;
+  if (text.includes("ниже среднего") && height >= 149) return false;
+  const weights = Array.from(String(text).matchAll(/при\s+(\d+)\s*кг/g)).map((item) => Number(item[1]));
+  if (weights.some((item) => item !== weight)) return false;
+  return true;
+}
+
+function applyBodyOverlay(target) {
+  const chosen = chooseBody(target.manualBody);
+  if (!chosen) return;
+  const value = `${chosen.height} см, ${chosen.weight} кг`;
+  const profile = target.profile || (target.profile = { items: [], paragraphs: [] });
+  const items = profile.items || (profile.items = []);
+  let found = false;
+  items.forEach((item) => {
+    if (item.label !== "Рост и вес") return;
+    item.value = value;
+    found = true;
+  });
+  if (!found) items.push({ label: "Рост и вес", value });
+  const paragraph = bodyParagraph(chosen.height, chosen.weight);
+  const paragraphs = profile.paragraphs || (profile.paragraphs = []);
+  const index = paragraphs.findIndex((text) => /см/.test(text) && /разыгр/i.test(text));
+  if (index >= 0) {
+    if (!paragraphOk(paragraphs[index], chosen.height, chosen.weight)) paragraphs[index] = paragraph;
+  } else paragraphs.unshift(paragraph);
+}
+
+function adoptPack(pack) {
+  sourceData = pack.data;
+  data = cloneData(pack.data);
+  applyBodyOverlay(data);
+  if (pack.news) newsData = pack.news;
+  else if (pack.news === null) newsData = null;
+  const games = (data.gameLogs && data.gameLogs.tournaments) || [];
+  if (!games.some((item) => item.id === state.game)) state.game = data.gameLogs.defaultId;
+  const views = (data.trend && data.trend.views) || [];
+  if (!views.some((item) => item.id === state.trend)) state.trend = data.trend.defaultId;
+}
+
+function captureView() {
+  const box = document.getElementById("all-mama-games");
+  return {
+    y: window.scrollY,
+    mamaOpen: Boolean(box && !box.hidden),
+    openDetails: Array.from(document.querySelectorAll("details[open]"))
+      .map((node) => ((node.querySelector("summary") || {}).textContent || "").trim())
+      .filter(Boolean),
+  };
+}
+
+function restoreView(saved) {
+  if (!saved) return;
+  if (saved.mamaOpen) {
+    const box = document.getElementById("all-mama-games");
+    const button = document.getElementById("show-all-games");
+    if (box) box.hidden = false;
+    if (button) button.textContent = "Скрыть остальные игры";
+  }
+  if (saved.openDetails && saved.openDetails.length) {
+    document.querySelectorAll("details").forEach((node) => {
+      const title = ((node.querySelector("summary") || {}).textContent || "").trim();
+      if (saved.openDetails.includes(title)) node.open = true;
+    });
+  }
+  window.scrollTo(0, saved.y || 0);
+}
+
+function rerender() {
+  keepView = true;
+  render();
+}
+
+function humanError(error) {
+  const text = error && error.message ? String(error.message) : "";
+  if (!text || /failed to fetch|networkerror|load failed|нет сети/i.test(text)) {
+    return "Нет сети. Проверьте интернет и попробуйте ещё раз.";
+  }
+  if (/^HTTP\s+\d+/.test(text) || text.startsWith("unexpected")) {
+    return "Не удалось загрузить данные. Проверьте интернет и попробуйте ещё раз.";
+  }
+  return text;
+}
+
+function setSync(text, kind) {
+  syncState.text = text || "";
+  syncState.kind = kind || "";
+  paintSyncStatus();
+}
+
+function paintSyncStatus() {
+  const node = document.querySelector("[data-sync-status]");
+  if (node) {
+    node.textContent = syncState.text;
+    node.className = `sync-status${syncState.kind ? ` is-${syncState.kind}` : ""}`;
+  }
+  document.querySelectorAll("[data-sync='refresh']").forEach((button) => {
+    button.disabled = syncState.busy;
+    button.classList.toggle("is-busy", syncState.busy);
+    if (syncState.busy) button.setAttribute("aria-busy", "true");
+    else button.removeAttribute("aria-busy");
+  });
+}
+
+function wait(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function isGithubPages() {
+  return /(^|\.)github\.io$/i.test(location.hostname);
+}
+
+function contentStamp(payload, news) {
+  if (!payload) return "";
+  const logs = ((payload.gameLogs && payload.gameLogs.tournaments) || [])
+    .map((item) => {
+      const rows = item.rows || [];
+      return `${item.id}:${rows.length}:${rows.map((row) => `${row.date || ""}|${row.points}|${row.score || ""}`).join(";")}`;
+    })
+    .join("/");
+  const posts = (news && news.posts) || [];
+  const newsKey = posts
+    .map((post) => `${post.date || ""}|${post.link || ""}|${post.sort || 0}`)
+    .sort()
+    .join("/");
+  const height = ((payload.profile && payload.profile.items) || []).find((item) => item.label === "Рост и вес");
+  return [payload.updated || "", (payload.lastMatch && payload.lastMatch.caption) || "", logs, newsKey, JSON.stringify(payload.manualBody || null), (height && height.value) || ""].join("§");
+}
+
+async function fetchJsonNoStore(url) {
+  const bust = `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`;
+  const response = await fetch(bust, { cache: "no-store" });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const type = (response.headers.get("content-type") || "").toLowerCase();
+  if (type && !type.includes("json") && !type.includes("text/plain") && !type.includes("octet-stream")) {
+    throw new Error(`unexpected type ${type}`);
+  }
+  return JSON.parse(await response.text());
+}
+
+function newsRank(news) {
+  const posts = (news && news.posts) || [];
+  const newest = posts.reduce((best, post) => (String(post.date || "") > best ? String(post.date) : best), "");
+  return `${String(posts.length).padStart(6, "0")}|${newest}`;
+}
+
+function bodyTime(payload) {
+  const manual = payload && payload.manualBody;
+  if (!manual) return 0;
+  return bodyStamp(manual);
+}
+
+function pickNewerData(local, remote) {
+  if (!remote) return local;
+  if (!local) return remote;
+  const localUpdated = String(local.updated || "");
+  const remoteUpdated = String(remote.updated || "");
+  if (remoteUpdated > localUpdated) return remote;
+  if (localUpdated > remoteUpdated) return local;
+  if (bodyTime(remote) > bodyTime(local)) return remote;
+  if (bodyTime(local) > bodyTime(remote)) return local;
+  return local;
+}
+
+async function loadFreshFiles() {
+  let localData;
+  try {
+    localData = await fetchJsonNoStore(dataUrl("data.json"));
+  } catch (error) {
+    if (location.protocol !== "file:") throw error;
+    localData = await fetchJsonNoStore(new URL("data.json", LIVE_DATA_BASE).href);
+  }
+  let localNews = null;
+  try {
+    localNews = await fetchJsonNoStore(dataUrl("news.json"));
+  } catch (error) {
+    if (location.protocol === "file:") {
+      try {
+        localNews = await fetchJsonNoStore(new URL("news.json", LIVE_DATA_BASE).href);
+      } catch (fileError) {
+        localNews = newsData;
+      }
+    } else localNews = newsData;
+  }
+  if (!isGithubPages()) return { data: localData, news: localNews };
+  let remoteData = null;
+  let remoteNews = null;
+  try {
+    remoteData = await fetchJsonNoStore(`${RAW_ROOT}data.json`);
+  } catch (error) {
+    remoteData = null;
+  }
+  try {
+    remoteNews = await fetchJsonNoStore(`${RAW_ROOT}news.json`);
+  } catch (error) {
+    remoteNews = null;
+  }
+  const picked = pickNewerData(localData, remoteData);
+  let pickedNews = localNews;
+  if (picked === remoteData && remoteNews) pickedNews = remoteNews;
+  else if (remoteNews && newsRank(remoteNews) > newsRank(localNews)) pickedNews = remoteNews;
+  return { data: picked, news: pickedNews };
+}
+
+async function refreshServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  const regs = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(regs.map((reg) => (reg.update ? reg.update().catch(() => {}) : Promise.resolve())));
+}
+
+function ghMessage(status, payload) {
+  const msg = String((payload && payload.message) || "");
+  if (status === 401) return "Токен GitHub не принят. Откройте настройки синхронизации и вставьте новый.";
+  if (status === 403 && /rate limit/i.test(msg)) return "Лимит запросов GitHub исчерпан. Попробуйте через несколько минут.";
+  if (status === 403) return "У токена нет нужных прав. Для репозитория kostya-baske нужно Actions: Read and write.";
+  if (status === 404) return "Репозиторий или сценарий обновления не найдены. Токен должен видеть workjobdub-del/kostya-baske.";
+  if (status === 422) return "GitHub не принял запуск. На этом устройстве цифры уже сохранены.";
+  return "Не удалось связаться с GitHub. Проверьте токен и интернет.";
+}
+
+async function gh(token, path, options) {
+  let response;
+  try {
+    response = await fetch(`https://api.github.com${path}`, {
+      method: (options && options.method) || "GET",
+      body: options && options.body,
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${token}`,
+        "X-GitHub-Api-Version": "2022-11-28",
+        ...(options && options.body ? { "Content-Type": "application/json" } : {}),
+      },
+    });
+  } catch (error) {
+    throw new Error("Нет сети. Проверьте интернет и попробуйте ещё раз.");
+  }
+  if (response.status === 204) return null;
+  const text = await response.text();
+  let payload = null;
+  if (text) {
+    try {
+      payload = JSON.parse(text);
+    } catch (error) {
+      payload = { message: text };
+    }
+  }
+  if (!response.ok) throw new Error(ghMessage(response.status, payload));
+  return payload;
+}
+
+async function dispatchWorkflow(token, inputs) {
+  const listed = await gh(token, `/repos/${GH_REPO}/actions/workflows/${GH_WORKFLOW}/runs?per_page=1`);
+  const beforeId = listed && listed.workflow_runs && listed.workflow_runs[0] ? listed.workflow_runs[0].id : 0;
+  const started = Date.now();
+  await gh(token, `/repos/${GH_REPO}/actions/workflows/${GH_WORKFLOW}/dispatches`, {
+    method: "POST",
+    body: JSON.stringify({ ref: GH_BRANCH, inputs }),
+  });
+  setSync("Запущен сбор протоколов…", "loading");
+  let run = null;
+  for (let attempt = 0; attempt < 15 && !run; attempt += 1) {
+    await wait(2000);
+    const page = await gh(token, `/repos/${GH_REPO}/actions/workflows/${GH_WORKFLOW}/runs?per_page=5`);
+    const runs = (page && page.workflow_runs) || [];
+    run = runs.find((item) => item.id > beforeId && Date.parse(item.created_at) >= started - 20000);
+  }
+  if (!run) throw new Error("Сбор запущен, но строка запуска в GitHub не появилась. Загляните в Actions через минуту.");
+  const deadline = Date.now() + 12 * 60 * 1000;
+  while (Date.now() < deadline) {
+    const current = await gh(token, `/repos/${GH_REPO}/actions/runs/${run.id}`);
+    if (current.status === "completed") {
+      if (current.conclusion === "success") return current;
+      if (current.conclusion === "cancelled") throw new Error("Сбор протоколов отменён.");
+      throw new Error("Сбор протоколов завершился с ошибкой. Подробности — во вкладке Actions на GitHub.");
+    }
+    setSync(current.status === "queued" ? "Сбор протоколов в очереди…" : "Запущен сбор протоколов…", "loading");
+    await wait(8000);
+  }
+  throw new Error("Сбор протоколов ещё идёт. Обновите страницу чуть позже — цифры подтянутся сами.");
+}
+
+async function pullFresh(previousStamp, waitForChange) {
+  const attempts = waitForChange ? 8 : 1;
+  let pack = null;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    pack = await loadFreshFiles();
+    if (!waitForChange || contentStamp(pack.data, pack.news) !== previousStamp) return pack;
+    if (attempt + 1 < attempts) await wait(4000);
+  }
+  return pack;
+}
+
+function finishRefresh(before, pack) {
+  adoptPack(pack);
+  rerender();
+  if (contentStamp(pack.data, pack.news) !== before) setSync("Данные обновлены", "ok");
+  else setSync("Проверено только что — новых протоколов пока нет", "ok");
+}
+
+async function refreshStats() {
+  if (syncState.busy) return;
+  syncState.busy = true;
+  const before = contentStamp(sourceData || data, newsData);
+  setSync("Проверяю свежие данные…", "loading");
+  try {
+    const token = readToken();
+    if (token) {
+      setSync("Запущен сбор протоколов…", "loading");
+      await dispatchWorkflow(token, {
+        test_push: "false",
+        regen_ai: "false",
+        height_cm: "",
+        weight_kg: "",
+        clear_manual_body: "false",
+      });
+      setSync("Загружаю обновлённые данные…", "loading");
+      const pack = await pullFresh(before, true);
+      await refreshServiceWorker();
+      finishRefresh(before, pack);
+    } else {
+      const pack = await pullFresh(before, false);
+      await refreshServiceWorker();
+      finishRefresh(before, pack);
+    }
+  } catch (error) {
+    setSync(humanError(error), "error");
+  } finally {
+    syncState.busy = false;
+    paintSyncStatus();
+  }
+}
+
+function ensureSheets() {
+  if (document.getElementById("body-sheet")) return;
+  const body = document.createElement("div");
+  body.id = "body-sheet";
+  body.className = "sheet";
+  body.hidden = true;
+  body.setAttribute("data-noswipe", "");
+  body.innerHTML = `<div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="body-sheet-title">
+      <h2 id="body-sheet-title">Рост и вес</h2>
+      <p class="caption">Цифры сразу сохраняются в этом браузере. Если в настройках есть токен GitHub, они запишутся и на сайт.</p>
+      <form id="body-form">
+        <label>Рост, см<input name="height" inputmode="numeric" autocomplete="off" required></label>
+        <label>Вес, кг<input name="weight" inputmode="numeric" autocomplete="off" required></label>
+        <p class="sheet-error" data-body-error hidden></p>
+        <div class="sheet-actions">
+          <button type="submit" class="is-on">Сохранить</button>
+          <button type="button" class="is-off" data-body-reset>Сбросить локальную правку</button>
+          <button type="button" class="is-off" data-body-clear hidden>Убрать ручные значения с сайта</button>
+          <button type="button" class="is-off" data-sheet-close>Закрыть</button>
+        </div>
+      </form>
+    </div>`;
+  const sync = document.createElement("div");
+  sync.id = "sync-sheet";
+  sync.className = "sheet";
+  sync.hidden = true;
+  sync.setAttribute("data-noswipe", "");
+  sync.innerHTML = `<div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="sync-sheet-title">
+      <h2 id="sync-sheet-title">Синхронизация с GitHub</h2>
+      <p class="caption">Нужно только владельцу. Обычным посетителям токен не требуется: кнопка «Обновить статистику» и так проверяет свежие файлы.</p>
+      <ol class="sheet-steps">
+        <li>GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token.</li>
+        <li>Доступ только к репозиторию <strong>workjobdub-del/kostya-baske</strong>. Права: Actions → Read and write.</li>
+        <li>Вставьте токен ниже. Он останется только в этом браузере и в файлы сайта не попадёт.</li>
+      </ol>
+      <form id="sync-form">
+        <label>Токен<input name="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></label>
+        <p class="sheet-note" data-token-note></p>
+        <p class="sheet-error" data-token-error hidden></p>
+        <div class="sheet-actions">
+          <button type="submit" class="is-on">Сохранить на этом устройстве</button>
+          <button type="button" class="is-off" data-token-clear>Удалить токен</button>
+          <button type="button" class="is-off" data-sheet-close>Закрыть</button>
+        </div>
+      </form>
+    </div>`;
+  document.body.appendChild(body);
+  document.body.appendChild(sync);
+  body.addEventListener("click", (event) => {
+    if (event.target === body) closeSheets();
+  });
+  sync.addEventListener("click", (event) => {
+    if (event.target === sync) closeSheets();
+  });
+  document.getElementById("body-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    void submitBody(event.target);
+  });
+  document.getElementById("sync-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    saveTokenFromForm(event.target);
+  });
+  body.querySelector("[data-body-reset]").addEventListener("click", () => {
+    resetLocalEdit();
+    closeSheets();
+    setSync("Локальная правка сброшена. Показаны цифры из данных сайта.", "ok");
+  });
+  body.querySelector("[data-body-clear]").addEventListener("click", () => {
+    closeSheets();
+    void clearManualOnSite();
+  });
+  sync.querySelector("[data-token-clear]").addEventListener("click", () => {
+    clearToken();
+    paintTokenNote();
+    const error = sync.querySelector("[data-token-error]");
+    error.hidden = true;
+    error.textContent = "";
+  });
+  document.querySelectorAll("[data-sheet-close]").forEach((button) => {
+    button.addEventListener("click", () => closeSheets());
+  });
+}
+
+function closeSheets() {
+  document.querySelectorAll(".sheet").forEach((node) => {
+    node.hidden = true;
+  });
+}
+
+function openBodySheet() {
+  ensureSheets();
+  const sheet = document.getElementById("body-sheet");
+  const form = document.getElementById("body-form");
+  const parsed = parseBody(profileValue("Рост и вес"));
+  form.elements.height.value = parsed.height || "";
+  form.elements.weight.value = parsed.weight || "";
+  const error = sheet.querySelector("[data-body-error]");
+  error.hidden = true;
+  error.textContent = "";
+  sheet.querySelector("[data-body-clear]").hidden = !readToken();
+  sheet.hidden = false;
+  form.elements.height.focus();
+}
+
+function openSyncSheet() {
+  ensureSheets();
+  const sheet = document.getElementById("sync-sheet");
+  const form = document.getElementById("sync-form");
+  form.elements.token.value = "";
+  const error = sheet.querySelector("[data-token-error]");
+  error.hidden = true;
+  error.textContent = "";
+  paintTokenNote();
+  sheet.hidden = false;
+  form.elements.token.focus();
+}
+
+function paintTokenNote() {
+  const note = document.querySelector("[data-token-note]");
+  if (!note) return;
+  note.textContent = readToken()
+    ? "Токен сохранён на этом устройстве. «Обновить статистику» запускает сбор протоколов."
+    : "Токена нет. Кнопка только проверяет уже опубликованные данные.";
+}
+
+function saveTokenFromForm(form) {
+  const error = document.querySelector("[data-token-error]");
+  const token = String(form.elements.token.value || "").trim();
+  if (!token) {
+    error.hidden = false;
+    error.textContent = "Вставьте токен или закройте окно.";
+    return;
+  }
+  if (token.length < 20 || /\s/.test(token)) {
+    error.hidden = false;
+    error.textContent = "Похоже, это не токен. Скопируйте его целиком, без пробелов.";
+    return;
+  }
+  writeToken(token);
+  form.elements.token.value = "";
+  paintTokenNote();
+  error.hidden = true;
+  closeSheets();
+  setSync("Токен сохранён на этом устройстве.", "ok");
+}
+
+function inputInt(value) {
+  const text = String(value || "").trim();
+  if (!/^\d+$/.test(text)) return null;
+  return Number(text);
+}
+
+function resetLocalEdit() {
+  const server = normalizeServerBody(sourceData && sourceData.manualBody);
+  if (server && !server.reset) writeLocalBody({ height: server.height, weight: server.weight, updatedAt: server.updatedAt });
+  else clearLocalBody();
+  if (sourceData) adoptPack({ data: sourceData, news: newsData });
+  rerender();
+}
+
+async function submitBody(form) {
+  const error = form.querySelector("[data-body-error]");
+  const height = inputInt(form.elements.height.value);
+  const weight = inputInt(form.elements.weight.value);
+  if (!Number.isInteger(height) || height < 120 || height > 220) {
+    error.hidden = false;
+    error.textContent = "Рост — целое число от 120 до 220 см.";
+    return;
+  }
+  if (!Number.isInteger(weight) || weight < 25 || weight > 120) {
+    error.hidden = false;
+    error.textContent = "Вес — целое число от 25 до 120 кг.";
+    return;
+  }
+  error.hidden = true;
+  writeLocalBody({ height, weight, updatedAt: new Date().toISOString() });
+  if (sourceData) adoptPack({ data: sourceData, news: newsData });
+  closeSheets();
+  rerender();
+  const token = readToken();
+  if (!token) {
+    setSync("Рост и вес сохранены на этом устройстве. На других телефонах они появятся после записи в данные сайта.", "ok");
+    return;
+  }
+  if (syncState.busy) return;
+  syncState.busy = true;
+  setSync("Рост и вес сохранены на этом устройстве. Запущен сбор протоколов…", "loading");
+  try {
+    await dispatchWorkflow(token, {
+      test_push: "false",
+      regen_ai: "false",
+      height_cm: String(height),
+      weight_kg: String(weight),
+      clear_manual_body: "false",
+    });
+    setSync("Загружаю обновлённые данные…", "loading");
+    const before = contentStamp(sourceData, newsData);
+    const pack = await pullFresh(before, true);
+    await refreshServiceWorker();
+    adoptPack(pack);
+    rerender();
+    const manual = pack.data && pack.data.manualBody;
+    if (manual && Number(manual.height) === height && Number(manual.weight) === weight) setSync("Рост и вес записаны на сайт.", "ok");
+    else setSync("На этом устройстве рост и вес уже новые. На сайте они появятся, когда сбор закончит запись.", "ok");
+  } catch (errorEvent) {
+    setSync(humanError(errorEvent), "error");
+  } finally {
+    syncState.busy = false;
+    paintSyncStatus();
+  }
+}
+
+async function clearManualOnSite() {
+  const token = readToken();
+  if (!token || syncState.busy) return;
+  syncState.busy = true;
+  clearLocalBody();
+  setSync("Убираю ручные рост и вес…", "loading");
+  try {
+    await dispatchWorkflow(token, {
+      test_push: "false",
+      regen_ai: "false",
+      height_cm: "",
+      weight_kg: "",
+      clear_manual_body: "true",
+    });
+    setSync("Загружаю обновлённые данные…", "loading");
+    const before = contentStamp(sourceData, newsData);
+    const pack = await pullFresh(before, true);
+    await refreshServiceWorker();
+    adoptPack(pack);
+    rerender();
+    setSync("Ручные рост и вес убраны. Дальше сайт берёт их из протокола.", "ok");
+  } catch (error) {
+    setSync(humanError(error), "error");
+  } finally {
+    syncState.busy = false;
+    paintSyncStatus();
+  }
+}
+
+function onSyncClick(action) {
+  if (action === "settings") {
+    openSyncSheet();
+    return;
+  }
+  if (syncState.busy) return;
+  if (action === "refresh") void refreshStats();
+}
+
 async function init() {
   const status = document.getElementById("load-state");
   if (status && !status.hidden && !status.classList.contains("error")) {
     status.textContent = "Загрузка…";
   }
   try {
-    data = await loadJson("data.json");
-    state.game = data.gameLogs.defaultId;
-    state.trend = data.trend.defaultId;
+    const loaded = await loadJson("data.json");
+    let loadedNews = null;
     try {
-      newsData = await loadJson("news.json");
+      loadedNews = await loadJson("news.json");
     } catch (newsError) {
-      newsData = null;
+      loadedNews = null;
     }
+    adoptPack({ data: loaded, news: loadedNews });
     render();
     clearLoadState(status);
   } catch (error) {

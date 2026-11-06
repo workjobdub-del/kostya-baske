@@ -5,6 +5,9 @@
 не записывается: ни числом, ни ссылкой. Отчество и точная дата рождения тоже.
 Если источник молчит или ответ неожиданной формы, соответствующий блок
 остаётся как был.
+
+Ручные рост и вес лежат в data.json → manualBody. Пока там заданы height и
+weight, строка профиля не затирается ответом PlayerPage.
 """
 
 from __future__ import annotations
@@ -1504,24 +1507,196 @@ def apply_protocols(data, stats, notes):
     return {stat["date"] for stat in stats}
 
 
-def refresh_body(data, notes):
+HEIGHT_MIN = 120
+HEIGHT_MAX = 220
+WEIGHT_MIN = 25
+WEIGHT_MAX = 120
+OTHER_GUARD_CM = (139, 140)
+TEAM_HEIGHT_CM = 149
+TEAM_WEIGHT_KG = 41
+
+
+def as_body_int(value):
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and re.fullmatch(r"\d+", value.strip()):
+        return int(value.strip())
+    return None
+
+
+def valid_body(height, weight) -> bool:
+    return (
+        isinstance(height, int)
+        and isinstance(weight, int)
+        and HEIGHT_MIN <= height <= HEIGHT_MAX
+        and WEIGHT_MIN <= weight <= WEIGHT_MAX
+    )
+
+
+def body_value(height: int, weight: int) -> str:
+    return f"{height} см, {weight} кг"
+
+
+def body_paragraph(height: int, weight: int) -> str:
+    tallest = max(OTHER_GUARD_CM)
+    if height > tallest:
+        lead = f"Из трёх разыгрывающих он самый высокий: {height} см при {weight} кг."
+    elif height == tallest:
+        lead = f"Из трёх разыгрывающих он делит самый высокий рост: {height} см при {weight} кг."
+    else:
+        lead = f"Из трёх разыгрывающих он не самый высокий: {height} см при {weight} кг."
+    if height > TEAM_HEIGHT_CM:
+        compared = f"Это выше среднего роста команды (около {TEAM_HEIGHT_CM} см)."
+    elif height < TEAM_HEIGHT_CM:
+        compared = f"Это ниже среднего роста команды (около {TEAM_HEIGHT_CM} см)."
+    else:
+        compared = f"Это как раз средний рост команды (около {TEAM_HEIGHT_CM} см)."
+    return (
+        f"{lead} Двое других — {OTHER_GUARD_CM[0]} и {OTHER_GUARD_CM[1]} см. "
+        f"{compared} Средний вес команды около {TEAM_WEIGHT_KG} кг."
+    )
+
+
+def profile_body_text_ok(text: str, height: int, weight: int) -> bool:
+    if not isinstance(text, str):
+        return False
+    centimeters = [int(item) for item in re.findall(r"(\d+)\s*см", text)]
+    allowed = {height, OTHER_GUARD_CM[0], OTHER_GUARD_CM[1], TEAM_HEIGHT_CM}
+    if height not in centimeters or any(item not in allowed for item in centimeters):
+        return False
+    tallest = max(OTHER_GUARD_CM)
+    if height > tallest:
+        if "не самый высокий" in text or "самый высокий" not in text:
+            return False
+    elif height < tallest:
+        if "не самый высокий" not in text:
+            return False
+    elif "делит" not in text or "не самый высокий" in text:
+        return False
+    if "выше среднего" in text and height <= TEAM_HEIGHT_CM:
+        return False
+    if "ниже среднего" in text and height >= TEAM_HEIGHT_CM:
+        return False
+    for item in re.findall(r"при\s+(\d+)\s*кг", text):
+        if int(item) != weight:
+            return False
+    return True
+
+
+def sync_profile_body(data, height: int, weight: int, notes: list, changed_note: str) -> None:
+    value = body_value(height, weight)
+    paragraph = body_paragraph(height, weight)
+    changed = False
+    profile = data.setdefault("profile", {})
+    items = profile.setdefault("items", [])
+    found = False
+    for item in items:
+        if item.get("label") != "Рост и вес":
+            continue
+        found = True
+        if item.get("value") != value:
+            item["value"] = value
+            changed = True
+    if not found:
+        items.append({"label": "Рост и вес", "value": value})
+        changed = True
+    paragraphs = profile.setdefault("paragraphs", [])
+    index = next(
+        (
+            i
+            for i, text in enumerate(paragraphs)
+            if isinstance(text, str) and "см" in text and "разыгр" in text.lower()
+        ),
+        None,
+    )
+    if index is None:
+        paragraphs.insert(0, paragraph)
+        changed = True
+    elif not profile_body_text_ok(paragraphs[index], height, weight):
+        paragraphs[index] = paragraph
+        changed = True
+    notes.append(changed_note if changed else "рост: без изменений")
+
+
+def refresh_body_from_api(data, notes):
     try:
         page = api(f"/Widget/PlayerPage/{PERSON_ID}?format=json")
     except Exception:
         notes.append("рост: источник не ответил, строка профиля прежняя")
         return
-    height = page.get("PersonHeight") if isinstance(page, dict) else None
-    weight = page.get("PersonWeight") if isinstance(page, dict) else None
-    if not (isinstance(height, int) and isinstance(weight, int) and 120 <= height <= 220 and 25 <= weight <= 120):
+    height = as_body_int(page.get("PersonHeight")) if isinstance(page, dict) else None
+    weight = as_body_int(page.get("PersonWeight")) if isinstance(page, dict) else None
+    if not valid_body(height, weight):
         notes.append("рост: в ответе нет понятных роста и веса, строка прежняя")
         return
-    value = f"{height} см, {weight} кг"
-    for item in data["profile"]["items"]:
-        if item.get("label") == "Рост и вес" and item.get("value") != value:
-            item["value"] = value
-            notes.append("рост: строка профиля обновлена")
+    sync_profile_body(data, height, weight, notes, "рост: строка профиля обновлена")
+
+
+def refresh_body(data, notes):
+    manual = data.get("manualBody") if isinstance(data.get("manualBody"), dict) else None
+    if manual and manual.get("reset") is True:
+        refresh_body_from_api(data, notes)
+        return
+    if manual:
+        height = as_body_int(manual.get("height"))
+        weight = as_body_int(manual.get("weight"))
+        if valid_body(height, weight):
+            sync_profile_body(data, height, weight, notes, "рост: ручные значения на месте")
             return
-    notes.append("рост: без изменений")
+        notes.append("рост: manualBody задан, но значения вне диапазона, строка прежняя")
+        return
+    refresh_body_from_api(data, notes)
+
+
+def utc_stamp() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def option_value(flag: str, env: str) -> str:
+    if flag in sys.argv:
+        index = sys.argv.index(flag)
+        if index + 1 < len(sys.argv) and not str(sys.argv[index + 1]).startswith("--"):
+            return str(sys.argv[index + 1]).strip()
+    return os.environ.get(env, "").strip()
+
+
+def clear_manual_requested() -> bool:
+    if "--clear-manual-body" in sys.argv:
+        return True
+    return os.environ.get("CLEAR_MANUAL_BODY", "").strip().lower() in {"1", "true", "yes"}
+
+
+def apply_manual_body_inputs(data, notes, height_raw=None, weight_raw=None, clear=None) -> None:
+    if clear is None:
+        clear = clear_manual_requested()
+    if clear:
+        data["manualBody"] = {"reset": True, "updatedAt": utc_stamp()}
+        notes.append("рост: ручные значения сброшены, дальше снова из протокола")
+        return
+    if height_raw is None and weight_raw is None:
+        height_raw = option_value("--height-cm", "HEIGHT_CM")
+        weight_raw = option_value("--weight-kg", "WEIGHT_KG")
+    height_raw = "" if height_raw is None else str(height_raw).strip()
+    weight_raw = "" if weight_raw is None else str(weight_raw).strip()
+    if height_raw == "" and weight_raw == "":
+        return
+    height = as_body_int(height_raw)
+    weight = as_body_int(weight_raw)
+    if not valid_body(height, weight):
+        notes.append("рост: нужны оба значения, рост 120–220 см и вес 25–120 кг")
+        return
+    current = data.get("manualBody") if isinstance(data.get("manualBody"), dict) else {}
+    if (
+        current.get("height") == height
+        and current.get("weight") == weight
+        and current.get("reset") is not True
+    ):
+        notes.append("рост: ручные значения те же")
+        return
+    data["manualBody"] = {"height": height, "weight": weight, "updatedAt": utc_stamp()}
+    notes.append("рост: записаны ручные значения")
 
 
 def update_basket(data, notes):
@@ -2191,6 +2366,132 @@ def self_test():
     short_good, _short_work, _short_close = build_mama_notes(sample)
     assert all("фолит" not in line for line in short_good)
     assert len(short_good) == 3
+    test_manual_body()
+
+
+def test_manual_body():
+    global api
+    saved_api = api
+    saved_env = {key: os.environ.get(key) for key in ("HEIGHT_CM", "WEIGHT_KG", "CLEAR_MANUAL_BODY")}
+    calls = []
+    base_paragraph = (
+        "Из трёх разыгрывающих он самый высокий: 150 см. "
+        "Двое других — 139 и 140 см. Средний рост команды около 149 см, средний вес около 41 кг."
+    )
+
+    def profile(value="150 см, 42 кг", paragraph=base_paragraph):
+        return {
+            "profile": {
+                "items": [{"label": "Рост и вес", "value": value}],
+                "paragraphs": [paragraph],
+            }
+        }
+
+    try:
+        api = lambda path: calls.append(path) or {"PersonHeight": 150, "PersonWeight": 42}
+        data = profile()
+        data["manualBody"] = {"height": 158, "weight": 45, "updatedAt": "2026-11-06T15:58:00Z"}
+        notes = []
+        refresh_body(data, notes)
+        assert calls == []
+        assert data["profile"]["items"][0]["value"] == "158 см, 45 кг"
+        text = data["profile"]["paragraphs"][0]
+        assert text == body_paragraph(158, 45)
+        assert "158 см" in text and "при 45 кг" in text
+        assert "150" not in text
+        assert "не самый высокий" not in text and "самый высокий" in text
+        assert "выше среднего" in text and "139 и 140" in text
+        saved_text = text
+        refresh_body(data, notes)
+        assert data["profile"]["paragraphs"][0] == saved_text
+        assert calls == []
+        assert notes[-1] == "рост: без изменений"
+
+        short = profile()
+        short["manualBody"] = {"height": 138, "weight": 40, "updatedAt": "2026-11-06T15:58:00Z"}
+        refresh_body(short, [])
+        short_text = short["profile"]["paragraphs"][0]
+        assert "не самый высокий" in short_text and "138 см" in short_text and "ниже среднего" in short_text
+        assert "150" not in short_text
+
+        tied = profile()
+        tied["manualBody"] = {"height": 140, "weight": 40, "updatedAt": "2026-11-06T15:58:00Z"}
+        refresh_body(tied, [])
+        assert "делит самый высокий рост" in tied["profile"]["paragraphs"][0]
+
+        bad = profile()
+        bad["manualBody"] = {"height": 300, "weight": 10}
+        bad_notes = []
+        refresh_body(bad, bad_notes)
+        assert bad["profile"]["items"][0]["value"] == "150 см, 42 кг"
+        assert any("вне диапазона" in line for line in bad_notes)
+        assert calls == []
+
+        calls.clear()
+        plain = profile()
+        api = lambda path: calls.append(path) or {"PersonHeight": 151, "PersonWeight": 44}
+        plain_notes = []
+        refresh_body(plain, plain_notes)
+        assert calls
+        assert plain["profile"]["items"][0]["value"] == "151 см, 44 кг"
+        assert "151 см" in plain["profile"]["paragraphs"][0]
+        assert any("обновлена" in line for line in plain_notes)
+
+        weird = profile()
+        api = lambda path: {"PersonHeight": 90, "PersonWeight": 10}
+        weird_notes = []
+        refresh_body(weird, weird_notes)
+        assert weird["profile"]["items"][0]["value"] == "150 см, 42 кг"
+        assert any("нет понятных" in line for line in weird_notes)
+
+        offline = profile()
+        api = lambda path: (_ for _ in ()).throw(OSError("offline"))
+        offline_notes = []
+        refresh_body(offline, offline_notes)
+        assert offline["profile"]["items"][0]["value"] == "150 см, 42 кг"
+        assert any("не ответил" in line for line in offline_notes)
+
+        calls.clear()
+        reset = profile()
+        reset["manualBody"] = {"reset": True, "updatedAt": "2026-11-06T16:00:00Z"}
+        api = lambda path: calls.append(path) or {"PersonHeight": 152, "PersonWeight": 46}
+        refresh_body(reset, [])
+        assert calls
+        assert reset["manualBody"]["reset"] is True
+        assert "height" not in reset["manualBody"]
+        assert reset["profile"]["items"][0]["value"] == "152 см, 46 кг"
+
+        entered = profile()
+        entered_notes = []
+        apply_manual_body_inputs(entered, entered_notes, height_raw="158", weight_raw="45", clear=False)
+        assert entered["manualBody"]["height"] == 158 and entered["manualBody"]["weight"] == 45
+        stamp = entered["manualBody"]["updatedAt"]
+        apply_manual_body_inputs(entered, entered_notes, height_raw="158", weight_raw="45", clear=False)
+        assert entered["manualBody"]["updatedAt"] == stamp
+        apply_manual_body_inputs(entered, entered_notes, height_raw="10", weight_raw="10", clear=False)
+        assert entered["manualBody"]["height"] == 158
+        assert any("120–220" in line for line in entered_notes)
+        apply_manual_body_inputs(entered, entered_notes, clear=True)
+        assert entered["manualBody"].get("reset") is True and "height" not in entered["manualBody"]
+
+        os.environ["HEIGHT_CM"] = "161"
+        os.environ["WEIGHT_KG"] = "47"
+        os.environ.pop("CLEAR_MANUAL_BODY", None)
+        env_data = profile()
+        apply_manual_body_inputs(env_data, [])
+        assert env_data["manualBody"]["height"] == 161 and env_data["manualBody"]["weight"] == 47
+
+        canonical = body_paragraph(158, 45)
+        assert profile_body_text_ok(canonical, 158, 45)
+        assert not profile_body_text_ok(base_paragraph, 158, 45)
+        assert "150" not in canonical
+    finally:
+        api = saved_api
+        for key, value in saved_env.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
 
 
 def game_key(row) -> str:
@@ -2403,6 +2704,7 @@ def main():
     before_news = [post.get("link") for post in news.get("posts") or [] if post.get("tag") == "2014"]
     u12_before = copy.deepcopy(next(item["rows"] for item in data["gameLogs"]["tournaments"] if item["id"] == "u12"))
     notes = []
+    apply_manual_body_inputs(data, notes)
     u14_games = load_u14_games(notes)
     mos_stats = update_basket(data, notes)
     u14_stats = fetch_u14_stats(u14_games, notes) if u14_games else []
