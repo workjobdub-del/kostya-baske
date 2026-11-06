@@ -3,15 +3,15 @@
 const SERIES_COLORS = ["#b7beca", "#e8b84a"];
 const FONT = "Oswald, sans-serif";
 
-const state = { game: null, trend: null, news: "all", section: "", lastY: 0, chartPoints: [] };
+const state = { game: null, trend: null, news: "2014", newsShown: 5, newsReady: false, section: "", lastY: 0, chartPoints: [] };
 let data = null;
 let newsData = null;
 
 const TAB_PAGES = [
   { id: "profile", href: "index.html" },
+  { id: "mama", href: "mama.html" },
   { id: "career", href: "career.html" },
   { id: "team", href: "team.html" },
-  { id: "mama", href: "mama.html" },
 ];
 const TAB_SWIPE_MIN_DX = 60;
 const TAB_SWIPE_MAX_MS = 800;
@@ -636,15 +636,8 @@ function mamaFacts(row) {
 function renderNav() {
   const nav = document.getElementById("nav");
   if (!nav) return;
-  if (document.body.dataset.page !== "profile") {
-    nav.hidden = true;
-    return;
-  }
-  nav.hidden = false;
-  nav.innerHTML = data.nav
-    .filter((item) => item.id !== "season")
-    .map((item) => `<a href="#${esc(item.id)}">${esc(item.short || item.label)}</a>`)
-    .join("");
+  nav.hidden = true;
+  nav.innerHTML = "";
 }
 
 function currentSeason() {
@@ -677,8 +670,8 @@ function updatedLine() {
   return `<div class="sync-bar">
       <p class="updated">${when}</p>
       <div class="sync-actions">
-        <button type="button" class="sync-refresh" data-sync="refresh">Обновить статистику</button>
-        <button type="button" class="sync-settings" data-sync="settings" aria-label="Настройки синхронизации">${ICON_GEAR}</button>
+        <button type="button" class="sync-refresh" data-sync="refresh">${ICON_REFRESH}<span>Обновить</span></button>
+        <button type="button" class="sync-settings" data-sync="settings" aria-label="Настройки">${ICON_GEAR}</button>
       </div>
       <p class="sync-status" data-sync-status role="status"></p>
     </div>`;
@@ -707,12 +700,13 @@ function heroStats() {
     ${updatedLine()}`;
 }
 
-const ASSET_V = "2026-11-06-02";
+const ASSET_V = "2026-11-06-03";
 const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
+const ICON_REFRESH = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>`;
 const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
 
 function siteLogoMark() {
-  return `<div class="player-logo"><img src="logo.png?v=${ASSET_V}" width="995" height="978" alt="DERBYSHEV 7"></div>`;
+  return `<div class="player-logo"><img src="logo.png?v=${ASSET_V}" width="995" height="978" alt="Костя Д. №7"></div>`;
 }
 
 function kpiFormatMetric(metric) {
@@ -815,20 +809,53 @@ function renderKpiBlock() {
 
 function renderHero() {
   const player = data.player;
-  const year = profileValue("Год рождения");
-  return `<section class="player-card" id="top"${numberAttr()}>
-    <p class="kicker">Карточка игрока${year ? ` · ${esc(year)}` : ""}</p>
+  const body = heightLabel();
+  return `<section class="player-card player-card--compact" id="top">
     <div class="player-card-main">
       ${siteLogoMark()}
       <div class="player-card-copy">
         <h1>${esc(player.name)}</h1>
-        <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
-        <p class="summary">${esc(player.summary)}</p>
-        ${heroStats()}
+        <p class="hero-meta"><span class="num">№${esc(player.number)}</span><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
+        ${body ? `<p class="hero-sub"><button type="button" class="body-chip" data-edit-body aria-label="Изменить рост и вес">${esc(body)}</button></p>` : ""}
       </div>
     </div>
-  </section>
-  ${ticker()}`;
+    ${updatedLine()}
+  </section>`;
+}
+
+function pageHead(title, lede) {
+  return `<header class="page-head" id="top">
+    <h1>${esc(title)}</h1>
+    ${lede ? `<p class="lede">${lede}</p>` : ""}
+  </header>`;
+}
+
+function isSeason2627(season) {
+  if (!season) return false;
+  if (season.id === "mos2627" || season.id === "u14circ2627") return true;
+  return String(season.name || "").startsWith("2026/27");
+}
+
+function isCurrentTournament(tournament) {
+  if (!tournament) return false;
+  const id = tournament.id || "";
+  if (id === "mos2627" || id === "u14circ2627") return true;
+  return /2026\/27|26\/27/.test(`${tournament.label || ""} ${tournament.mamaTitle || ""}`);
+}
+
+function russianDateStamp(text) {
+  const months = ["январ", "феврал", "март", "апрел", "мая", "июн", "июл", "август", "сентябр", "октябр", "ноябр", "декабр"];
+  const source = String(text || "");
+  const numeric = source.match(/(\d{2})\.(\d{2})\.(\d{2,4})/);
+  if (numeric) {
+    const year = numeric[3].length === 2 ? 2000 + Number(numeric[3]) : Number(numeric[3]);
+    return new Date(year, Number(numeric[2]) - 1, Number(numeric[1])).getTime();
+  }
+  const match = source.match(/(\d{1,2})\s+([а-яё]+)/i);
+  if (!match) return 0;
+  const month = months.findIndex((name) => match[2].toLowerCase().startsWith(name));
+  if (month < 0) return 0;
+  return new Date(2026, month, Number(match[1])).getTime();
 }
 
 function numberAttr() {
@@ -946,23 +973,30 @@ function shotPhrase(label, value) {
   return `<span>${term(label)}: ${match[1]} из ${match[2]}${percent}</span>`;
 }
 
-function renderSeasonCards() {
-  const cards = data.tournamentStats.seasons
+function renderSeasonCards(seasons) {
+  const list = seasons || data.tournamentStats.seasons;
+  const cards = list
     .map((season) => {
       const games = String(season.games).match(/(\d+)\s*\((\d+)\)/);
       let gamesText;
-      if (games && games[1] === games[2]) {
+      if (games && games[1] === "0") {
+        gamesText = "личного протокола пока нет";
+      } else if (games && games[1] === games[2]) {
         gamesText = `${games[1]} игр, все с протоколом KPI`;
       } else if (games) {
         gamesText = `${games[1]} игр, ${games[2]} в старте`;
       } else {
         gamesText = `${season.games} игр`;
       }
-      return `<article class="season-card${season.highlight ? " is-current" : ""}">
-        <p>${esc(season.name)}</p>
-        <strong>${formatAvg(season.points)}</strong>
-        <span>очка за игру · ${esc(gamesText)} · ${esc(season.minutes)} мин в среднем</span>
-        <ul>
+      const empty = Boolean(games && games[1] === "0");
+      const pointsShown = empty ? "—" : esc(formatAvg(season.points));
+      const current = season.highlight || isSeason2627(season);
+      const meta = empty
+        ? esc(gamesText)
+        : `очка за игру · ${esc(gamesText)} · ${esc(season.minutes)} мин в среднем`;
+      const stats = empty
+        ? ""
+        : `<ul>
           <li><b>${formatAvg(season.rebounds)}</b> ${term("Подб")}</li>
           <li><b>${formatAvg(season.assists)}</b> ${term("Пер")}</li>
           <li><b>${formatAvg(season.steals)}</b> ${term("Перехв")}</li>
@@ -970,7 +1004,12 @@ function renderSeasonCards() {
           ${season.kpiPerGame != null ? `<li><b>${formatPlain(season.kpiPerGame)}</b> ${term("КПИ")}</li>` : ""}
           ${season.plusMinusPerGame != null ? `<li>${formatPlusMinusCell(season.plusMinusPerGame)} <span class="plus-minus-label">${term("+/−")}</span></li>` : ""}
         </ul>
-        <small class="shoot-lines">${shotPhrase("2-очк.", season.fg2)}${shotPhrase("3-очк.", season.fg3)}${shotPhrase("Штраф", season.ft)}</small>
+        <small class="shoot-lines">${shotPhrase("2-очк.", season.fg2)}${shotPhrase("3-очк.", season.fg3)}${shotPhrase("Штраф", season.ft)}</small>`;
+      return `<article class="season-card${current ? " is-current" : ""}">
+        <p>${esc(season.name)}</p>
+        <strong>${pointsShown}</strong>
+        <span>${meta}</span>
+        ${stats}
       </article>`;
     })
     .join("");
@@ -1039,13 +1078,7 @@ function renderBadges() {
   </div>`;
 }
 
-function renderCareerPage() {
-  const player = data.player;
-  const career = collectCareer();
-  if (!career.best) {
-    career.best = { points: 0, opponent: "", tournament: "", when: "" };
-  }
-  const year = profileValue("Год рождения");
+function renderBioFold() {
   const bio = data.profile.items
     .map((item) => {
       const wide = item.label === "Рост и вес" || String(item.value).length > 24 ? "is-wide" : "";
@@ -1055,29 +1088,21 @@ function renderCareerPage() {
       return `<li class="${wide}"><span>${esc(item.label)}</span><strong>${esc(item.value)}</strong></li>`;
     })
     .join("");
-  document.getElementById("app").innerHTML = `<section class="player-card" id="top"${numberAttr()}>
-      <p class="kicker">Карьера${year ? ` · ${esc(year)}` : ""}</p>
-      <div class="player-card-main">
-        ${siteLogoMark()}
-        <div class="shield"><strong>${esc(String(career.best.points))}</strong><em>лучшая игра</em></div>
-        <div class="player-card-copy">
-          <h1>${esc(player.name)}</h1>
-          <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
-          <p class="summary">${esc(ruCount(career.games, "игра", "игры", "игр"))}, ${esc(ruCount(career.points, "очко", "очка", "очков"))}. Ниже — лучшие матчи и средние из этих журналов.</p>
-          ${updatedLine()}
-          <p class="card-link"><a href="#kpis">Достижения</a><a href="#seasons">Турниры</a><a href="#badges">Оценка</a><a href="team.html#news">Новости</a><a href="index.html#glossary">Что значат цифры?</a><a href="mama.html">Для мамы</a></p>
-        </div>
-      </div>
-    </section>
-    ${ticker()}
+  return `<details class="fold" id="bio"><summary>Коротко об игроке</summary><ul class="bio-strip">${bio}</ul></details>`;
+}
+
+function renderCareerPage() {
+  const career = collectCareer();
+  if (!career.best) {
+    career.best = { points: 0, opponent: "", tournament: "", when: "" };
+  }
+  const lede = `${esc(ruCount(career.games, "игра", "игры", "игр"))}, ${esc(ruCount(career.points, "очко", "очка", "очков"))}.`;
+  document.getElementById("app").innerHTML = `${pageHead("Карьера", lede)}
+    ${updatedLine()}
     <section class="block" id="kpis">
-      <h2>Достижения</h2>
+      <h2>За всё время</h2>
       <p class="caption">Цифры из журналов матчей и средних. Отдельный рейтинг не придумываем.</p>
       ${renderCareerCards(career)}
-    </section>
-    <section class="block" id="bio">
-      <h2>Коротко</h2>
-      <ul class="bio-strip">${bio}</ul>
     </section>
     <section class="block" id="seasons">
       <h2>Турниры</h2>
@@ -1090,18 +1115,13 @@ function renderCareerPage() {
       <p class="caption">Полоска — доля от лучшего среднего в этих турнирах (для +/− — от наибольшего по модулю). Это не оценка от 0 до 99.</p>
       <div class="meter-grid">${renderMeters()}</div>
     </section>
-    <section class="block" id="badges">
-      <h2>${esc(heading("notes"))}</h2>
-      ${renderBadges()}
-      <aside class="callout">
-        <p class="callout-lead">${esc(data.notes.conclusionLead)}</p>
-        <p>${esc(data.notes.conclusion)}</p>
-      </aside>
-    </section>`;
+    ${renderGamesSection()}
+    ${renderBioFold()}
+    ${renderSources()}`;
 }
 
 function renderTeamPage() {
-  document.getElementById("app").innerHTML = `${updatedLine()}${renderSeason()}${renderNewsSection()}`;
+  document.getElementById("app").innerHTML = `${pageHead("Команда", "Росток-2014 · Первенство Москвы и МЛБЛ U14, сезон 2026/27")}${renderSeason()}${renderNewsSection()}<section class="block block--quiet" id="sync">${updatedLine()}</section>`;
   renderNewsPanel(false);
 }
 
@@ -1145,10 +1165,17 @@ function renderNewsPanel(restoreFocus) {
   const root = document.getElementById("news-panel");
   if (!root || !newsData) return;
   const filters = [
+    { id: "2014", label: "Команда 2014" },
     { id: "all", label: "Все" },
-    { id: "2014", label: "2014" },
     { id: "клуб", label: "Клуб" },
   ];
+  const has2014 = (newsData.posts || []).some((post) => post.tag === "2014");
+  if (!state.newsReady) {
+    state.news = has2014 ? "2014" : "all";
+    state.newsShown = 5;
+    state.newsReady = true;
+  }
+  if (!has2014 && state.news === "2014") state.news = "all";
   if (!filters.some((item) => item.id === state.news)) state.news = "all";
   const posts = newsData.posts
     .filter((post) => state.news === "all" || post.tag === state.news)
@@ -1157,10 +1184,15 @@ function renderNewsPanel(restoreFocus) {
       if (a.date === b.date) return (b.sort || 0) - (a.sort || 0);
       return a.date < b.date ? 1 : -1;
     });
-  const cards = posts.length
-    ? posts.map(newsCard).join("")
+  const shown = posts.slice(0, state.newsShown || 5);
+  const rest = posts.length - shown.length;
+  const cards = shown.length
+    ? shown.map(newsCard).join("")
     : `<p class="caption">Таких записей нет.</p>`;
-  root.innerHTML = `${segmented(filters, state.news, "news", "Какие новости показать")}<div class="news-list">${cards}</div>`;
+  const more = rest > 0
+    ? `<p class="more-row"><button type="button" class="quiet-button" id="news-more">Показать ещё (${rest})</button></p>`
+    : "";
+  root.innerHTML = `${segmented(filters, state.news, "news", "Какие новости показать")}<div class="news-list">${cards}</div>${more}`;
   if (restoreFocus) {
     const button = document.querySelector(`[data-news="${CSS.escape(state.news)}"]`);
     if (button) button.focus();
@@ -1202,18 +1234,77 @@ function mamaArticle(tournament, row) {
   </article>`;
 }
 
+function pendingArticle(pending) {
+  if (!pending || !pending.title) return "";
+  const plus = pending.plus ? `<p class="plus"><span>Что порадовало:</span> ${esc(pending.plus)}</p>` : "";
+  return `<article class="review"><h3>${esc(pending.title)}</h3><p>${esc(pending.text || "Личного протокола пока нет.")}</p>${plus}</article>`;
+}
+
+function mamaTokens(text) {
+  return normOppName(text)
+    .replace(/росток(?:а)?/g, " ")
+    .replace(/\d+/g, " ")
+    .split(/[^a-zа-я]+/i)
+    .map((item) => item.trim())
+    .filter((item) => item.length >= 4);
+}
+
+function mamaMentioned(text, keyLists) {
+  const tokens = mamaTokens(text);
+  if (!tokens.length) return false;
+  return keyLists.some((keys) => tokens.some((token) => keys.includes(token)));
+}
+
 function renderMamaPage() {
   const mama = data.mama;
-  const player = data.player;
-  const year = profileValue("Год рождения");
+  const freshCount = 4;
   const flat = [];
   data.gameLogs.tournaments.forEach((tournament) => {
-    tournament.rows.forEach((row, index) => flat.push({ tournament, row, index, stamp: gameStamp(tournament, row, index) }));
+    tournament.rows.forEach((row, index) => flat.push({ tournament, row, index, stamp: gameStamp(tournament, row, index), pending: null }));
+  });
+  const seen = flat.map((item) => mamaTokens(item.row && item.row.opponent));
+  if (mama.pending && mama.pending.title && !mamaMentioned(mama.pending.title, seen)) {
+    flat.push({
+      tournament: { id: "pending" },
+      row: null,
+      index: -1,
+      stamp: russianDateStamp(mama.pending.title) || russianDateStamp(mama.pending.text) || Date.UTC(2026, 10, 4),
+      pending: mama.pending,
+    });
+    seen.push(mamaTokens(mama.pending.title));
+  }
+  ((data.season && data.season.matches) || []).forEach((match) => {
+    const status = String(match.status || "");
+    const unofficial = /протокол/i.test(status) && /нет/i.test(status);
+    if (!unofficial && !match.aiMama) return;
+    if (mamaMentioned(match.title, seen)) return;
+    const when = (String(match.detail || "").split(",")[0] || "").trim();
+    const who = String(match.title || "").replace(/^Росток-2014\s*[—–-]\s*/, "");
+    flat.push({
+      tournament: { id: "pending" },
+      row: null,
+      index: -1,
+      stamp: russianDateStamp(match.detail) || russianDateStamp(match.title) || 0,
+      pending: {
+        title: when ? `${when} · ${who}` : who,
+        text: status || "Личного протокола пока нет.",
+        plus: match.aiMama || "",
+      },
+    });
+    seen.push(mamaTokens(who));
   });
   flat.sort((a, b) => b.stamp - a.stamp);
-  const latestItems = flat.slice(0, 5);
-  const latestKeys = new Set(latestItems.map((item) => `${item.tournament.id}:${item.index}`));
-  const latest = latestItems.map((item) => mamaArticle(item.tournament, item.row)).join("");
+  const latestItems = flat.slice(0, freshCount);
+  const latestKeys = new Set(latestItems.filter((item) => item.row).map((item) => `${item.tournament.id}:${item.index}`));
+  const latest = latestItems
+    .map((item) => (item.pending ? pendingArticle(item.pending) : mamaArticle(item.tournament, item.row)))
+    .join("");
+  const hiddenCount = flat.length - latestItems.length;
+  const hiddenPending = flat
+    .slice(freshCount)
+    .filter((item) => item.pending)
+    .map((item) => pendingArticle(item.pending))
+    .join("");
   const groups = data.gameLogs.tournaments
     .map((tournament) => {
       const cards = tournament.rows
@@ -1223,39 +1314,18 @@ function renderMamaPage() {
       return `<section class="mama-group"><h3>${esc(tournament.mamaTitle || tournament.label)}</h3>${cards}</section>`;
     })
     .join("");
-  const list = (items) => items.map((item) => `<li>${esc(item)}</li>`).join("");
-  document.getElementById("app").innerHTML = `<section class="player-card" id="top"${numberAttr()}>
-      <p class="kicker">Для мамы${year ? ` · ${esc(year)}` : ""}</p>
-      ${siteLogoMark()}
-      <h1>${esc(player.name)}</h1>
-      <p class="hero-meta"><span class="chip">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
-      <p class="summary">${esc(mama.summary)}</p>
-      ${
-        data.kpi && data.kpi.mvp
-          ? `<p class="caption">В матче ${esc(data.kpi.mvp.date)} против «${esc(String(data.kpi.mvp.opponent).split(",")[0])}» у Кости звание <strong>MVP матча</strong> — его назвали лучшим по общей пользе на площадке.</p>`
-          : ""
-      }
-      ${updatedLine()}
-      <p class="card-link"><a href="#path">Весь путь</a><a href="#recent">Игры</a><a href="#mama-notes">Что видно</a><a href="team.html#news">Новости</a><a href="index.html#glossary">Что значат цифры?</a></p>
-    </section>
-    <section class="block" id="path">
-      <h2>Весь путь</h2>
-      <aside class="callout"><p>${esc(mama.seasonSummary || "")}</p></aside>
-    </section>
-    <section class="block" id="recent">
-      <h2>Последние игры</h2>
-      <p class="caption">Пять последних матчей с личным текстом. Остальные — под кнопкой, по турнирам.</p>
+  const list = (items) => (items || []).map((item) => `<li>${esc(item)}</li>`).join("");
+  const more = hiddenCount
+    ? `<p class="more-row"><button type="button" class="quiet-button" id="show-all-games" data-count="${hiddenCount}">Показать прошлые игры (${hiddenCount})</button></p><div id="all-mama-games" hidden>${hiddenPending}${groups}</div>`
+    : "";
+  document.getElementById("app").innerHTML = `${pageHead("Для мамы", esc(mama.summary || "Последние игры обычными словами."))}
+    <section class="block block--first" id="recent">
+      <h2>Свежие игры</h2>
       <div class="reviews">${latest}</div>
-      <p class="card-link"><button type="button" id="show-all-games">Показать все игры</button></p>
-      <div id="all-mama-games" hidden>${groups}</div>
-      ${
-        mama.pending && mama.pending.title
-          ? `<article class="review"><h3>${esc(mama.pending.title)}</h3><p>${esc(mama.pending.text)}</p></article>`
-          : ""
-      }
+      ${more}
     </section>
     <section class="block" id="mama-notes">
-      <h2>Что видно по цифрам</h2>
+      <h2>Что видно по игре</h2>
       <div class="split">
         <section class="panel good">
           <h3>${esc(mama.goodHeading)}</h3>
@@ -1267,16 +1337,54 @@ function renderMamaPage() {
         </section>
       </div>
       <aside class="callout"><p>${esc(mama.closing)}</p></aside>
-    </section>`;
+    </section>
+    <details class="fold" id="path">
+      <summary>Весь путь коротко</summary>
+      <p>${esc(mama.seasonSummary || "")}</p>
+    </details>
+    ${renderGlossary()}`;
+}
+
+function lastProtocolContext() {
+  const block = data.lastMatch;
+  if (!block) return null;
+  const caption = `${block.caption || ""} ${(block.facts || []).map((item) => item.value).join(" ")}`;
+  let best = null;
+  data.gameLogs.tournaments.forEach((tournament) => {
+    tournament.rows.forEach((row, index) => {
+      const opponent = String(row.opponent || "");
+      const mentioned = (row.date && (caption.includes(row.date) || caption.includes(fullDate(row.date)))) || (opponent && caption.includes(opponent));
+      if (!mentioned) return;
+      const stamp = gameStamp(tournament, row, index);
+      if (!best || stamp > best.stamp) best = { row, tournament, stamp };
+    });
+  });
+  return best;
+}
+
+function unofficialPlaque() {
+  const matches = ((data.season && data.season.matches) || []).filter((match) => {
+    const status = String(match.status || "");
+    return /протокол/i.test(status) && /нет/i.test(status);
+  });
+  if (!matches.length) return "";
+  const lines = matches.map((match) => {
+    const who = String(match.title || "").replace(/^Росток-2014\s*[—–-]\s*/, "");
+    const when = (String(match.detail || "").split(",")[0] || "").trim();
+    return `${when ? `${when}: ` : ""}${who} — ${match.status}`;
+  });
+  return `<p class="plaque">${lines.map((line) => esc(line)).join("<br>")}</p>`;
 }
 
 function renderLast() {
   const block = data.lastMatch;
-  const row = findLogRow("21.02.26") || findLogRow("u12-9");
-  const tournament = data.gameLogs.tournaments.find((item) => item.id === "u12");
-  return `<section class="block" id="last">
+  const context = lastProtocolContext();
+  const row = context ? context.row : null;
+  const tournament = context ? context.tournament : null;
+  return `<section class="block block--first" id="last">
     <h2>${esc(heading("last"))}</h2>
-    ${block.notice ? `<p class="plaque">${esc(block.notice)}</p>` : ""}
+    ${unofficialPlaque()}
+    ${block.notice ? `<p class="caption">${esc(block.notice)}</p>` : ""}
     <p class="caption">${esc(block.caption)}</p>
     ${facts(block.facts)}
     ${scoreCards(block.columns, block.rows)}
@@ -1306,7 +1414,7 @@ function renderGlossary() {
   const items = data.glossary
     .map((item) => `<article class="glossary-item"><h3>${esc(item.term)}</h3><p>${esc(item.text)}</p></article>`)
     .join("");
-  return `<section class="block" id="glossary"><h2>Словарик</h2><div class="glossary">${items}</div></section>`;
+  return `<details class="fold" id="glossary"><summary>Что значат цифры?</summary><div class="glossary">${items}</div></details>`;
 }
 
 function renderProfile() {
@@ -1384,15 +1492,85 @@ function renderStats() {
 
 function renderGamesSection() {
   return `<section class="block" id="games">
-    <h2>${esc(heading("games"))}</h2>
+    <h2>Архив игр</h2>
+    <p class="caption">Прошлые и текущие турниры. На телефоне матч раскрывается по нажатию.</p>
     <div id="game-panel"></div>
+  </section>`;
+}
+
+function loggedOpponent(name) {
+  const needle = normOppName(name);
+  if (!needle) return false;
+  return data.gameLogs.tournaments.some((tournament) =>
+    isCurrentTournament(tournament) && tournament.rows.some((row) => {
+      const opponent = normOppName(row.opponent);
+      return opponent && (needle.includes(opponent) || opponent.includes(needle));
+    })
+  );
+}
+
+function compactLogCard(tournament, row) {
+  const title = [row.date, row.opponent].filter(Boolean).join(" · ");
+  const points = row.points == null ? "" : formatCell(row.points, false);
+  const bits = [];
+  if (row.minutes) bits.push(`${row.minutes} мин`);
+  if (row.rebounds != null) bits.push(`${formatPlain(row.rebounds)} подб.`);
+  if (row.assists != null) bits.push(`${formatPlain(row.assists)} пер.`);
+  if (row.turnovers != null) bits.push(`${formatPlain(row.turnovers)} потер.`);
+  const review = row.aiReview ? `<p class="game-review">${esc(row.aiReview)}</p>` : "";
+  const mvp = isMvpMatch(row) ? ` ${mvpBadgeHtml()}` : "";
+  return `<details class="game-card"><summary><span>${esc(title)}${mvp}</span><b>${points}</b></summary><p class="game-score">${scoreHtml(row.score)}</p><p class="caption">${esc(bits.join(" · "))}${tournament.label ? ` · ${esc(tournament.label)}` : ""}</p>${review}</details>`;
+}
+
+function renderCurrentSeason() {
+  const seasons = data.tournamentStats.seasons.filter(isSeason2627);
+  if (!seasons.length) return "";
+  return `<section class="block" id="stats">
+    <h2>Сезон 2026/27</h2>
+    <p class="caption">Средние по двум турнирам: Первенство Москвы и МЛБЛ U14.</p>
+    ${renderSeasonCards(seasons)}
+  </section>`;
+}
+
+function renderCurrentGamesSection() {
+  const cards = [];
+  data.gameLogs.tournaments.forEach((tournament) => {
+    if (!isCurrentTournament(tournament)) return;
+    tournament.rows.forEach((row, index) => {
+      cards.push({ stamp: gameStamp(tournament, row, index), html: compactLogCard(tournament, row) });
+    });
+  });
+  ((data.season && data.season.matches) || []).forEach((match) => {
+    const status = String(match.status || "");
+    if (!(/протокол/i.test(status) && /нет/i.test(status))) return;
+    const title = String(match.title || "");
+    if (loggedOpponent(title)) return;
+    const review = match.aiReview ? `<p class="game-review">${esc(match.aiReview)}</p>` : "";
+    const plain = match.aiMama ? `<p class="plus"><span>Простыми словами.</span> ${esc(match.aiMama)}</p>` : "";
+    cards.push({
+      stamp: russianDateStamp(match.detail) || russianDateStamp(match.title) || 0,
+      html: `<article class="game-card game-card--open"><h3>${esc(title)}</h3><p>${esc(match.detail || "")}</p><p class="caption">${esc(status)}</p>${review}${plain}</article>`,
+    });
+  });
+  cards.sort((a, b) => b.stamp - a.stamp);
+  const limit = 6;
+  const visible = cards.slice(0, limit).map((item) => item.html).join("");
+  const hidden = cards.slice(limit);
+  const more = hidden.length
+    ? `<p class="more-row"><button type="button" class="quiet-button" id="show-season-games" data-count="${hidden.length}">Показать все игры сезона (${hidden.length})</button></p><div id="all-season-games" hidden>${hidden.map((item) => item.html).join("")}</div>`
+    : "";
+  const body = cards.length ? `<div class="game-cards is-open">${visible}</div>${more}` : `<p class="caption">В сезоне 2026/27 пока нет игр в журнале.</p>`;
+  return `<section class="block" id="games">
+    <h2>Игры сезона 2026/27</h2>
+    <p class="caption">Первенство Москвы и МЛБЛ U14. Прошлые сезоны — в «Карьере».</p>
+    ${body}
   </section>`;
 }
 
 function renderTrendSection() {
   const block = data.trend;
   return `<section class="block" id="trend">
-    <h2>${esc(heading("trend"))}</h2>
+    <h2>Динамика</h2>
     <p class="caption">${esc(block.caption)}</p>
     <div id="trend-panel"></div>
   </section>`;
@@ -1429,10 +1607,7 @@ function renderSources() {
       return `<a class="source-card" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${body}</a>`;
     })
     .join("");
-  return `<section class="block" id="sources">
-    <h2>${esc(heading("sources"))}</h2>
-    <div class="sources">${cards}</div>
-  </section>`;
+  return `<details class="fold" id="sources"><summary>Источники</summary><div class="sources">${cards}</div></details>`;
 }
 
 function renderGamePanel(restoreFocus) {
@@ -1488,24 +1663,21 @@ function render() {
   } else {
     document.getElementById("app").innerHTML = [
       renderHero(),
-      renderKpiBlock(),
       renderLast(),
-      renderGuard(),
-      renderProfile(),
-      renderStats(),
-      renderGamesSection(),
+      renderCurrentSeason(),
+      renderCurrentGamesSection(),
       renderTrendSection(),
-      renderNotes(),
-      renderSources(),
+      `<p class="cross-link"><a href="mama.html">Простым языком — на вкладке «Для мамы»</a></p>`,
       renderGlossary(),
+      renderSources(),
     ].join("");
     document.getElementById("load-state").hidden = true;
     document.getElementById("app").hidden = false;
-    renderGamePanel(false);
     renderTrendPanel(false);
   }
   document.getElementById("load-state").hidden = true;
   document.getElementById("app").hidden = false;
+  if (page === "career" && document.getElementById("game-panel")) renderGamePanel(false);
   animateIn();
   try {
     renderNotify();
@@ -1579,31 +1751,10 @@ function phoneLayout() {
 }
 
 function syncChrome() {
-  const header = document.querySelector(".topbar");
-  const nav = document.getElementById("nav");
   const toTop = document.getElementById("to-top");
   const y = window.scrollY;
-  const hero = document.getElementById("top");
-  const pastHero = hero ? hero.getBoundingClientRect().bottom <= 1 : y > 200;
-  const showNav = document.body.dataset.page === "profile" && nav && !nav.hidden && (pastHero || !phoneLayout());
-  if (nav) nav.classList.toggle("is-shown", Boolean(showNav));
-  if (header) {
-    if (!phoneLayout()) {
-      header.classList.remove("is-hidden");
-    } else if (showNav) {
-      header.classList.add("is-hidden");
-    } else {
-      const down = y > state.lastY + 8;
-      const up = y < state.lastY - 8;
-      if (y < 12 || up) header.classList.remove("is-hidden");
-      else if (down && y > 40) header.classList.add("is-hidden");
-    }
-    document.body.classList.toggle("header-hidden", header.classList.contains("is-hidden"));
-  }
-  document.body.classList.toggle("nav-open", Boolean(showNav));
-  if (toTop) toTop.hidden = y < window.innerHeight;
+  if (toTop) toTop.hidden = y < window.innerHeight * 0.85;
   state.lastY = y;
-  updateActiveNav();
 }
 
 function updateActiveNav() {
@@ -1705,10 +1856,27 @@ document.addEventListener("click", (event) => {
   }
   if (event.target.closest("#show-all-games")) {
     const box = document.getElementById("all-mama-games");
-    if (box) {
+    const button = document.getElementById("show-all-games");
+    if (box && button) {
       box.hidden = !box.hidden;
-      event.target.textContent = box.hidden ? "Показать все игры" : "Скрыть остальные игры";
+      const count = button.getAttribute("data-count") || "";
+      button.textContent = box.hidden ? `Показать прошлые игры (${count})` : "Скрыть прошлые игры";
     }
+    return;
+  }
+  if (event.target.closest("#show-season-games")) {
+    const box = document.getElementById("all-season-games");
+    const button = document.getElementById("show-season-games");
+    if (box && button) {
+      box.hidden = !box.hidden;
+      const count = button.getAttribute("data-count") || "";
+      button.textContent = box.hidden ? `Показать все игры сезона (${count})` : "Скрыть остальные игры сезона";
+    }
+    return;
+  }
+  if (event.target.closest("#news-more")) {
+    state.newsShown = (state.newsShown || 5) + 5;
+    renderNewsPanel(false);
     return;
   }
   const bar = event.target.closest("[data-bar]");
@@ -1731,6 +1899,7 @@ document.addEventListener("click", (event) => {
   const newsButton = event.target.closest("[data-news]");
   if (newsButton) {
     state.news = newsButton.getAttribute("data-news");
+    state.newsShown = 5;
     renderNewsPanel(true);
   }
 });
@@ -1868,15 +2037,9 @@ function applyNotifyTags(box, tags) {
 }
 
 function renderNotify() {
-  const app = document.getElementById("app");
-  if (!app || app.hidden) return;
-  let box = document.getElementById("notify");
-  if (!box) {
-    box = document.createElement("section");
-    box.id = "notify";
-    box.className = "block notify";
-    app.appendChild(box);
-  }
+  ensureSheets();
+  const box = document.getElementById("notify");
+  if (!box) return;
   const OneSignal = window.oneSignal;
   const opted = pushOptedIn(OneSignal);
   const gamesOn = box.querySelector("[data-tag='games']");
@@ -2523,7 +2686,10 @@ function adoptPack(pack) {
   if (pack.news) newsData = pack.news;
   else if (pack.news === null) newsData = null;
   const games = (data.gameLogs && data.gameLogs.tournaments) || [];
-  if (!games.some((item) => item.id === state.game)) state.game = data.gameLogs.defaultId;
+  if (!games.some((item) => item.id === state.game)) {
+    const current = games.find((item) => item.id === "u14circ2627" || item.id === "mos2627");
+    state.game = (current && current.id) || (data.gameLogs && data.gameLogs.defaultId);
+  }
   const views = (data.trend && data.trend.views) || [];
   if (!views.some((item) => item.id === state.trend)) state.trend = data.trend.defaultId;
 }
@@ -2849,8 +3015,10 @@ function ensureSheets() {
   sync.hidden = true;
   sync.setAttribute("data-noswipe", "");
   sync.innerHTML = `<div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="sync-sheet-title">
-      <h2 id="sync-sheet-title">Синхронизация с GitHub</h2>
-      <p class="caption">Нужно только владельцу. Обычным посетителям токен не требуется: кнопка «Обновить статистику» и так проверяет свежие файлы.</p>
+      <h2 id="sync-sheet-title">Настройки</h2>
+      <div id="notify" class="notify notify--in-sheet"></div>
+      <h3 class="sheet-sub">Синхронизация с GitHub</h3>
+      <p class="caption">Нужно только владельцу. Обычным посетителям токен не требуется: кнопка «Обновить» и так проверяет свежие файлы.</p>
       <ol class="sheet-steps">
         <li>GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token.</li>
         <li>Доступ только к репозиторию <strong>workjobdub-del/kostya-baske</strong>. Права: Actions → Read and write.</li>
@@ -2934,6 +3102,9 @@ function openSyncSheet() {
   error.hidden = true;
   error.textContent = "";
   paintTokenNote();
+  try {
+    renderNotify();
+  } catch (notifyError) {}
   sheet.hidden = false;
   form.elements.token.focus();
 }
