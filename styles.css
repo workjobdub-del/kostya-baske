@@ -2673,3 +2673,38 @@ html, body { overflow-x: clip; }
 @media (min-width: 721px) {
   .tabbar { display: none !important; }
 }
+
+.fixture-list { display: grid; gap: 0.55rem; }
+
+.fixture {
+  padding: 0.7rem 0.85rem;
+  background: #10131a;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+}
+
+.fixture-when {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.fixture-when span { color: var(--gold-2); font-variant-numeric: tabular-nums; }
+
+.fixture-opp { margin: 0.15rem 0 0; font-size: 1.05rem; }
+
+.fixture-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.55rem;
+  margin: 0.4rem 0 0;
+  color: var(--muted);
+}
+
+.next-line { margin: 0 0 0.45rem; color: var(--muted); }
+.next-line a { color: inherit; text-decoration: none; }
+.next-line a:hover { color: var(--ink); }
+
+#standings .fold + .fold { margin-top: 0.55rem; }

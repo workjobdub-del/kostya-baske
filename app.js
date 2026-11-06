@@ -700,7 +700,7 @@ function heroStats() {
     ${updatedLine()}`;
 }
 
-const ASSET_V = "2026-11-06-03";
+const ASSET_V = "2026-11-06-04";
 const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
 const ICON_REFRESH = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>`;
 const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
@@ -843,6 +843,9 @@ function isCurrentTournament(tournament) {
   return /2026\/27|26\/27/.test(`${tournament.label || ""} ${tournament.mamaTitle || ""}`);
 }
 
+const WEEKDAYS = ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"];
+const WEEKDAYS_SHORT = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
+
 function russianDateStamp(text) {
   const months = ["январ", "феврал", "март", "апрел", "мая", "июн", "июл", "август", "сентябр", "октябр", "ноябр", "декабр"];
   const source = String(text || "");
@@ -856,6 +859,156 @@ function russianDateStamp(text) {
   const month = months.findIndex((name) => match[2].toLowerCase().startsWith(name));
   if (month < 0) return 0;
   return new Date(2026, month, Number(match[1])).getTime();
+}
+
+function scheduleParts(detail) {
+  const text = String(detail || "");
+  const stamp = russianDateStamp(text);
+  const date = stamp ? new Date(stamp) : null;
+  const time = (text.match(/(\d{1,2}:\d{2})/) || [])[1] || "";
+  const arena = (text.match(/зал «([^»]+)»/i) || [])[1] || "";
+  return { date, time, arena, stamp };
+}
+
+function opponentFromTitle(title) {
+  const parts = String(title || "").split(" — ").map((item) => item.trim()).filter(Boolean);
+  if (parts.length < 2) return String(title || "");
+  const our = /росток-2014/i;
+  if (our.test(parts[0]) && !our.test(parts[1])) return parts[1];
+  if (our.test(parts[1])) return parts[0];
+  return parts[1];
+}
+
+function collectFixtures() {
+  const items = [];
+  ((data.season && data.season.matches) || []).forEach((match) => {
+    items.push({ ...match, tour: "Первенство Москвы" });
+  });
+  ((data.u14Schedule && data.u14Schedule.matches) || []).forEach((match) => {
+    items.push({ ...match, tour: "МЛБЛ U14" });
+  });
+  return items.map((match) => {
+    const when = scheduleParts(match.detail);
+    const scored = /победа|поражение|\d+\s*:\s*\d+/i.test(String(match.detail || ""));
+    return { ...match, ...when, opponent: opponentFromTitle(match.title), scored };
+  });
+}
+
+function isUpcomingFixture(item) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (!item.date) return item.status === "Ещё не сыгран" && !item.scored;
+  if (item.date.getTime() < today.getTime()) return false;
+  if (item.scored && item.status !== "Ещё не сыгран") return false;
+  return true;
+}
+
+function fixtureWhen(item, short) {
+  if (!item.date) return item.time || "";
+  const day = item.date.getDate();
+  const month = MONTHS[item.date.getMonth()];
+  const week = short ? WEEKDAYS_SHORT[item.date.getDay()] : WEEKDAYS[item.date.getDay()];
+  return `${week}, ${day} ${month}`;
+}
+
+function upcomingFixtures() {
+  return collectFixtures().filter(isUpcomingFixture).sort((a, b) => (a.stamp || 0) - (b.stamp || 0));
+}
+
+function playedFixtures() {
+  return collectFixtures().filter((item) => !isUpcomingFixture(item)).sort((a, b) => (b.stamp || 0) - (a.stamp || 0));
+}
+
+function fixtureLine(item, short) {
+  const bits = [fixtureWhen(item, short), item.time, item.opponent].filter(Boolean);
+  return `${item.tour}: ${bits.join(", ")}`;
+}
+
+function renderUpcomingCard(item) {
+  const place = item.arena ? `зал «${item.arena}»` : "";
+  return `<article class="fixture">
+    <p class="fixture-when"><b>${esc(fixtureWhen(item, false))}</b>${item.time ? `<span>${esc(item.time)}</span>` : ""}</p>
+    <p class="fixture-opp">${esc(item.opponent)}</p>
+    <p class="fixture-meta"><span class="chip">${esc(item.tour)}</span>${place ? `<span>${esc(place)}</span>` : ""}</p>
+  </article>`;
+}
+
+function renderUpcomingBlock(limit) {
+  const items = upcomingFixtures();
+  const shown = limit ? items.slice(0, limit) : items;
+  if (!shown.length) {
+    if (limit) return "";
+    return `<section class="block block--first" id="upcoming"><h2>Ближайшие игры</h2><p class="caption">Новые игры в расписании пока не опубликованы.</p></section>`;
+  }
+  const cards = shown.map(renderUpcomingCard).join("");
+  return `<section class="block block--first" id="upcoming"><h2>Ближайшие игры</h2><div class="fixture-list">${cards}</div></section>`;
+}
+
+function renderUpcomingLine() {
+  const items = upcomingFixtures().slice(0, 2);
+  if (!items.length) return "";
+  const text = items.map((item) => fixtureLine(item, true)).join(" · ");
+  return `<p class="next-line"><a href="team.html#upcoming">${esc(text)}</a></p>`;
+}
+
+function standingSummary(label, standings, playedInCalendar) {
+  const rows = (standings && standings.rows) || [];
+  const ours = rows.find((row) => row.highlight);
+  if (!ours) return label;
+  const place = String(ours.team || "").match(/^(\d+)\./);
+  const balance = `${ours.wins}В–${ours.losses}П`;
+  if (Number(ours.played) === 0 && playedInCalendar) return `${label} — в официальной таблице ещё 0 игр`;
+  if (Number(ours.played) === 0) return `${label} — в таблице пока 0 игр`;
+  return `${label} — ${place ? `${place[1]}-е место` : "место"} · ${balance}`;
+}
+
+function renderStandingFold(id, summary, standings) {
+  if (!standings || !standings.rows || !standings.rows.length) return "";
+  return `<details class="fold" id="${id}"><summary>${esc(summary)}</summary>${objectTable(standings.columns, standings.rows, "standings")}</details>`;
+}
+
+function renderStandingsFolds() {
+  const moscowPlayed = ((data.season && data.season.matches) || []).some((match) => !isUpcomingFixture({ ...match, ...scheduleParts(match.detail), scored: /победа|поражение|\d+\s*:\s*\d+/i.test(String(match.detail || "")) }));
+  const u14Played = ((data.u14Schedule && data.u14Schedule.matches) || []).some((match) => !isUpcomingFixture({ ...match, ...scheduleParts(match.detail), scored: /победа|поражение|\d+\s*:\s*\d+/i.test(String(match.detail || "")) }));
+  const moscow = renderStandingFold(
+    "standings-moscow",
+    standingSummary("Первенство Москвы, группа А", data.season && data.season.standings, moscowPlayed),
+    data.season && data.season.standings
+  );
+  const u14 = renderStandingFold(
+    "standings-u14",
+    standingSummary("МЛБЛ U14", data.u14Schedule && data.u14Schedule.standings, u14Played),
+    data.u14Schedule && data.u14Schedule.standings
+  );
+  if (!moscow && !u14) return "";
+  return `<section class="block" id="standings"><h2>Турнирные таблицы</h2>${moscow}${u14}</section>`;
+}
+
+function renderPlayedMatch(item) {
+  const review = item.aiReview ? `<p class="game-review">${esc(item.aiReview)}</p>` : "";
+  const result = String(item.detail || "").split(".").slice(1).join(".").replace(/\s+/g, " ").trim();
+  return `<article class="match-row">
+    <div>
+      <h3>${esc(item.opponent)}</h3>
+      <p>${esc(fixtureWhen(item, false))}${item.time ? `, ${esc(item.time)}` : ""}${item.arena ? ` · зал «${esc(item.arena)}»` : ""}</p>
+      ${result ? `<p>${esc(result)}</p>` : ""}
+      ${review}
+    </div>
+    <span class="chip">${esc(item.tour)}</span>
+  </article>`;
+}
+
+function renderPlayedBlock() {
+  const items = playedFixtures();
+  const visible = items.slice(0, 4);
+  const hidden = items.slice(5);
+  const more = hidden.length
+    ? `<p class="more-row"><button type="button" class="quiet-button" id="show-played" data-count="${hidden.length}">Показать ещё (${hidden.length})</button></p><div id="all-played" hidden>${hidden.map(renderPlayedMatch).join("")}</div>`
+    : "";
+  const body = visible.length
+    ? `<div class="match-list">${visible.map(renderPlayedMatch).join("")}</div>${more}`
+    : `<p class="caption">Сыгранных матчей сезона 2026/27 в расписании пока нет.</p>`;
+  return `<section class="block" id="played"><h2>Сыгранные матчи</h2>${body}</section>`;
 }
 
 function numberAttr() {
@@ -1121,7 +1274,7 @@ function renderCareerPage() {
 }
 
 function renderTeamPage() {
-  document.getElementById("app").innerHTML = `${pageHead("Команда", "Росток-2014 · Первенство Москвы и МЛБЛ U14, сезон 2026/27")}${renderSeason()}${renderNewsSection()}<section class="block block--quiet" id="sync">${updatedLine()}</section>`;
+  document.getElementById("app").innerHTML = `${pageHead("Команда", "Росток-2014 · Первенство Москвы и МЛБЛ U14, сезон 2026/27")}${renderUpcomingBlock()}${renderStandingsFolds()}${renderPlayedBlock()}${renderNewsSection()}<section class="block block--quiet" id="sync">${updatedLine()}</section>`;
   renderNewsPanel(false);
 }
 
@@ -1319,6 +1472,7 @@ function renderMamaPage() {
     ? `<p class="more-row"><button type="button" class="quiet-button" id="show-all-games" data-count="${hiddenCount}">Показать прошлые игры (${hiddenCount})</button></p><div id="all-mama-games" hidden>${hiddenPending}${groups}</div>`
     : "";
   document.getElementById("app").innerHTML = `${pageHead("Для мамы", esc(mama.summary || "Последние игры обычными словами."))}
+    ${renderUpcomingLine()}
     <section class="block block--first" id="recent">
       <h2>Свежие игры</h2>
       <div class="reviews">${latest}</div>
@@ -1663,6 +1817,7 @@ function render() {
   } else {
     document.getElementById("app").innerHTML = [
       renderHero(),
+      renderUpcomingBlock(2),
       renderLast(),
       renderCurrentSeason(),
       renderCurrentGamesSection(),
@@ -1871,6 +2026,16 @@ document.addEventListener("click", (event) => {
       box.hidden = !box.hidden;
       const count = button.getAttribute("data-count") || "";
       button.textContent = box.hidden ? `Показать все игры сезона (${count})` : "Скрыть остальные игры сезона";
+    }
+    return;
+  }
+  if (event.target.closest("#show-played")) {
+    const box = document.getElementById("all-played");
+    const button = document.getElementById("show-played");
+    if (box && button) {
+      box.hidden = !box.hidden;
+      const count = button.getAttribute("data-count") || "";
+      button.textContent = box.hidden ? `Показать ещё (${count})` : "Скрыть остальные матчи";
     }
     return;
   }

@@ -1337,7 +1337,7 @@
         "title": "МЛБЛ U14, 26/27",
         "site": "reg.infobasket.su",
         "href": "https://reg.infobasket.su/competitions/details/144801?apiUrl=https://reg.infobasket.su&lang=ru",
-        "note": "Расписание и протоколы «Росток-2014» в МЛБЛ U14. Таблица на сайте Кости не показывается."
+        "note": "Расписание и протоколы «Росток-2014» в МЛБЛ U14."
       },
       {
         "title": "Быстрый прорыв, 3-й этап 2024/25",
@@ -1621,7 +1621,7 @@
   },
   "u14Schedule": {
     "label": "МЛБЛ U14, 26/27",
-    "caption": "Расписание «Росток-2014» в МЛБЛ U14. Официальная таблица этого турнира на сайте не показывается.",
+    "caption": "Расписание «Росток-2014» в МЛБЛ U14.",
     "matches": [
       {
         "title": "Росток-2014 — Росток-2013",
@@ -1653,7 +1653,141 @@
         "detail": "22 ноября, 17:30, зал «Дружба. Зал 3».",
         "status": "Ещё не сыгран"
       }
-    ]
+    ],
+    "standings": {
+      "columns": [
+        {
+          "key": "team",
+          "label": "МЛБЛ U14"
+        },
+        {
+          "key": "played",
+          "label": "И"
+        },
+        {
+          "key": "wins",
+          "label": "В"
+        },
+        {
+          "key": "losses",
+          "label": "П"
+        },
+        {
+          "key": "points",
+          "label": "Турн. очки"
+        },
+        {
+          "key": "scored",
+          "label": "Забито"
+        },
+        {
+          "key": "conceded",
+          "label": "Пропущено"
+        }
+      ],
+      "rows": [
+        {
+          "team": "1. MO.BASKET",
+          "played": "4",
+          "wins": "3",
+          "losses": "1",
+          "points": "7",
+          "scored": "314",
+          "conceded": "200"
+        },
+        {
+          "team": "2. Росток-2013",
+          "played": "3",
+          "wins": "3",
+          "losses": "0",
+          "points": "6",
+          "scored": "275",
+          "conceded": "90"
+        },
+        {
+          "team": "3. Красная Пахра",
+          "played": "3",
+          "wins": "3",
+          "losses": "0",
+          "points": "6",
+          "scored": "298",
+          "conceded": "70"
+        },
+        {
+          "team": "4. БА Прогресс",
+          "played": "4",
+          "wins": "2",
+          "losses": "2",
+          "points": "6",
+          "scored": "252",
+          "conceded": "187"
+        },
+        {
+          "team": "5. SP Basket",
+          "played": "3",
+          "wins": "3",
+          "losses": "0",
+          "points": "6",
+          "scored": "336",
+          "conceded": "89"
+        },
+        {
+          "team": "6. Багратион",
+          "played": "3",
+          "wins": "2",
+          "losses": "1",
+          "points": "5",
+          "scored": "208",
+          "conceded": "170"
+        },
+        {
+          "team": "7. Takeshot Academy",
+          "played": "4",
+          "wins": "1",
+          "losses": "3",
+          "points": "5",
+          "scored": "207",
+          "conceded": "378"
+        },
+        {
+          "team": "8. Первомайская",
+          "played": "4",
+          "wins": "1",
+          "losses": "3",
+          "points": "5",
+          "scored": "189",
+          "conceded": "245"
+        },
+        {
+          "team": "9. Росток-2014",
+          "played": "3",
+          "wins": "1",
+          "losses": "2",
+          "points": "4",
+          "scored": "154",
+          "conceded": "216",
+          "highlight": true
+        },
+        {
+          "team": "10. FS Bulldogs",
+          "played": "4",
+          "wins": "0",
+          "losses": "4",
+          "points": "4",
+          "scored": "100",
+          "conceded": "415"
+        },
+        {
+          "team": "11. Метеоры",
+          "played": "3",
+          "wins": "0",
+          "losses": "3",
+          "points": "3",
+          "scored": "66",
+          "conceded": "339"
+        }
+      ]
+    }
   },
   "manualGames": {
     "1130166": {
