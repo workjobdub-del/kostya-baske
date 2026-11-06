@@ -751,7 +751,7 @@ function heroStats() {
     ${updatedLine()}`;
 }
 
-const ASSET_V = "2026-11-06-05";
+const ASSET_V = "2026-11-06-06";
 const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
 const ICON_REFRESH = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>`;
 const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
@@ -939,7 +939,25 @@ function tourLabel(tournament) {
   return "";
 }
 
-function oppTokens(text) {
+const OPP_GENERIC = new Set([
+  "basket",
+  "baskets",
+  "баскет",
+  "academy",
+  "академия",
+  "сшор",
+  "школа",
+  "центр",
+  "sport",
+  "sports",
+  "club",
+  "клуб",
+  "team",
+  "юниор",
+  "юноши",
+]);
+
+function oppKey(text) {
   return String(text || "")
     .toLowerCase()
     .replace(/ё/g, "е")
@@ -948,40 +966,39 @@ function oppTokens(text) {
     .replace(/швсм/g, " ")
     .replace(/[^a-zа-я0-9]+/gi, " ")
     .replace(/\b(2013|2014|2015|2016)\s+\d+\b/g, "$1")
-    .trim()
-    .split(/\s+/)
-    .filter((token) => token.length >= 4 || /^20\d\d$/.test(token));
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function oppTokens(text) {
+  return oppKey(text)
+    .split(" ")
+    .filter((token) => token && !OPP_GENERIC.has(token));
 }
 
 function tokensCompatible(left, right) {
   const years = (list) => list.filter((token) => /^20\d\d$/.test(token));
+  const signal = (list) => list.filter((token) => !/^20\d\d$/.test(token) && token.length >= 2);
   const leftYears = years(left);
   const rightYears = years(right);
   if (leftYears.length && rightYears.length && !leftYears.some((token) => rightYears.includes(token))) return false;
-  const signal = (list) => list.filter((token) => !/^20\d\d$/.test(token));
   const a = signal(left);
   const b = signal(right);
-  return a.some((token) => b.includes(token));
+  if (!a.length || !b.length || a.length !== b.length) return false;
+  return a.every((token) => b.includes(token));
 }
 
 function findOpponent(name, tour) {
-  const tokens = oppTokens(name);
   const teams = (data.opponents && data.opponents.teams) || [];
-  let best = null;
-  let bestScore = 0;
-  teams.forEach((team) => {
-    const theirs = oppTokens(team.name);
-    if (!tokensCompatible(tokens, theirs)) return;
-    const shared = tokens.filter((token) => theirs.includes(token)).length;
-    let score = shared;
-    if (tour && team.tournament === tour) score += 5;
-    if (oppTokens(team.name).join(" ") === tokens.join(" ")) score += 3;
-    if (!best || score > bestScore) {
-      best = team;
-      bestScore = score;
-    }
-  });
-  return best;
+  const key = oppKey(name);
+  const exact = teams.filter((team) => oppKey(team.name) === key);
+  if (!exact.length) return null;
+  if (tour) {
+    const inTour = exact.filter((team) => team.tournament === tour);
+    if (inTour.length === 1) return inTour[0];
+    if (inTour.length > 1) return null;
+  }
+  return exact.length === 1 ? exact[0] : null;
 }
 
 function oppButton(name, tour) {
