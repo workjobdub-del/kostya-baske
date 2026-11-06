@@ -916,6 +916,61 @@ def parse_standings(payload):
     return rows
 
 
+U14_STANDINGS_COLUMNS = [
+    {"key": "team", "label": "МЛБЛ U14"},
+    {"key": "played", "label": "И"},
+    {"key": "wins", "label": "В"},
+    {"key": "losses", "label": "П"},
+    {"key": "points", "label": "Турн. очки"},
+    {"key": "scored", "label": "Забито"},
+    {"key": "conceded", "label": "Пропущено"},
+]
+
+
+def parse_u14_standings(payload):
+    if not isinstance(payload, list) or len(payload) < 2:
+        raise ValueError("standings")
+    rows = []
+    for item in payload:
+        raw_name = ((item.get("CompTeamName") or {}).get("CompTeamShortNameRu"))
+        place = item.get("Place")
+        table = item.get("Standings") or {}
+        if not raw_name or not isinstance(place, int):
+            raise ValueError("row")
+        values = [
+            table.get("StandingGame"),
+            table.get("StandingWin"),
+            table.get("StandingLose"),
+            table.get("StandingPoints"),
+            table.get("StandingGoalPlus"),
+            table.get("StandingGoalMinus"),
+        ]
+        if not all(isinstance(value, int) and value >= 0 for value in values):
+            raise ValueError("numbers")
+        ours = item.get("TeamID") == U14_TEAM_ID
+        name = U14_OUR_NAME if ours else normalize_u14_side(raw_name, our_team=False)
+        rows.append(
+            {
+                "team": f"{place}. {name}",
+                "played": str(values[0]),
+                "wins": str(values[1]),
+                "losses": str(values[2]),
+                "points": str(values[3]),
+                "scored": str(values[4]),
+                "conceded": str(values[5]),
+                "_place": place,
+            }
+        )
+        if ours:
+            rows[-1]["highlight"] = True
+    rows.sort(key=lambda row: row["_place"])
+    for row in rows:
+        del row["_place"]
+    if sum(1 for row in rows if row.get("highlight")) != 1:
+        raise ValueError("team")
+    return rows
+
+
 def format_match(game, has_protocol, now, *, away_host_first=False):
     when = f"{game['date'].day} {MONTHS[game['date'].month - 1]}"
     if away_host_first and not game["home"]:
@@ -1852,14 +1907,25 @@ def fetch_u14_stats(games, notes) -> list:
 
 
 def refresh_u14_schedule(data, games, notes) -> None:
-    if not games:
-        return
     schedule = data.setdefault("u14Schedule", {})
     schedule["label"] = U14_COMP_LABEL
-    schedule["caption"] = (
-        "Расписание «Росток-2014» в МЛБЛ U14. Официальная таблица этого турнира на сайте не показывается."
-    )
+    schedule["caption"] = "Расписание «Росток-2014» в МЛБЛ U14."
     data.setdefault("sync", {})["u14CompId"] = U14_COMP_ID
+    try:
+        rows = parse_u14_standings(api(f"/Widget/CompTeamResults/{U14_COMP_ID}?format=json"))
+    except Exception as exc:
+        notes.append(f"МЛБЛ U14: таблица не принята ({type(exc).__name__}), прежние строки на месте")
+        rows = None
+    if rows is not None:
+        standings = schedule.setdefault("standings", {})
+        standings["columns"] = U14_STANDINGS_COLUMNS
+        if standings.get("rows") != rows:
+            standings["rows"] = rows
+            notes.append("МЛБЛ U14: таблица обновлена")
+        else:
+            notes.append("МЛБЛ U14: таблица без изменений")
+    if not games:
+        return
     now = today()
     old_matches = schedule.get("matches") or []
     protocol_dates = protocol_dates_for_log(data, U14_LOG_ID)
@@ -2130,6 +2196,33 @@ def self_test():
         ]
     )
     assert rows[0]["highlight"] is True and rows[0]["team"].startswith("1.")
+    u14_rows = parse_u14_standings(
+        [
+            {
+                "Place": 2,
+                "TeamID": 1,
+                "CompTeamName": {"CompTeamShortNameRu": "Соперник U14"},
+                "Standings": {"StandingGame": 1, "StandingWin": 1, "StandingLose": 0, "StandingPoints": 2, "StandingGoalPlus": 40, "StandingGoalMinus": 30},
+            },
+            {
+                "Place": 9,
+                "TeamID": U14_TEAM_ID,
+                "CompTeamName": {"CompTeamShortNameRu": "ШВСМ Росток U14"},
+                "Standings": {"StandingGame": 3, "StandingWin": 1, "StandingLose": 2, "StandingPoints": 4, "StandingGoalPlus": 150, "StandingGoalMinus": 170},
+            },
+            {
+                "Place": 3,
+                "TeamID": 2,
+                "CompTeamName": {"CompTeamShortNameRu": "ШВСМ Росток-2013 U14"},
+                "Standings": {"StandingGame": 2, "StandingWin": 1, "StandingLose": 1, "StandingPoints": 3, "StandingGoalPlus": 80, "StandingGoalMinus": 75},
+            },
+        ]
+    )
+    ours = next(row for row in u14_rows if row.get("highlight"))
+    assert ours["team"] == "9. Росток-2014" and ours["wins"] == "1" and ours["losses"] == "2"
+    assert next(row["team"] for row in u14_rows if row["team"].startswith("3.")) == "3. Росток-2013"
+    assert next(row["team"] for row in u14_rows if row["team"].startswith("2.")) == "2. Соперник"
+    assert "ШВСМ" not in json.dumps(u14_rows, ensure_ascii=False) and "U14" not in json.dumps(u14_rows, ensure_ascii=False)
     old = [{"title": "Росток-2014 — Гольяново-2014-2", "detail": "По новости клуба команда выиграла 62:37.", "status": "Личного протокола нет"}]
     game = {
         "id": 1,
@@ -2646,7 +2739,7 @@ MAMA_SEASON_SUMMARY = (
     "почти 11 минут со скамейки)."
 )
 U14_SOURCE_TITLE = "МЛБЛ U14, 26/27"
-U14_SOURCE_NOTE = "Расписание и протоколы «Росток-2014» в МЛБЛ U14. Таблица на сайте Кости не показывается."
+U14_SOURCE_NOTE = "Расписание и протоколы «Росток-2014» в МЛБЛ U14."
 
 
 def refresh_display_copy(data: dict) -> None:
@@ -2676,9 +2769,7 @@ def refresh_display_copy(data: dict) -> None:
             link["note"] = U14_SOURCE_NOTE
     schedule = data.get("u14Schedule") or {}
     schedule["label"] = U14_COMP_LABEL
-    schedule["caption"] = (
-        "Расписание «Росток-2014» в МЛБЛ U14. Официальная таблица этого турнира на сайте не показывается."
-    )
+    schedule["caption"] = "Расписание «Росток-2014» в МЛБЛ U14."
     for match in schedule.get("matches") or []:
         title = match.get("title")
         if title:
