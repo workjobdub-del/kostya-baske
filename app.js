@@ -143,6 +143,8 @@ function objectTable(columns, rows, extraClass) {
           if (column.key === "score") value = scoreHtml(row[column.key]);
           else if (column.key === "plusMinus" || column.key === "plusMinusPerGame") value = formatPlusMinusCell(row[column.key]);
           else if (column.key === "kpi" || column.key === "kpiPerGame") value = row[column.key] == null ? "—" : formatPlain(row[column.key]);
+          else if (column.key === "opponent") value = oppButton(row[column.key], tableTour(extraClass));
+          else if (column.key === "team" && extraClass && extraClass.includes("standings")) value = standingName(row, tableTour(extraClass));
           else value = formatCell(row[column.key], column.average);
           const mvp =
             column.key === "opponent" && isMvpMatch(row) ? ` ${mvpBadgeHtml()}` : "";
@@ -158,6 +160,22 @@ function objectTable(columns, rows, extraClass) {
   const cls = extraClass ? ` ${extraClass}` : "";
   const hint = extraClass && extraClass.includes("standings") ? `<p class="scroll-hint only-phone">Листайте таблицу вбок.</p>` : "";
   return `${hint}<div class="table-scroll${cls}"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+function tableTour(extraClass) {
+  const text = String(extraClass || "");
+  if (text.includes("standings-u14")) return "МЛБЛ U14";
+  if (text.includes("standings-mos")) return "Первенство Москвы";
+  return "";
+}
+
+function standingName(row, tour) {
+  const raw = String(row.team || "");
+  const match = raw.match(/^(\d+)\.\s+(.+)$/);
+  const name = match ? match[2] : raw;
+  if (row.highlight || /^росток-2014$/i.test(name)) return esc(raw);
+  const prefix = match ? `${esc(match[1])}. ` : "";
+  return `${prefix}${oppButton(name, tour)}`;
 }
 
 function arrayTable(columns, rows) {
@@ -213,14 +231,18 @@ function gameCards(tournament) {
     .map((row) => {
       const title = tournament.columns
         .slice(0, 2)
-        .map((column) => row[column.key])
-        .filter((value) => value != null && value !== "")
+        .map((column) => {
+          if (row[column.key] == null || row[column.key] === "") return "";
+          if (column.key === "opponent") return oppButton(row[column.key], tourLabel(tournament));
+          return esc(row[column.key]);
+        })
+        .filter(Boolean)
         .join(" · ");
       const points = pointsCol ? formatCell(row.points, false) : "";
       const rest = tournament.columns
         .map((column) => {
           const plain = column.key === "score" ? String(row[column.key] ?? "") : phoneStat(column.label, row[column.key] ?? "");
-          const value = column.key === "score" ? scoreHtml(row[column.key]) : esc(plain);
+          const value = column.key === "score" ? scoreHtml(row[column.key]) : column.key === "opponent" ? oppButton(row[column.key], tourLabel(tournament)) : esc(plain);
           const wide = plain.length > 18 ? " is-wide" : "";
           return `<div class="${wide.trim()}"><dt>${term(column.label)}</dt><dd>${value}</dd></div>`;
         })
@@ -228,7 +250,7 @@ function gameCards(tournament) {
       const review = row.aiReview ? `<p class="game-review">${esc(row.aiReview)}</p>` : "";
       const limited = row.minutes == null && row.fg2 == null ? `<p class="caption">Других цифр в протоколе этой лиги нет.</p>` : "";
       const mvp = isMvpMatch(row) ? ` ${mvpBadgeHtml()}` : "";
-      return `<details class="game-card"><summary><span>${esc(title)}${mvp}</span><b>${points}</b></summary><dl>${rest}</dl>${ratioLine(row)}${shareLine(row)}${signalRow(row, tournament)}${limited}${review}</details>`;
+      return `<details class="game-card"><summary><span>${title}${mvp}</span><b>${points}</b></summary><dl>${rest}</dl>${ratioLine(row)}${shareLine(row)}${signalRow(row, tournament)}${limited}${review}</details>`;
     })
     .join("");
   return `<div class="game-cards only-phone">${cards}</div>`;
@@ -246,14 +268,43 @@ function factValue(item) {
   return `${esc(clean)} ${resultBadge(parts.kind, parts.word)}`;
 }
 
-function facts(items) {
+function facts(items, tour) {
   const cards = items
     .map((item) => {
       const wide = String(item.value).length > 24 ? " is-wide" : "";
-      return `<div class="fact${wide}"><dt>${esc(item.label)}</dt><dd>${factValue(item)}</dd></div>`;
+      const value = item.label === "Матч" ? linkOppInText(item.value, tour) : factValue(item);
+      return `<div class="fact${wide}"><dt>${esc(item.label)}</dt><dd>${value}</dd></div>`;
     })
     .join("");
   return `<dl class="facts">${cards}</dl>`;
+}
+
+function linkOppInText(text, tour) {
+  const source = String(text || "");
+  const names = ((data.opponents && data.opponents.teams) || [])
+    .map((team) => team.name)
+    .filter((name) => name && name.length >= 3)
+    .sort((a, b) => b.length - a.length);
+  let rest = source;
+  let html = "";
+  while (rest) {
+    let at = -1;
+    let found = "";
+    names.forEach((name) => {
+      const idx = rest.toLowerCase().indexOf(name.toLowerCase());
+      if (idx >= 0 && (at < 0 || idx < at)) {
+        at = idx;
+        found = name;
+      }
+    });
+    if (at < 0) {
+      html += esc(rest);
+      break;
+    }
+    html += esc(rest.slice(0, at)) + oppButton(rest.slice(at, at + found.length), tour);
+    rest = rest.slice(at + found.length);
+  }
+  return html;
 }
 
 function axisMax(value) {
@@ -700,7 +751,7 @@ function heroStats() {
     ${updatedLine()}`;
 }
 
-const ASSET_V = "2026-11-06-04";
+const ASSET_V = "2026-11-06-05";
 const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
 const ICON_REFRESH = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>`;
 const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
@@ -879,6 +930,67 @@ function opponentFromTitle(title) {
   return parts[1];
 }
 
+function tourLabel(tournament) {
+  if (!tournament) return "";
+  const id = tournament.id || "";
+  const text = `${id} ${tournament.label || ""} ${tournament.mamaTitle || ""}`;
+  if (/u14/i.test(text)) return "МЛБЛ U14";
+  if (id === "mos2627" || (/первенство москвы/i.test(text) && /2026|26\/27/.test(text))) return "Первенство Москвы";
+  return "";
+}
+
+function oppTokens(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/[«»"]/g, "")
+    .replace(/\bu14\b/g, " ")
+    .replace(/швсм/g, " ")
+    .replace(/[^a-zа-я0-9]+/gi, " ")
+    .replace(/\b(2013|2014|2015|2016)\s+\d+\b/g, "$1")
+    .trim()
+    .split(/\s+/)
+    .filter((token) => token.length >= 4 || /^20\d\d$/.test(token));
+}
+
+function tokensCompatible(left, right) {
+  const years = (list) => list.filter((token) => /^20\d\d$/.test(token));
+  const leftYears = years(left);
+  const rightYears = years(right);
+  if (leftYears.length && rightYears.length && !leftYears.some((token) => rightYears.includes(token))) return false;
+  const signal = (list) => list.filter((token) => !/^20\d\d$/.test(token));
+  const a = signal(left);
+  const b = signal(right);
+  return a.some((token) => b.includes(token));
+}
+
+function findOpponent(name, tour) {
+  const tokens = oppTokens(name);
+  const teams = (data.opponents && data.opponents.teams) || [];
+  let best = null;
+  let bestScore = 0;
+  teams.forEach((team) => {
+    const theirs = oppTokens(team.name);
+    if (!tokensCompatible(tokens, theirs)) return;
+    const shared = tokens.filter((token) => theirs.includes(token)).length;
+    let score = shared;
+    if (tour && team.tournament === tour) score += 5;
+    if (oppTokens(team.name).join(" ") === tokens.join(" ")) score += 3;
+    if (!best || score > bestScore) {
+      best = team;
+      bestScore = score;
+    }
+  });
+  return best;
+}
+
+function oppButton(name, tour) {
+  const clean = String(name || "").trim();
+  if (!clean || /^росток-2014$/i.test(clean)) return esc(clean);
+  const label = `Кратко о сопернике ${clean}`;
+  return `<button type="button" class="opp-link" data-opp="${esc(clean)}" data-tour="${esc(tour || "")}" aria-label="${esc(label)}">${esc(clean)}</button>`;
+}
+
 function collectFixtures() {
   const items = [];
   ((data.season && data.season.matches) || []).forEach((match) => {
@@ -928,7 +1040,7 @@ function renderUpcomingCard(item) {
   const place = item.arena ? `зал «${item.arena}»` : "";
   return `<article class="fixture">
     <p class="fixture-when"><b>${esc(fixtureWhen(item, false))}</b>${item.time ? `<span>${esc(item.time)}</span>` : ""}</p>
-    <p class="fixture-opp">${esc(item.opponent)}</p>
+    <p class="fixture-opp">${oppButton(item.opponent, item.tour)}</p>
     <p class="fixture-meta"><span class="chip">${esc(item.tour)}</span>${place ? `<span>${esc(place)}</span>` : ""}</p>
   </article>`;
 }
@@ -947,8 +1059,13 @@ function renderUpcomingBlock(limit) {
 function renderUpcomingLine() {
   const items = upcomingFixtures().slice(0, 2);
   if (!items.length) return "";
-  const text = items.map((item) => fixtureLine(item, true)).join(" · ");
-  return `<p class="next-line"><a href="team.html#upcoming">${esc(text)}</a></p>`;
+  const bits = items
+    .map((item) => {
+      const when = [fixtureWhen(item, true), item.time].filter(Boolean).join(", ");
+      return `${esc(item.tour)}: ${esc(when)}, ${oppButton(item.opponent, item.tour)}`;
+    })
+    .join(" · ");
+  return `<p class="next-line">${bits}</p>`;
 }
 
 function standingSummary(label, standings, playedInCalendar) {
@@ -964,7 +1081,8 @@ function standingSummary(label, standings, playedInCalendar) {
 
 function renderStandingFold(id, summary, standings) {
   if (!standings || !standings.rows || !standings.rows.length) return "";
-  return `<details class="fold" id="${id}"><summary>${esc(summary)}</summary>${objectTable(standings.columns, standings.rows, "standings")}</details>`;
+  const kind = id === "standings-u14" ? "standings standings-u14" : "standings standings-mos";
+  return `<details class="fold" id="${id}"><summary>${esc(summary)}</summary>${objectTable(standings.columns, standings.rows, kind)}</details>`;
 }
 
 function renderStandingsFolds() {
@@ -989,7 +1107,7 @@ function renderPlayedMatch(item) {
   const result = String(item.detail || "").split(".").slice(1).join(".").replace(/\s+/g, " ").trim();
   return `<article class="match-row">
     <div>
-      <h3>${esc(item.opponent)}</h3>
+      <h3>${oppButton(item.opponent, item.tour)}</h3>
       <p>${esc(fixtureWhen(item, false))}${item.time ? `, ${esc(item.time)}` : ""}${item.arena ? ` · зал «${esc(item.arena)}»` : ""}</p>
       ${result ? `<p>${esc(result)}</p>` : ""}
       ${review}
@@ -1001,7 +1119,7 @@ function renderPlayedMatch(item) {
 function renderPlayedBlock() {
   const items = playedFixtures();
   const visible = items.slice(0, 4);
-  const hidden = items.slice(5);
+  const hidden = items.slice(4);
   const more = hidden.length
     ? `<p class="more-row"><button type="button" class="quiet-button" id="show-played" data-count="${hidden.length}">Показать ещё (${hidden.length})</button></p><div id="all-played" hidden>${hidden.map(renderPlayedMatch).join("")}</div>`
     : "";
@@ -1372,14 +1490,15 @@ function gameStamp(tournament, row, index) {
 
 function mamaArticle(tournament, row) {
   const parts = scoreParts(row.score);
+  const who = oppButton(row.opponent, tourLabel(tournament));
   const title = row.date
-    ? `${fullDate(row.date)} · ${row.opponent}`
-    : `${row.stage ? `${row.stage} · ` : ""}${row.opponent}`;
+    ? `${esc(fullDate(row.date))} · ${who}`
+    : `${row.stage ? `${esc(row.stage)} · ` : ""}${who}`;
   const plus = row.aiMama || "";
   const limited = row.minutes == null && row.fg2 == null ? `<p class="caption">Других цифр в протоколе этой лиги нет.</p>` : "";
   const mvp = isMvpMatch(row) ? ` ${mvpBadgeHtml()}` : "";
   return `<article class="review">
-    <h3>${esc(title)} ${resultBadge(parts.kind, parts.word)}${mvp}</h3>
+    <h3>${title} ${resultBadge(parts.kind, parts.word)}${mvp}</h3>
     <p>${esc(mamaFacts(row))}</p>
     ${shareLine(row)}
     ${limited}
@@ -1390,7 +1509,7 @@ function mamaArticle(tournament, row) {
 function pendingArticle(pending) {
   if (!pending || !pending.title) return "";
   const plus = pending.plus ? `<p class="plus"><span>Что порадовало:</span> ${esc(pending.plus)}</p>` : "";
-  return `<article class="review"><h3>${esc(pending.title)}</h3><p>${esc(pending.text || "Личного протокола пока нет.")}</p>${plus}</article>`;
+  return `<article class="review"><h3>${linkOppInText(pending.title, "")}</h3><p>${esc(pending.text || "Личного протокола пока нет.")}</p>${plus}</article>`;
 }
 
 function mamaTokens(text) {
@@ -1540,7 +1659,7 @@ function renderLast() {
     ${unofficialPlaque()}
     ${block.notice ? `<p class="caption">${esc(block.notice)}</p>` : ""}
     <p class="caption">${esc(block.caption)}</p>
-    ${facts(block.facts)}
+    ${facts(block.facts, tourLabel(tournament))}
     ${scoreCards(block.columns, block.rows)}
     ${arrayTable(block.columns, block.rows)}
     ${row ? ratioLine(row) : ""}
@@ -1664,7 +1783,7 @@ function loggedOpponent(name) {
 }
 
 function compactLogCard(tournament, row) {
-  const title = [row.date, row.opponent].filter(Boolean).join(" · ");
+  const title = [row.date ? esc(row.date) : "", row.opponent ? oppButton(row.opponent, tourLabel(tournament)) : ""].filter(Boolean).join(" · ");
   const points = row.points == null ? "" : formatCell(row.points, false);
   const bits = [];
   if (row.minutes) bits.push(`${row.minutes} мин`);
@@ -1673,7 +1792,7 @@ function compactLogCard(tournament, row) {
   if (row.turnovers != null) bits.push(`${formatPlain(row.turnovers)} потер.`);
   const review = row.aiReview ? `<p class="game-review">${esc(row.aiReview)}</p>` : "";
   const mvp = isMvpMatch(row) ? ` ${mvpBadgeHtml()}` : "";
-  return `<details class="game-card"><summary><span>${esc(title)}${mvp}</span><b>${points}</b></summary><p class="game-score">${scoreHtml(row.score)}</p><p class="caption">${esc(bits.join(" · "))}${tournament.label ? ` · ${esc(tournament.label)}` : ""}</p>${review}</details>`;
+  return `<details class="game-card"><summary><span>${title}${mvp}</span><b>${points}</b></summary><p class="game-score">${scoreHtml(row.score)}</p><p class="caption">${esc(bits.join(" · "))}${tournament.label ? ` · ${esc(tournament.label)}` : ""}</p>${review}</details>`;
 }
 
 function renderCurrentSeason() {
@@ -1981,6 +2100,18 @@ function openTerm(node) {
   pop.style.left = `${left}px`;
   pop.style.top = `${top}px`;
 }
+
+document.addEventListener(
+  "click",
+  (event) => {
+    const opp = event.target.closest("[data-opp]");
+    if (!opp) return;
+    event.preventDefault();
+    event.stopPropagation();
+    openOpponent(opp.getAttribute("data-opp") || "", opp.getAttribute("data-tour") || "");
+  },
+  true
+);
 
 document.addEventListener("click", (event) => {
   const syncButton = event.target.closest("[data-sync]");
@@ -3200,13 +3331,35 @@ function ensureSheets() {
         </div>
       </form>
     </div>`;
+  const opp = document.createElement("div");
+  opp.id = "opp-sheet";
+  opp.className = "sheet";
+  opp.hidden = true;
+  opp.setAttribute("data-noswipe", "");
+  opp.innerHTML = `<div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="opp-sheet-title">
+      <h2 id="opp-sheet-title">Соперник</h2>
+      <p class="caption" data-opp-meta></p>
+      <p data-opp-summary></p>
+      <p class="opp-strip" data-opp-strip hidden></p>
+      <h3 class="sheet-sub" data-opp-recent-title hidden>Последние игры</h3>
+      <ul class="opp-list" data-opp-recent hidden></ul>
+      <h3 class="sheet-sub">Встречи с «Ростоком-2014»</h3>
+      <div data-opp-h2h></div>
+      <div class="sheet-actions">
+        <button type="button" class="is-off" data-sheet-close>Закрыть</button>
+      </div>
+    </div>`;
   document.body.appendChild(body);
   document.body.appendChild(sync);
+  document.body.appendChild(opp);
   body.addEventListener("click", (event) => {
     if (event.target === body) closeSheets();
   });
   sync.addEventListener("click", (event) => {
     if (event.target === sync) closeSheets();
+  });
+  opp.addEventListener("click", (event) => {
+    if (event.target === opp) closeSheets();
   });
   document.getElementById("body-form").addEventListener("submit", (event) => {
     event.preventDefault();
@@ -3235,6 +3388,113 @@ function ensureSheets() {
   document.querySelectorAll("[data-sheet-close]").forEach((button) => {
     button.addEventListener("click", () => closeSheets());
   });
+}
+
+function kostyaLine(row) {
+  if (!row) return "";
+  const bits = [];
+  if (row.points != null) bits.push(ruCount(row.points, "очко", "очка", "очков"));
+  if (row.minutes) bits.push(String(row.minutes));
+  if (row.rebounds != null) bits.push(ruCount(row.rebounds, "подбор", "подбора", "подборов"));
+  if (row.assists != null) bits.push(ruCount(row.assists, "передача", "передачи", "передач"));
+  if (!bits.length) return "";
+  return `Костя: ${bits.join(", ")}`;
+}
+
+function headToHead(name) {
+  const hits = [];
+  const seen = new Set();
+  const push = (item) => {
+    const pair = (String(item.score || "").match(/(\d+)\s*:\s*(\d+)/) || []).slice(1).join(":");
+    const who = oppTokens(item.opponent).filter((token) => token.length >= 4).slice(0, 2).join("-");
+    const key = `${who}|${pair}`;
+    if (!who || seen.has(key)) return;
+    seen.add(key);
+    hits.push(item);
+  };
+  (data.gameLogs.tournaments || []).forEach((tournament) => {
+    tournament.rows.forEach((row, index) => {
+      if (!tokensCompatible(oppTokens(name), oppTokens(row.opponent))) return;
+      push({
+        date: row.date || row.stage || "",
+        opponent: row.opponent,
+        score: String(row.score || ""),
+        tour: tourLabel(tournament) || tournament.label || "",
+        note: kostyaLine(row),
+        stamp: gameStamp(tournament, row, index),
+      });
+    });
+  });
+  const calendars = [
+    [data.season && data.season.matches, "Первенство Москвы"],
+    [data.u14Schedule && data.u14Schedule.matches, "МЛБЛ U14"],
+  ];
+  calendars.forEach(([matches, tour]) => {
+    (matches || []).forEach((match) => {
+      if (match.status === "Ещё не сыгран") return;
+      const opponent = opponentFromTitle(match.title);
+      if (!tokensCompatible(oppTokens(name), oppTokens(opponent))) return;
+      const detail = String(match.detail || "");
+      const scored = detail.match(/счёт\s+(\d+)\s*:\s*(\d+)/i) || detail.match(/(\d+)\s*:\s*(\d+)\s*,\s*(?:победа|поражение)/i) || detail.match(/(?:победа|поражение)\s+(\d+)\s*:\s*(\d+)/i);
+      const score = scored ? `${scored[1]}:${scored[2]}` : "";
+      if (!score && !/победа|поражение/i.test(detail)) return;
+      const note = /очк/i.test(match.status || "") ? match.status : "";
+      push({
+        date: (detail.split(",")[0] || "").trim(),
+        opponent,
+        score,
+        tour,
+        note,
+        stamp: russianDateStamp(detail) || russianDateStamp(match.title) || 0,
+      });
+    });
+  });
+  hits.sort((a, b) => (b.stamp || 0) - (a.stamp || 0));
+  return hits.slice(0, 5);
+}
+
+function openOpponent(name, tour) {
+  ensureSheets();
+  const sheet = document.getElementById("opp-sheet");
+  const team = findOpponent(name, tour);
+  const title = document.getElementById("opp-sheet-title");
+  const meta = sheet.querySelector("[data-opp-meta]");
+  const summary = sheet.querySelector("[data-opp-summary]");
+  const strip = sheet.querySelector("[data-opp-strip]");
+  const recentTitle = sheet.querySelector("[data-opp-recent-title]");
+  const recent = sheet.querySelector("[data-opp-recent]");
+  const h2h = sheet.querySelector("[data-opp-h2h]");
+  title.textContent = team ? team.name : name;
+  const metaBits = [];
+  if (team && team.city) metaBits.push(team.city);
+  metaBits.push((team && team.tournament) || tour || "");
+  meta.textContent = metaBits.filter(Boolean).join(" · ");
+  if (team && team.summary) summary.textContent = team.summary;
+  else summary.textContent = "В таблицах сезона 2026/27 этой команды нет.";
+  if (team && team.played) {
+    const scored = team.scoredAvg == null ? "" : `${formatAvg(team.scoredAvg)} забитых`;
+    const conceded = team.concededAvg == null ? "" : `${formatAvg(team.concededAvg)} пропущенных`;
+    strip.hidden = false;
+    strip.textContent = [`${team.place}-е место`, `${team.wins}В–${team.losses}П`, scored, conceded].filter(Boolean).join(" · ");
+  } else {
+    strip.hidden = true;
+    strip.textContent = "";
+  }
+  const games = (team && team.recent) || [];
+  recentTitle.hidden = !games.length;
+  recent.hidden = !games.length;
+  recent.innerHTML = games
+    .map((game) => `<li><b>${esc(fullDate(game.date))}</b> · ${esc(game.opponent)} · ${esc(game.score)}, ${esc(game.result)}</li>`)
+    .join("");
+  const meetings = headToHead(team ? team.name : name);
+  h2h.innerHTML = meetings.length
+    ? `<ul class="opp-list">${meetings
+        .map((item) => `<li><b>${esc(item.date)}</b>${item.tour ? ` · ${esc(item.tour)}` : ""}${item.score ? ` · ${esc(item.score)}` : ""}${item.note ? `<br>${esc(item.note)}` : ""}</li>`)
+        .join("")}</ul>`
+    : `<p class="caption">Очных игр с «Ростоком-2014» в базе пока нет.</p>`;
+  sheet.hidden = false;
+  const close = sheet.querySelector("[data-sheet-close]");
+  if (close) close.focus();
 }
 
 function closeSheets() {
