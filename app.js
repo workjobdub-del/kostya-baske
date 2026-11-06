@@ -751,7 +751,7 @@ function heroStats() {
     ${updatedLine()}`;
 }
 
-const ASSET_V = "2026-11-06-06";
+const ASSET_V = "2026-11-06-07";
 const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
 const ICON_REFRESH = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>`;
 const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
@@ -1003,7 +1003,7 @@ function findOpponent(name, tour) {
 
 function oppButton(name, tour) {
   const clean = String(name || "").trim();
-  if (!clean || /^росток-2014$/i.test(clean)) return esc(clean);
+  if (!clean || /^росток-2014$/i.test(clean) || !findOpponent(clean, tour)) return esc(clean);
   const label = `Кратко о сопернике ${clean}`;
   return `<button type="button" class="opp-link" data-opp="${esc(clean)}" data-tour="${esc(tour || "")}" aria-label="${esc(label)}">${esc(clean)}</button>`;
 }
@@ -1379,31 +1379,266 @@ function renderBioFold() {
   return `<details class="fold" id="bio"><summary>Коротко об игроке</summary><ul class="bio-strip">${bio}</ul></details>`;
 }
 
-function renderCareerPage() {
-  const career = collectCareer();
-  if (!career.best) {
-    career.best = { points: 0, opponent: "", tournament: "", when: "" };
+function careerTotals() {
+  let games = 0;
+  let points = 0;
+  let best = null;
+  const seen = new Set();
+  const noteBest = (value, opponent, tournament, when) => {
+    if (!best || value > best.points) best = { points: value, opponent, tournament, when };
+  };
+  (data.gameLogs.tournaments || []).forEach((tournament) => {
+    tournament.rows.forEach((row) => {
+      const value = Number(row.points);
+      if (!Number.isFinite(value)) return;
+      games += 1;
+      points += value;
+      if (row.gameId != null) seen.add(String(row.gameId));
+      noteBest(value, row.opponent || "", tournament.label || "", row.date || row.stage || "");
+    });
+  });
+  let manualGames = 0;
+  Object.values(data.manualGames || {}).forEach((game) => {
+    if (game.gameId != null && seen.has(String(game.gameId))) return;
+    const value = Number(game.points);
+    if (!Number.isFinite(value)) return;
+    games += 1;
+    manualGames += 1;
+    points += value;
+    noteBest(value, opponentFromTitle(game.title), game.logId || "", game.date || "");
+  });
+  return { games, points, best, manualGames };
+}
+
+function logForSeason(season) {
+  const logs = (data.gameLogs && data.gameLogs.tournaments) || [];
+  const alias = { "mlbl-u12": "u12" };
+  const id = alias[season.id] || season.id;
+  const byId = id ? logs.find((item) => item.id === id) : null;
+  if (byId) return byId;
+  const name = season.name || "";
+  if (/Движение/.test(name)) return logs.find((item) => item.id === "mu") || null;
+  if (/Быстрый/.test(name)) return logs.find((item) => item.id === "fb") || null;
+  return null;
+}
+
+function manualForSeason(season) {
+  const log = logForSeason(season);
+  const known = new Set((log ? log.rows : []).map((row) => String(row.gameId || "")));
+  return Object.values(data.manualGames || {}).filter((game) => {
+    if (season.id && game.logId && game.logId !== season.id) return false;
+    if (!season.id && game.logId) return false;
+    if (game.gameId != null && known.has(String(game.gameId))) return false;
+    return Number.isFinite(Number(game.points));
+  });
+}
+
+function tourTitle(season) {
+  return String(season.name || "")
+    .replace(/^\d{4}\/\d{2},?\s*/, "")
+    .replace(/,?\s*(Росток(?:-2014)?|Зоркий).*$/i, "")
+    .replace(/\(Мосбаскет\)/g, "")
+    .replace(/,?\s*26\/27/g, "")
+    .replace(/\s+/g, " ")
+    .replace(/\s*,\s*$/, "")
+    .trim();
+}
+
+function clubName(seasons) {
+  const blob = seasons.map((season) => season.name).join(" ");
+  if (/Зоркий/.test(blob) && !/Росток/.test(blob)) return "Зоркий";
+  if (/Росток/.test(blob)) return "Росток-2014";
+  return (data.player && data.player.team) || "";
+}
+
+function groupCareerSeasons() {
+  const groups = new Map();
+  (data.tournamentStats.seasons || []).forEach((season) => {
+    const year = seasonYear(season.name) || "сезон";
+    if (!groups.has(year)) groups.set(year, []);
+    groups.get(year).push(season);
+  });
+  return [...groups.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1));
+}
+
+function formatStep(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "";
+  return num < 0 ? formatPlusMinus(num) : formatAvg(num);
+}
+
+function trendStepBadges() {
+  const view = ((data.trend && data.trend.views) || []).find((item) => item.id === "avg");
+  if (!view) return [];
+  const before = (view.series || []).find((item) => /Быстрый/.test(item.name));
+  const after = (view.series || []).find((item) => /U12/.test(item.name) && /2025/.test(item.name));
+  if (!before || !after) return [];
+  return ["Подборы", "Передачи", "Перехваты", "КПИ"]
+    .map((label) => {
+      const index = view.categories.indexOf(label);
+      if (index < 0) return "";
+      return `${label} ${formatStep(before.values[index])} → ${formatStep(after.values[index])}`;
+    })
+    .filter(Boolean);
+}
+
+function seasonMilestones(year, seasons) {
+  const badges = [];
+  if (year === groupCareerSeasons()[groupCareerSeasons().length - 1][0]) badges.push("Первый сезон в базе");
+  if (seasons.some((season) => season.id === "mos2627" || season.id === "u14circ2627")) {
+    const texts = [];
+    Object.values(data.manualGames || {}).forEach((game) => {
+      if (game.aiReview) texts.push(game.aiReview);
+      if (game.aiMama) texts.push(game.aiMama);
+      if (Number.isFinite(Number(game.points))) {
+        badges.push(`${game.points} очков против ${opponentFromTitle(game.title)} в Первенстве Москвы`);
+      }
+    });
+    const u14 = (data.gameLogs.tournaments || []).find((item) => item.id === "u14circ2627");
+    (u14 ? u14.rows : []).forEach((row) => {
+      if (row.aiReview) texts.push(row.aiReview);
+    });
+    if (/перелом/i.test(texts.join(" "))) badges.unshift("Возвращение на паркет после перелома");
+    if (u14 && u14.rows.length) badges.push("Дебют в МЛБЛ U14");
   }
-  const lede = `${esc(ruCount(career.games, "игра", "игры", "игр"))}, ${esc(ruCount(career.points, "очко", "очка", "очков"))}.`;
-  document.getElementById("app").innerHTML = `${pageHead("Карьера", lede)}
+  const achievement = (data.achievements || []).find((item) => String(item.detail || "").includes(year.slice(0, 4)) || /U12/.test(item.detail || ""));
+  if (achievement && /2025\/26/.test(year)) badges.push(`${achievement.value}-е место · ${achievement.detail}`);
+  if (/2025\/26/.test(year)) badges.push(...trendStepBadges());
+  const rise = seasons.find((season) => /Движение/.test(season.name));
+  if (rise) {
+    const log = logForSeason(rise);
+    const best = (log ? log.rows : []).reduce((top, row) => {
+      const value = Number(row.points);
+      if (!Number.isFinite(value)) return top;
+      return !top || value > top.points ? row : top;
+    }, null);
+    if (best) badges.push(`Рекорд ${best.points} очков против ${best.opponent || "соперника"}`);
+    badges.push(`${formatAvg(rise.points)} очка за игру`);
+    badges.push(`${formatAvg(rise.steals)} перехвата`);
+    const percent = String(rise.fg2 || "").match(/(\d+)%/);
+    if (percent) badges.push(`${percent[1]}% двухочковых`);
+  }
+  return [...new Set(badges)].slice(0, 6);
+}
+
+function manualTournament(season, games) {
+  return {
+    id: season.id || "manual",
+    label: tourTitle(season),
+    columns: [
+      { key: "date", label: "Дата" },
+      { key: "opponent", label: "Соперник" },
+      { key: "score", label: "Счёт" },
+      { key: "points", label: "Очки" },
+    ],
+    rows: games.map((game) => {
+      const score = (String(game.detail || "").match(/(\d+)\s*:\s*(\d+)/) || []).slice(1);
+      return {
+        date: game.date || "",
+        opponent: opponentFromTitle(game.title),
+        score: score.length ? `${score[0]}:${score[1]}` : "",
+        points: Number(game.points),
+        aiReview: game.aiReview || "",
+        aiMama: game.aiMama || "",
+      };
+    }),
+  };
+}
+
+function mergedTournament(season) {
+  const log = logForSeason(season);
+  const extra = manualForSeason(season);
+  if (!extra.length) return log;
+  const manual = manualTournament(season, extra);
+  if (!log) return manual;
+  return {
+    ...log,
+    rows: manual.rows.concat(log.rows),
+  };
+}
+
+function timelineTourCard(season) {
+  const games = String(season.games || "").match(/(\d+)\s*\((\d+)\)/);
+  const protocolGames = games ? Number(games[1]) : Number(season.protocolGames || 0);
+  const manual = manualForSeason(season);
+  const manualPoints = manual.map((game) => Number(game.points)).filter((value) => Number.isFinite(value));
+  const waiting = protocolGames === 0 && manualPoints.length > 0;
+  const pointsShown = waiting ? String(manualPoints[0]) : protocolGames === 0 ? "—" : esc(formatAvg(season.points));
+  const gamesText = waiting
+    ? "учтённая игра без официального протокола"
+    : protocolGames === 0
+      ? "личного протокола пока нет"
+      : games && games[1] === games[2]
+        ? `${games[1]} игр, все с протоколом`
+        : games
+          ? `${games[1]} игр, ${games[2]} в старте`
+          : `${season.games} игр`;
+  const minutes = waiting || protocolGames === 0 || season.minutes === "—" ? "" : `${season.minutes} мин в среднем`;
+  const stats = waiting || protocolGames === 0
+    ? ""
+    : `<ul class="tour-stats">
+        <li><b>${formatAvg(season.rebounds)}</b> ${term("Подб")}</li>
+        <li><b>${formatAvg(season.assists)}</b> ${term("Пер")}</li>
+        <li><b>${formatAvg(season.steals)}</b> ${term("Перехв")}</li>
+        <li><b>${formatAvg(season.turnovers)}</b> ${term("Потери")}</li>
+        ${season.kpiPerGame != null ? `<li><b>${formatPlain(season.kpiPerGame)}</b> ${term("КПИ")}</li>` : ""}
+        ${season.plusMinusPerGame != null ? `<li>${formatPlusMinusCell(season.plusMinusPerGame)} ${term("+/-")}</li>` : ""}
+      </ul>
+      <p class="shoot-lines">${shotPhrase("2-очк.", season.fg2)}${shotPhrase("3-очк.", season.fg3)}${shotPhrase("Штраф", season.ft)}</p>`;
+  const tournament = mergedTournament(season);
+  const count = tournament ? tournament.rows.length : 0;
+  const matches = count
+    ? `<details class="tour-matches"><summary>Матчи турнира · ${ruCount(count, "игра", "игры", "игр")}</summary>${gameCards(tournament)}${objectTable(tournament.columns, tournament.rows, "only-desk")}</details>`
+    : "";
+  const note = waiting ? `<p class="caption">${esc(manual[0].status || "Официального протокола пока нет.")}</p>` : "";
+  return `<article class="tour-card${waiting ? " is-live" : ""}">
+    <h3>${esc(tourTitle(season))}</h3>
+    <strong>${pointsShown}</strong>
+    <span>${esc(gamesText)}${minutes ? ` · ${esc(minutes)}` : ""}</span>
+    ${note}
+    ${stats}
+    ${matches}
+  </article>`;
+}
+
+function renderCareerPage() {
+  const totals = careerTotals();
+  const best = totals.best || { points: "—", opponent: "", tournament: "", when: "" };
+  const achievement = (data.achievements || [])[0];
+  const bestDetail = [best.opponent, best.tournament].filter(Boolean).join(" · ");
+  const gamesDetail = totals.manualGames
+    ? `${totals.games - totals.manualGames} в журналах и ${totals.manualGames} учтённая без протокола`
+    : "Все матчи из журналов";
+  const groups = groupCareerSeasons();
+  const timeline = groups
+    .map(([year, seasons], index) => {
+      const current = index === 0;
+      const milestones = seasonMilestones(year, seasons)
+        .map((item) => `<li>${esc(item)}</li>`)
+        .join("");
+      return `<li class="timeline-season${current ? " is-now" : ""}">
+        <div class="timeline-marker" aria-hidden="true"></div>
+        <div class="timeline-body">
+          ${current ? `<p class="timeline-kicker">Сейчас</p>` : ""}
+          <h2>${esc(year)} · ${esc(clubName(seasons))}</h2>
+          ${milestones ? `<ul class="milestones">${milestones}</ul>` : ""}
+          <div class="tour-list">${seasons.map(timelineTourCard).join("")}</div>
+        </div>
+      </li>`;
+    })
+    .join("");
+  document.getElementById("app").innerHTML = `${pageHead("Карьера", "Сезоны сверху вниз.")}
     ${updatedLine()}
     <section class="block" id="kpis">
-      <h2>За всё время</h2>
-      <p class="caption">Цифры из журналов матчей и средних. Отдельный рейтинг не придумываем.</p>
-      ${renderCareerCards(career)}
+      <h2>Рекорды</h2>
+      <div class="record-grid">
+        ${kpiCard(String(totals.games), "Игры", gamesDetail)}
+        ${kpiCard(String(totals.points), "Очки", "Сумма из журналов и учтённых игр")}
+        ${kpiCard(String(best.points), "Лучшая игра", bestDetail)}
+        ${kpiCard(achievement ? String(achievement.value) : "—", "Место", achievement ? `${achievement.value}-е место · ${achievement.detail}` : "")}
+      </div>
     </section>
-    <section class="block" id="seasons">
-      <h2>Турниры</h2>
-      <p class="caption">${esc(data.tournamentStats.caption)} ${esc(PLUS_MINUS_HINT)}</p>
-      ${renderSeasonCards()}
-      ${objectTable(careerSeasonColumns(), data.tournamentStats.seasons, "only-desk career-season-table")}
-    </section>
-    <section class="block" id="meters">
-      <h2>Сравнение средних</h2>
-      <p class="caption">Полоска — доля от лучшего среднего в этих турнирах (для +/− — от наибольшего по модулю). Это не оценка от 0 до 99.</p>
-      <div class="meter-grid">${renderMeters()}</div>
-    </section>
-    ${renderGamesSection()}
+    <ol class="timeline" id="timeline">${timeline}</ol>
     ${renderBioFold()}
     ${renderSources()}`;
 }
@@ -1980,8 +2215,8 @@ function render() {
 }
 
 const REVEAL =
-  ".block, .ticker, .kpi, .season-card, .meter-block, .review, .news-card, .fact, .bio-strip li, .match-row, .source-card, .panel";
-const COUNT = ".kpi b, .shield strong, .season-card strong, .hero-stat b";
+  ".block, .ticker, .kpi, .season-card, .timeline-season, .meter-block, .review, .news-card, .fact, .bio-strip li, .match-row, .source-card, .panel";
+const COUNT = ".kpi b, .shield strong, .season-card strong, .tour-card strong, .hero-stat b";
 let revealer = null;
 
 function motionOk() {
@@ -2032,6 +2267,12 @@ function animateIn() {
     const index = parent ? Array.prototype.indexOf.call(parent.children, el) : 0;
     el.classList.add("reveal");
     el.style.setProperty("--i", String(Math.min(index, 7)));
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight && rect.bottom > 0) {
+      el.classList.add("in");
+      if (el.matches(COUNT)) countUp(el);
+      el.querySelectorAll(COUNT).forEach(countUp);
+    }
     revealer.observe(el);
   });
   root.querySelectorAll(".player-card .shield strong, .hero-stat b").forEach(countUp);
