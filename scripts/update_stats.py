@@ -971,6 +971,243 @@ def parse_u14_standings(payload):
     return rows
 
 
+def _fmt_num(value) -> str:
+    number = round(float(value) + 1e-9, 1)
+    if abs(number - round(number)) < 0.05:
+        return str(int(round(number)))
+    return f"{number:.1f}".replace(".", ",")
+
+
+def _avg(item) -> tuple:
+    table = item.get("Standings") or {}
+    plus = table.get("AvgGoalPlus")
+    minus = table.get("AvgGoalMinus")
+    played = table.get("StandingGame")
+    if not isinstance(played, int) or played <= 0:
+        return None, None
+    if not isinstance(plus, (int, float)):
+        scored = table.get("StandingGoalPlus")
+        plus = scored / played if isinstance(scored, int) else None
+    if not isinstance(minus, (int, float)):
+        conceded = table.get("StandingGoalMinus")
+        minus = conceded / played if isinstance(conceded, int) else None
+    if not isinstance(plus, (int, float)) or not isinstance(minus, (int, float)):
+        return None, None
+    return round(float(plus) + 1e-9, 1), round(float(minus) + 1e-9, 1)
+
+
+def _team_name(item, *, u14: bool) -> str:
+    raw = str(((item.get("CompTeamName") or {}).get("CompTeamShortNameRu")) or "").strip()
+    if u14:
+        if item.get("TeamID") == U14_TEAM_ID:
+            return U14_OUR_NAME
+        return normalize_u14_side(raw, our_team=False)
+    return raw
+
+
+def _recent_games(item, names, *, u14: bool) -> list:
+    games = []
+    for result in item.get("Results") or []:
+        if not isinstance(result, dict):
+            continue
+        when = parse_ru_date(str(result.get("GameDate") or ""))
+        score_a, score_b = result.get("ScoreA"), result.get("ScoreB")
+        if not when or not isinstance(score_a, int) or not isinstance(score_b, int):
+            continue
+        if result.get("IsFirstTeam"):
+            opp_id = result.get("TeamBid")
+            ours, theirs = score_a, score_b
+        else:
+            opp_id = result.get("TeamAid")
+            ours, theirs = score_b, score_a
+        opponent = names.get(opp_id) or ""
+        if not opponent:
+            continue
+        word = "победа" if result.get("IsWon") else "поражение" if result.get("IsLost") else result_word(ours, theirs)
+        games.append(
+            {
+                "date": short_date(when),
+                "opponent": opponent,
+                "score": f"{ours}:{theirs}",
+                "result": word,
+                "_when": when,
+            }
+        )
+    games.sort(key=lambda row: row["_when"], reverse=True)
+    for row in games:
+        del row["_when"]
+    return games[:3]
+
+
+def _form_sentence(recent: list) -> str:
+    last = recent[:3]
+    if not last:
+        return ""
+    wins = sum(1 for item in last if item.get("result") == "победа")
+    count = len(last)
+    if count == 1:
+        return f"Последняя игра в турнире — {last[0]['result']}."
+    word = {2: "две", 3: "три"}.get(count, str(count))
+    if wins == count:
+        return f"Последние {word} игры в турнире выиграла."
+    if wins == 0:
+        return f"Последние {word} игры в турнире проиграла."
+    win_word = "победа" if wins == 1 else "победы" if 2 <= wins <= 4 else "побед"
+    return f"Из {count} последних игр в турнире — {wins} {win_word}."
+
+
+def _style_sentence(scored, conceded, mean_scored, mean_conceded) -> str:
+    if scored is None or conceded is None or mean_scored is None or mean_conceded is None:
+        return ""
+    line = f"В среднем {_fmt_num(scored)} забитых и {_fmt_num(conceded)} пропущенных за игру."
+    hot_attack = scored >= mean_scored + 8
+    cold_attack = scored <= mean_scored - 8
+    hot_defense = conceded >= mean_conceded + 8
+    cold_defense = conceded <= mean_conceded - 8
+    if hot_attack and hot_defense:
+        tone = "Игры результативные: и забивает, и пропускает больше среднего по турниру."
+    elif cold_attack and cold_defense:
+        tone = "Игра вязкая: и забивает, и пропускает меньше среднего по турниру."
+    else:
+        attack = "В атаке около среднего по турниру"
+        if hot_attack:
+            attack = "Атака результативнее среднего по турниру"
+        elif cold_attack:
+            attack = "Атака скромнее среднего по турниру"
+        defense = "защита около среднего"
+        if cold_defense:
+            defense = "защита держит лучше среднего"
+        elif hot_defense:
+            defense = "защита пропускает больше среднего"
+        tone = f"{attack}, {defense}."
+    diff = scored - conceded
+    if diff >= 15:
+        tone += " Разница мячей крупная, в плюсе."
+    elif diff <= -15:
+        tone += " Пропускает заметно больше, чем забивает."
+    return f"{line} {tone}"
+
+
+def _ru_count(number: int, one: str, few: str, many: str) -> str:
+    value = abs(int(number))
+    if value % 10 == 1 and value % 100 != 11:
+        word = one
+    elif 2 <= value % 10 <= 4 and not 12 <= value % 100 <= 14:
+        word = few
+    else:
+        word = many
+    return f"{value} {word}"
+
+
+def _place_sentence(place, total, wins, losses, played) -> str:
+    if played <= 0:
+        return "В официальной таблице этого турнира у команды пока 0 игр. Средние и серию считать рано."
+    wins_text = _ru_count(wins, "победа", "победы", "побед")
+    losses_text = _ru_count(losses, "поражение", "поражения", "поражений")
+    balance = f"{wins_text} и {losses_text}"
+    if place == 1 and losses == 0:
+        return f"Сейчас лидер турнира, без поражений: {wins_text}."
+    if place == 1:
+        return f"Сейчас на первом месте: {balance}."
+    if place <= 3:
+        return f"Держится в верхней части таблицы, {place}-е место: {balance}."
+    if total and place >= max(total - 2, 1):
+        return f"Идёт в нижней части таблицы, {place}-е место из {total}: {balance}."
+    if losses == 0:
+        return f"{place}-е место из {total}, пока без поражений: {wins_text}."
+    return f"В середине таблицы, {place}-е место из {total}: {balance}."
+
+
+def opponent_cards(payload, tournament: str, *, u14: bool) -> list:
+    if not isinstance(payload, list) or len(payload) < 2:
+        raise ValueError("opponents")
+    names = {}
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        names[item.get("TeamID")] = _team_name(item, u14=u14)
+    averages = [pair for pair in (_avg(item) for item in payload if isinstance(item, dict)) if pair[0] is not None]
+    mean_scored = round(sum(pair[0] for pair in averages) / len(averages), 1) if averages else None
+    mean_conceded = round(sum(pair[1] for pair in averages) / len(averages), 1) if averages else None
+    total = len(payload)
+    cards = []
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        team_id = item.get("TeamID")
+        if u14 and team_id == U14_TEAM_ID:
+            continue
+        if not u14 and team_id == TEAM_ID:
+            continue
+        name = names.get(team_id) or ""
+        if not name or name == U14_OUR_NAME:
+            continue
+        table = item.get("Standings") or {}
+        played = table.get("StandingGame")
+        wins = table.get("StandingWin")
+        losses = table.get("StandingLose")
+        place = item.get("Place")
+        if not all(isinstance(value, int) and value >= 0 for value in (played, wins, losses)) or not isinstance(place, int):
+            continue
+        scored, conceded = _avg(item)
+        recent = _recent_games(item, names, u14=u14)
+        place_line = _place_sentence(place, total, wins, losses, played)
+        style_line = _style_sentence(scored, conceded, mean_scored, mean_conceded) if played else ""
+        form_line = _form_sentence(recent) if played else ""
+        summary = " ".join(part for part in (place_line, style_line, form_line) if part)
+        city = str(((item.get("CompTeamName") or {}).get("CompTeamRegionNameRu")) or "").strip()
+        card = {
+            "name": name,
+            "tournament": tournament,
+            "place": place,
+            "played": played,
+            "wins": wins,
+            "losses": losses,
+            "summary": summary,
+            "recent": recent,
+        }
+        if city:
+            card["city"] = city
+        if scored is not None:
+            card["scoredAvg"] = scored
+            card["concededAvg"] = conceded
+        cards.append(card)
+    cards.sort(key=lambda card: (card["tournament"], card["place"], card["name"]))
+    return cards
+
+
+def refresh_opponents(data, notes) -> None:
+    saved = (data.get("sync") or {}).get("compId") or 153217
+    blocks = []
+    try:
+        moscow = api(f"/Widget/CompTeamResults/{saved}?format=json")
+        blocks.extend(opponent_cards(moscow, "Первенство Москвы", u14=False))
+    except Exception as exc:
+        notes.append(f"соперники: Первенство Москвы не прочитано ({type(exc).__name__})")
+        moscow = None
+    try:
+        u14 = api(f"/Widget/CompTeamResults/{U14_COMP_ID}?format=json")
+        blocks.extend(opponent_cards(u14, "МЛБЛ U14", u14=True))
+    except Exception as exc:
+        notes.append(f"соперники: МЛБЛ U14 не прочитано ({type(exc).__name__})")
+        u14 = None
+    if moscow is None and u14 is None:
+        notes.append("соперники: справочник оставлен прежним")
+        return
+    blob = json.dumps(blocks, ensure_ascii=False)
+    for forbidden in ("424578", "Кириллович", "26.03.2014", "http://", "https://"):
+        if forbidden in blob:
+            notes.append(f"соперники: в тексте оказалось «{forbidden}», справочник не менял")
+            return
+    current = data.get("opponents") if isinstance(data.get("opponents"), dict) else {}
+    fresh = {"teams": blocks}
+    if current.get("teams") != blocks:
+        data["opponents"] = fresh
+        notes.append(f"соперники: карточек {len(blocks)}")
+    else:
+        notes.append("соперники: без изменений")
+
+
 def format_match(game, has_protocol, now, *, away_host_first=False):
     when = f"{game['date'].day} {MONTHS[game['date'].month - 1]}"
     if away_host_first and not game["home"]:
@@ -2223,6 +2460,42 @@ def self_test():
     assert next(row["team"] for row in u14_rows if row["team"].startswith("3.")) == "3. Росток-2013"
     assert next(row["team"] for row in u14_rows if row["team"].startswith("2.")) == "2. Соперник"
     assert "ШВСМ" not in json.dumps(u14_rows, ensure_ascii=False) and "U14" not in json.dumps(u14_rows, ensure_ascii=False)
+    sample_cards = opponent_cards(
+        [
+            {
+                "Place": 1,
+                "TeamID": 5,
+                "CompTeamName": {"CompTeamShortNameRu": "Багратион U14", "CompTeamRegionNameRu": "Можайск"},
+                "Standings": {"StandingGame": 3, "StandingWin": 3, "StandingLose": 0, "StandingPoints": 6, "StandingGoalPlus": 210, "StandingGoalMinus": 120, "AvgGoalPlus": 70, "AvgGoalMinus": 40},
+                "Results": [
+                    {"GameDate": "01.11.2026", "TeamAid": 5, "TeamBid": U14_TEAM_ID, "ScoreA": 80, "ScoreB": 50, "IsFirstTeam": True, "IsWon": True, "IsLost": False},
+                ],
+            },
+            {
+                "Place": 9,
+                "TeamID": U14_TEAM_ID,
+                "CompTeamName": {"CompTeamShortNameRu": "ШВСМ Росток U14", "CompTeamRegionNameRu": "Москва"},
+                "Standings": {"StandingGame": 3, "StandingWin": 1, "StandingLose": 2, "StandingPoints": 4, "StandingGoalPlus": 150, "StandingGoalMinus": 180, "AvgGoalPlus": 50, "AvgGoalMinus": 60},
+                "Results": [],
+            },
+            {
+                "Place": 11,
+                "TeamID": 8,
+                "CompTeamName": {"CompTeamShortNameRu": "Новички U14", "CompTeamRegionNameRu": "Москва"},
+                "Standings": {"StandingGame": 0, "StandingWin": 0, "StandingLose": 0, "StandingPoints": 0, "StandingGoalPlus": 0, "StandingGoalMinus": 0},
+                "Results": [],
+            },
+        ],
+        "МЛБЛ U14",
+        u14=True,
+    )
+    bag = next(card for card in sample_cards if card["name"] == "Багратион")
+    assert bag["city"] == "Можайск" and bag["place"] == 1 and "без поражений" in bag["summary"]
+    assert bag["recent"][0]["opponent"] == "Росток-2014" and bag["recent"][0]["score"] == "80:50"
+    assert all(card["name"] != "Росток-2014" for card in sample_cards)
+    zero = next(card for card in sample_cards if card["name"] == "Новички")
+    assert "0 игр" in zero["summary"] and "scoredAvg" not in zero
+    assert "ШВСМ" not in json.dumps(sample_cards, ensure_ascii=False) and "424578" not in json.dumps(sample_cards, ensure_ascii=False)
     old = [{"title": "Росток-2014 — Гольяново-2014-2", "detail": "По новости клуба команда выиграла 62:37.", "status": "Личного протокола нет"}]
     game = {
         "id": 1,
@@ -2803,6 +3076,7 @@ def main():
     if combined_stats:
         apply_protocols(data, combined_stats, notes)
     refresh_u14_schedule(data, u14_games, notes)
+    refresh_opponents(data, notes)
     sync_fixed_reviews(data)
     apply_manual_games(data, notes)
     try:

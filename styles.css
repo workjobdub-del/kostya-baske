@@ -2708,3 +2708,40 @@ html, body { overflow-x: clip; }
 .next-line a:hover { color: var(--ink); }
 
 #standings .fold + .fold { margin-top: 0.55rem; }
+
+.opp-link {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: inherit;
+  text-decoration: underline dotted rgba(200, 194, 182, 0.75);
+  text-underline-offset: 0.22em;
+  padding: 0.2rem 0.1rem;
+  margin: -0.2rem -0.1rem;
+}
+
+.fixture-opp .opp-link,
+.match-row h3 .opp-link,
+.review h3 .opp-link,
+.game-card summary .opp-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.opp-strip {
+  margin: 0.35rem 0 0.85rem;
+  padding: 0.55rem 0.7rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.opp-list {
+  margin: 0.15rem 0 0.85rem;
+  padding-left: 1.1rem;
+}
+
+.opp-list li + li { margin-top: 0.35rem; }
