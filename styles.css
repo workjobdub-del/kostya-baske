@@ -2439,14 +2439,14 @@ svg .bar-hit.is-picked { fill: rgba(243, 217, 138, 0.1); }
 }
 
 .player-card.player-card--compact .player-logo img {
-  width: 4.5rem;
-  max-width: 28vw;
+  width: 3.35rem;
+  max-width: 22vw;
   height: auto;
 }
 
 .player-card.player-card--compact h1 {
-  margin: 0 0 0.2rem;
-  font-size: 1.55rem;
+  margin: 0;
+  font-size: 1.35rem;
 }
 
 .hero-meta .num {
@@ -2664,7 +2664,7 @@ html, body { overflow-x: clip; }
   .player-card--compact .player-card-main,
   .player-card.player-card--compact .player-card-main {
     flex-direction: row;
-    align-items: center;
+    align-items: flex-start;
   }
 
   .status { max-width: 100%; }
@@ -2890,3 +2890,125 @@ html, body { overflow-x: clip; }
 }
 
 .opp-list li + li { margin-top: 0.35rem; }
+
+body[data-page="profile"] .player-card.player-card--compact {
+  padding: 0.75rem 0.8rem 0.55rem;
+}
+
+body[data-page="profile"] .player-card.player-card--compact .player-card-main {
+  align-items: flex-start;
+  gap: 0.7rem;
+}
+
+body[data-page="profile"] .player-card.player-card--compact .player-logo img {
+  width: 3.35rem;
+  max-width: 22vw;
+}
+
+body[data-page="profile"] .player-card.player-card--compact .player-card-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+body[data-page="profile"] .player-card.player-card--compact h1 {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.45rem;
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.15;
+}
+
+body[data-page="profile"] .player-card.player-card--compact .num {
+  color: var(--gold-2);
+  font-size: 0.92rem;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+body[data-page="profile"] .player-card.player-card--compact .hero-meta {
+  margin: 0.12rem 0 0;
+  gap: 0.35rem 0.45rem;
+  font-size: 0.92rem;
+}
+
+body[data-page="profile"] .player-card.player-card--compact .team {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+body[data-page="profile"] .player-card.player-card--compact .team::after {
+  content: "·";
+  margin-left: 0.45rem;
+  color: var(--dim);
+  font-weight: 400;
+}
+
+body[data-page="profile"] .player-card.player-card--compact .pos {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+body[data-page="profile"] .player-card.player-card--compact .hero-sub {
+  margin: 0;
+}
+
+body[data-page="profile"] .player-card.player-card--compact .body-chip {
+  min-width: 0;
+  min-height: 44px;
+  justify-content: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-decoration: underline dotted rgba(200, 194, 182, 0.55);
+  text-underline-offset: 0.22em;
+}
+
+body[data-page="profile"] .player-card.player-card--compact .sync-bar {
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.2rem 0.35rem;
+  margin-top: 0.15rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body[data-page="profile"] .player-card.player-card--compact .sync-bar .updated {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+body[data-page="profile"] .player-card.player-card--compact .sync-actions {
+  flex: 0 0 auto;
+  gap: 0.1rem;
+}
+
+body[data-page="profile"] .player-card.player-card--compact .sync-refresh,
+body[data-page="profile"] .player-card.player-card--compact .sync-settings {
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+}
+
+body[data-page="profile"] .player-card.player-card--compact .sync-refresh {
+  padding: 0 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  gap: 0.2rem;
+}
+
+body[data-page="profile"] .player-card.player-card--compact .sync-settings {
+  width: 44px;
+  flex-basis: 44px;
+  padding: 0;
+}
