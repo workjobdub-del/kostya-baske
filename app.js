@@ -1722,7 +1722,7 @@ function devLatestRow(logIds) {
 }
 
 function devMetricValue(metric, pack) {
-  if (!pack) return null;
+  if (!pack || !pack.u14) return null;
   if (metric === "turnoversU14") return pack.u14.turnovers;
   if (metric === "fg2PctU14") return pack.u14.fg2Pct;
   if (metric === "astToU14") return pack.u14.astTo;
@@ -1736,6 +1736,55 @@ function devFormatGoalValue(metric, value) {
   if (metric === "astToU14") return formatPlain(value);
   if (metric === "minutesU14") return formatRowClock(value * 60);
   return formatPlain(value);
+}
+
+function devFg2OfTen(pct, goalPct) {
+  if (pct == null) return "пока мало бросков с игры";
+  const hits = Math.max(0, Math.round(pct / 10));
+  const want = Math.round((goalPct || 35) / 10);
+  if (pct < 8) return `из 10 бросков с игры пока почти ни одного (хочу ${want})`;
+  return `из 10 бросков с игры — примерно ${hits} (хочу ${want})`;
+}
+
+function devPassKidLine(ratio) {
+  if (ratio == null) return "пока мало данных";
+  if (ratio >= 1) return "удачных передач больше, чем потерь";
+  if (ratio >= 0.8) return "хороших передач почти столько же, сколько потерь";
+  return "потерь пока больше, чем удачных передач — нужно наоборот";
+}
+
+function devGoalBlock(item, current) {
+  const metric = item.goalMetric;
+  const goal = item.goalTo;
+  if (metric === "turnoversU14") {
+    if (current == null) {
+      return `<p class="dev-goal"><strong>Хочу:</strong> не больше ${formatPlain(goal)} потерь за игру в лиге U14.</p>`;
+    }
+    return `<p class="dev-goal"><strong>Сейчас:</strong> ${formatPlain(current)} потерь за игру.<br><strong>Хочу:</strong> не больше ${formatPlain(goal)}.</p>`;
+  }
+  if (metric === "fg2PctU14") {
+    const pct = current;
+    const goalLine = devFg2OfTen(goal, goal);
+    if (pct == null) {
+      return `<p class="dev-goal"><strong>Хочу:</strong> ${goalLine}.</p>`;
+    }
+    return `<p class="dev-goal"><strong>Сейчас:</strong> ${devFg2OfTen(pct, goal)} (${devFormatGoalValue(metric, pct)}).<br><strong>Хочу:</strong> ${goalLine}.</p>`;
+  }
+  if (metric === "astToU14") {
+    const now = devPassKidLine(current);
+    const want = "больше хороших передач, чем потерь";
+    if (current == null) {
+      return `<p class="dev-goal"><strong>Хочу:</strong> ${want}.</p>`;
+    }
+    return `<p class="dev-goal"><strong>Сейчас:</strong> ${now}.<br><strong>Хочу:</strong> ${want}.</p>`;
+  }
+  if (metric === "minutesU14") {
+    if (current == null) {
+      return `<p class="dev-goal"><strong>Хочу:</strong> играть не меньше ${formatRowClock(goal * 60)} за матч.</p>`;
+    }
+    return `<p class="dev-goal"><strong>Сейчас:</strong> ${formatRowClock(current * 60)} за игру.<br><strong>Хочу:</strong> не меньше ${formatRowClock(goal * 60)}.</p>`;
+  }
+  return "";
 }
 
 function devBuildMetrics() {
@@ -1768,68 +1817,71 @@ function devStatLine(label, value) {
 }
 
 function devStatsGrid(stats, title) {
-  if (!stats) return `<p class="caption">Пока нет игр в журнале.</p>`;
+  if (!stats) return `<p class="caption">Пока нет игр, чтобы посчитать средние.</p>`;
+  const fg2 =
+    stats.fg2Pct != null
+      ? `${stats.fg2Line} попали, это ${formatPlain(Math.round(stats.fg2Pct * 10) / 10)}%`
+      : stats.fg2Line;
   return `<section class="dev-snapshot">
     <h3>${esc(title)}</h3>
     <ul class="dev-stats">
       ${devStatLine("Игр", String(stats.games))}
-      ${devStatLine("Минуты", stats.minutes)}
+      ${devStatLine("Минут за игру", stats.minutes)}
       ${devStatLine("Очки", formatPlain(stats.points))}
-      ${devStatLine(
-        "2-очк.",
-        stats.fg2Pct != null ? `${stats.fg2Line}, ${formatPlain(Math.round(stats.fg2Pct * 10) / 10)}%` : stats.fg2Line
-      )}
-      ${devStatLine("3-очк.", stats.fg3Line)}
+      ${devStatLine("Броски с двух очков", fg2)}
+      ${devStatLine("Трёхочковые", stats.fg3Line)}
       ${devStatLine("Штрафные", stats.ftLine)}
       ${devStatLine("Подборы", formatPlain(stats.rebounds))}
       ${devStatLine("Передачи", formatPlain(stats.assists))}
       ${devStatLine("Потери", formatPlain(stats.turnovers))}
       ${devStatLine("Перехваты", formatPlain(stats.steals))}
-      ${devStatLine("Передачи / потери", stats.astTo != null ? formatPlain(stats.astTo) : "—")}
-      ${devStatLine("+ / −", stats.plusMinus != null ? formatPlusMinus(stats.plusMinus) : "—")}
+      ${devStatLine("Про пасы", devPassKidLine(stats.astTo))}
+      ${devStatLine("Плюс-минус", stats.plusMinus != null ? formatPlusMinus(stats.plusMinus) : "—")}
     </ul>
   </section>`;
 }
 
 function renderDevelopmentPage() {
   const cfg = data.development || {};
+  const sec = cfg.sections || {};
   const pack = devBuildMetrics();
   const latest = pack.latestU14;
   const latestNote = latest
-    ? `Последний протокол МЛБЛ U14 (${latest.date}): ${latest.turnovers} ${ruCount(latest.turnovers, "потеря", "потери", "потерь")} при ${latest.assists} ${ruCount(latest.assists, "передаче", "передачах", "передачах")}.`
+    ? `В последней игре лиги U14 (${latest.date}): ${latest.turnovers} ${ruCount(latest.turnovers, "потеря", "потери", "потерь")} и ${latest.assists} ${ruCount(latest.assists, "удачная передача", "удачные передачи", "удачных передач")}. На этой неделе держим мяч крепче.`
     : "";
   const strengths = [];
   const growth = [];
   if (pack.u12) {
-    strengths.push(`В МЛБЛ-Дети U12 (25/26): ${formatPlain(pack.u12.steals)} перехвата и ${formatPlain(pack.u12.rebounds)} подбора за игру, КПИ в журнале был выше, чем в «Быстром прорыве» 24/25.`);
+    strengths.push(
+      `В детской лиге U12 ты в среднем забираешь ${formatPlain(pack.u12.steals)} мяч перехватом и ${formatPlain(pack.u12.rebounds)} подборов за игру — это твоя сильная сторона.`
+    );
   }
   if (pack.other2526) {
     strengths.push(
-      `Против привычных соперников МЛБЛ (6 игр в 25/26): ${formatPlain(pack.other2526.points)} очка, ${pack.other2526.fg2Pct != null ? `${formatPlain(Math.round(pack.other2526.fg2Pct))}%` : "—"} двухочковых, ${formatPlain(pack.other2526.assists)} передачи, +/− ${formatPlusMinus(pack.other2526.plusMinus)}.`
+      `Против знакомых соперников (6 игр в прошлом сезоне): ${formatPlain(pack.other2526.points)} очка, ${pack.other2526.fg2Pct != null ? `попадаешь с игры ${formatPlain(Math.round(pack.other2526.fg2Pct))}%` : "бросаешь увереннее"}, ${formatPlain(pack.other2526.assists)} передачи за матч.`
     );
   }
   if (pack.strong2526) {
     growth.push(
-      `Против сильных соперников (9 игр, ПМ + ключевые команды U12): в среднем ${pack.strong2526.minutes} мин, ${formatPlain(pack.strong2526.points)} очка, ${pack.strong2526.fg2Pct != null ? `${formatPlain(Math.round(pack.strong2526.fg2Pct))}%` : "—"} двухочковых, ${formatPlain(pack.strong2526.turnovers)} потери, +/− ${formatPlusMinus(pack.strong2526.plusMinus)}.`
+      `Против сильных команд (9 игр): играешь ${pack.strong2526.minutes}, в среднем ${formatPlain(pack.strong2526.points)} очка и ${formatPlain(pack.strong2526.turnovers)} потери — тут добавим спокойствия с мячом.`
     );
   }
   if (pack.u14) {
     growth.push(
-      `МЛБЛ U14 26/27 (возвращение): ${pack.u14.minutes} мин, ${formatPlain(pack.u14.turnovers)} потери за игру, ${pack.u14.fg2Line} двухочковых, передачи/потери ${pack.u14.astTo != null ? formatPlain(pack.u14.astTo) : "—"}.`
+      `В лиге U14 сейчас: ${pack.u14.minutes} на площадке, ${formatPlain(pack.u14.turnovers)} потери за игру, броски с двух очков ${pack.u14.fg2Line}, ${devPassKidLine(pack.u14.astTo)}.`
     );
   }
   if (latest && Number(latest.turnovers) >= 4) {
-    growth.push(`В игре ${latest.date} — ${latest.turnovers} потерь при ${latest.assists} передаче: главная тема ближайших недель.`);
+    growth.push(`После игры ${latest.date} с ${latest.turnovers} потерями — на тренировках держим мяч и смотрим, где торопишься.`);
   }
   const priorities = (cfg.priorities || [])
     .map((item) => {
       const current = devMetricValue(item.goalMetric, pack);
-      const goal = item.goalTo;
       const exercises = (item.exercises || []).map((line) => `<li>${esc(line)}</li>`).join("");
       return `<article class="panel dev-priority" id="dev-${esc(item.id)}">
         <h3>${esc(item.title)}</h3>
         <p>${esc(item.why)}</p>
-        <p class="dev-goal">Сейчас: <strong>${devFormatGoalValue(item.goalMetric, current)}</strong> → цель к концу сезона: <strong>${devFormatGoalValue(item.goalMetric, goal)}</strong> (${esc(item.goalLabel)}).</p>
+        ${devGoalBlock(item, current)}
         <p class="caption">${esc(item.frequency)}</p>
         <ul>${exercises}</ul>
       </article>`;
@@ -1839,60 +1891,60 @@ function renderDevelopmentPage() {
     .map(
       (phase) => `<article class="dev-phase">
         <h3>${esc(phase.label)}</h3>
-        <p><strong>Фокус:</strong> ${esc(phase.focus)}</p>
-        <p>${esc(phase.sessions)}</p>
+        <p>${esc(phase.focus)}</p>
+        <p class="caption">${esc(phase.sessions)}</p>
       </article>`
     )
     .join("");
   const watch = (cfg.watchOnSite || [])
     .map((item) => `<li><strong>${esc(item.label)}.</strong> ${esc(item.hint)}</li>`)
     .join("");
-  const methods = (cfg.methodology || []).map((line) => `<li>${esc(line)}</li>`).join("");
-  document.getElementById("app").innerHTML = `${pageHead(cfg.title || "План развития", esc(cfg.lede || ""))}
+  const coachNba = cfg.coachNba ? `<p class="callout-lead">${esc(cfg.coachNba)}</p>` : "";
+  document.getElementById("app").innerHTML = `${pageHead(cfg.title || "Твой план", esc(cfg.lede || ""))}
     ${updatedLine()}
     <section class="block block--first" id="dev-portrait">
-      <h2>Портрет по цифрам</h2>
-      <p class="caption">${esc(cfg.ageLabel || "")}${pack.body ? ` · ${esc(pack.body)}` : ""} · ${esc(data.player.position || "")}</p>
+      <h2>${esc(sec.portrait || "Как ты играешь")}</h2>
+      <p class="caption">${esc(cfg.ageLabel || "")} · ${esc(data.player.position || "")}</p>
       <p class="callout-lead">${esc(cfg.injuryNote || "")}</p>
       <div class="split">
         <section class="panel good">
-          <h3>Сильные стороны</h3>
-          <ul>${strengths.map((line) => `<li>${esc(line)}</li>`).join("") || "<li>Пока мало данных.</li>"}</ul>
+          <h3>${esc(sec.strengths || "У тебя получается")}</h3>
+          <ul>${strengths.map((line) => `<li>${esc(line)}</li>`).join("") || "<li>Пока мало игр, чтобы сравнить.</li>"}</ul>
         </section>
         <section class="panel work">
-          <h3>Зоны роста</h3>
-          <ul>${growth.map((line) => `<li>${esc(line)}</li>`).join("") || "<li>Пока мало данных.</li>"}</ul>
+          <h3>${esc(sec.growth || "Сейчас прокачиваем")}</h3>
+          <ul>${growth.map((line) => `<li>${esc(line)}</li>`).join("") || "<li>Скоро появятся новые игры — и цифры обновятся.</li>"}</ul>
         </section>
       </div>
       ${latestNote ? `<p class="plaque">${esc(latestNote)}</p>` : ""}
     </section>
     <section class="block" id="dev-seasons">
-      <h2>Срез по журналам</h2>
+      <h2>${esc(sec.stats || "Твои цифры по играм")}</h2>
       <div class="dev-grid">
-        ${devStatsGrid(pack.strong2526, `2025/26 · сильные соперники (${pack.strong2526 ? pack.strong2526.games : 0} игр)`)}
-        ${devStatsGrid(pack.other2526, `2025/26 · остальные соперники МЛБЛ (${pack.other2526 ? pack.other2526.games : 0} игр)`)}
-        ${devStatsGrid(pack.season2627, "2026/27 · ПМ + МЛБЛ U14")}
-        ${devStatsGrid(pack.u14, "2026/27 · только МЛБЛ U14")}
+        ${devStatsGrid(pack.strong2526, `Прошлый сезон · сильные команды (${pack.strong2526 ? pack.strong2526.games : 0} игр)`)}
+        ${devStatsGrid(pack.other2526, `Прошлый сезон · остальные соперники (${pack.other2526 ? pack.other2526.games : 0} игр)`)}
+        ${devStatsGrid(pack.season2627, "Этот сезон · все игры")}
+        ${devStatsGrid(pack.u14, "Этот сезон · лига U14")}
       </div>
     </section>
     <section class="block" id="dev-priorities">
-      <h2>Приоритеты и KPI</h2>
-      <p class="caption">Цифры «Сейчас» считаются из data.json при каждой загрузке страницы.</p>
+      <h2>${esc(sec.priorities || "Чем заниматься")}</h2>
       <div class="dev-priority-grid">${priorities}</div>
     </section>
     <section class="block" id="dev-phases">
-      <h2>Этапы до конца сезона 2026/27</h2>
+      <h2>${esc(sec.phases || "Задания по месяцам")}</h2>
       <div class="dev-phase-grid">${phases}</div>
     </section>
-    <section class="block" id="dev-track">
-      <h2>Как отслеживать</h2>
+    ${
+      watch.length
+        ? `<section class="block" id="dev-track">
+      <h2>${esc(sec.track || "Где на сайте посмотреть")}</h2>
       <ul class="dev-watch">${watch}</ul>
-    </section>
-    <section class="block block--quiet" id="dev-methods">
-      <h2>Откуда идеи</h2>
-      <ul class="dev-methods">${methods}</ul>
-    </section>
-    <p class="cross-link"><a href="career.html">Все игры и средние — на вкладке «Карьера»</a> · <a href="index.html#trend">Динамика на профиле</a></p>`;
+    </section>`
+        : ""
+    }
+  ${coachNba ? `<section class="block block--quiet" id="dev-coach">${coachNba}</section>` : ""}
+    <p class="cross-link"><a href="career.html">Все игры — на вкладке «Карьера»</a> · <a href="index.html#trend">График — на «Профиле»</a></p>`;
 }
 
 function renderCareerPage() {
@@ -2468,7 +2520,7 @@ function render() {
   const page = document.body.dataset.page;
   const titles = {
     career: `${data.player.name} — карьера`,
-    development: `${data.player.name} — план развития`,
+    development: "Костя — твой план",
     mama: `${data.player.name} — для мамы`,
     team: `${data.player.team} — команда`,
   };
