@@ -11,8 +11,12 @@ const TAB_PAGES = [
   { id: "profile", href: "index.html" },
   { id: "mama", href: "mama.html" },
   { id: "career", href: "career.html" },
+  { id: "development", href: "development.html" },
   { id: "team", href: "team.html" },
 ];
+
+const DEV_LOGS_2526 = ["u12", "pm2526"];
+const DEV_LOGS_2627 = ["mos2627", "u14circ2627"];
 const TAB_SWIPE_MIN_DX = 60;
 const TAB_SWIPE_MAX_MS = 800;
 const TAB_SWIPE_EDGE_PX = 12;
@@ -1601,6 +1605,296 @@ function timelineTourCard(season) {
   </article>`;
 }
 
+function parseShotPair(text) {
+  const part = String(text || "0/0").split(",")[0].replace(/\s/g, "");
+  const bits = part.split("/");
+  if (bits.length !== 2) return { made: 0, att: 0 };
+  return { made: Number(bits[0]) || 0, att: Number(bits[1]) || 0 };
+}
+
+function parseRowMinutes(row) {
+  const bits = String(row.minutes || "0:0").split(":");
+  const m = Number(bits[0]) || 0;
+  const s = Number(bits[1]) || 0;
+  return m * 60 + s;
+}
+
+function formatRowClock(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function formatPct(made, att) {
+  if (!att) return "—";
+  return `${Math.round((made / att) * 1000) / 10}%`.replace(".", ",");
+}
+
+function devTournamentRows(logId) {
+  const tournament = (data.gameLogs.tournaments || []).find((item) => item.id === logId);
+  return (tournament && tournament.rows) || [];
+}
+
+function devRowsTagged(logIds) {
+  return logIds.flatMap((logId) => devTournamentRows(logId).map((row) => ({ ...row, logId })));
+}
+
+function devStrongU12Row(row, cfg) {
+  const opp = normOppName(row.opponent);
+  const exclude = (cfg.strongU12Exclude || []).some((token) => opp.includes(String(token).toLowerCase()));
+  if (exclude) return false;
+  const suffix = cfg.strongU12SeasonSuffix;
+  if (suffix) {
+    const parts = String(row.date || "").match(/^(\d{2})\.(\d{2})\.(\d{2})$/);
+    if (parts && parts[3] !== String(suffix)) return false;
+  }
+  return (cfg.strongU12Tokens || []).some((token) => opp.includes(String(token).toLowerCase()));
+}
+
+function devAggregateRows(rows) {
+  if (!rows.length) return null;
+  let seconds = 0;
+  let points = 0;
+  let fg2m = 0;
+  let fg2a = 0;
+  let fg3m = 0;
+  let fg3a = 0;
+  let ftm = 0;
+  let fta = 0;
+  let reb = 0;
+  let ast = 0;
+  let to = 0;
+  let stl = 0;
+  let pm = 0;
+  let pmN = 0;
+  rows.forEach((row) => {
+    seconds += parseRowMinutes(row);
+    points += Number(row.points) || 0;
+    const fg2 = parseShotPair(row.fg2);
+    fg2m += fg2.made;
+    fg2a += fg2.att;
+    const fg3 = parseShotPair(row.fg3);
+    fg3m += fg3.made;
+    fg3a += fg3.att;
+    const ft = parseShotPair(row.ft);
+    ftm += ft.made;
+    fta += ft.att;
+    reb += Number(row.rebounds) || 0;
+    ast += Number(row.assists) || 0;
+    to += Number(row.turnovers) || 0;
+    stl += Number(row.steals) || 0;
+    if (row.plusMinus != null) {
+      pm += Number(row.plusMinus);
+      pmN += 1;
+    }
+  });
+  const n = rows.length;
+  return {
+    games: n,
+    minutes: formatRowClock(seconds / n),
+    minutesDec: seconds / n / 60,
+    points: points / n,
+    fg2Pct: fg2a ? (fg2m / fg2a) * 100 : null,
+    fg2Line: `${fg2m}/${fg2a}`,
+    fg3Line: `${fg3m}/${fg3a}`,
+    ftLine: `${ftm}/${fta}`,
+    rebounds: reb / n,
+    assists: ast / n,
+    turnovers: to / n,
+    steals: stl / n,
+    plusMinus: pmN ? pm / pmN : null,
+    astTo: to ? ast / to : null,
+  };
+}
+
+function devParseDateKey(dateStr) {
+  const m = String(dateStr || "").match(/^(\d{2})\.(\d{2})\.(\d{2})$/);
+  if (!m) return 0;
+  return new Date(2000 + Number(m[3]), Number(m[2]) - 1, Number(m[1])).getTime();
+}
+
+function devLatestRow(logIds) {
+  const rows = devRowsTagged(logIds)
+    .map((row) => ({ row, t: devParseDateKey(row.date) }))
+    .filter((item) => item.t)
+    .sort((a, b) => b.t - a.t);
+  return rows[0] ? rows[0].row : null;
+}
+
+function devMetricValue(metric, pack) {
+  if (!pack) return null;
+  if (metric === "turnoversU14") return pack.u14.turnovers;
+  if (metric === "fg2PctU14") return pack.u14.fg2Pct;
+  if (metric === "astToU14") return pack.u14.astTo;
+  if (metric === "minutesU14") return pack.u14.minutesDec;
+  return null;
+}
+
+function devFormatGoalValue(metric, value) {
+  if (value == null) return "—";
+  if (metric === "fg2PctU14") return `${formatPlain(Math.round(value * 10) / 10)}%`;
+  if (metric === "astToU14") return formatPlain(value);
+  if (metric === "minutesU14") return formatRowClock(value * 60);
+  return formatPlain(value);
+}
+
+function devBuildMetrics() {
+  const cfg = data.development || {};
+  const rows2526 = devRowsTagged(DEV_LOGS_2526);
+  const strong2526 = rows2526.filter((row) => row.logId === "pm2526" || (row.logId === "u12" && devStrongU12Row(row, cfg)));
+  const other2526 = rows2526.filter((row) => !strong2526.includes(row));
+  const u14Rows = devTournamentRows("u14circ2627");
+  const mosRows = devTournamentRows("mos2627");
+  const rows2627 = devRowsTagged(DEV_LOGS_2627);
+  const u12Season = data.gameLogs.tournaments.find((t) => t.id === "u12");
+  const profileItems = (data.profile && data.profile.items) || [];
+  const bodyItem = profileItems.find((item) => item.label === "Рост и вес");
+  return {
+    strong2526: devAggregateRows(strong2526),
+    other2526: devAggregateRows(other2526),
+    u12: devAggregateRows(devTournamentRows("u12")),
+    pm2526: devAggregateRows(devTournamentRows("pm2526")),
+    u14: devAggregateRows(u14Rows),
+    mos2627: devAggregateRows(mosRows),
+    season2627: devAggregateRows(rows2627),
+    latestU14: devLatestRow(["u14circ2627"]),
+    u12Label: (u12Season && u12Season.label) || "МЛБЛ-Дети U12",
+    body: bodyItem ? bodyItem.value : "",
+  };
+}
+
+function devStatLine(label, value) {
+  return `<li><span>${esc(label)}</span><strong>${esc(value)}</strong></li>`;
+}
+
+function devStatsGrid(stats, title) {
+  if (!stats) return `<p class="caption">Пока нет игр в журнале.</p>`;
+  return `<section class="dev-snapshot">
+    <h3>${esc(title)}</h3>
+    <ul class="dev-stats">
+      ${devStatLine("Игр", String(stats.games))}
+      ${devStatLine("Минуты", stats.minutes)}
+      ${devStatLine("Очки", formatPlain(stats.points))}
+      ${devStatLine(
+        "2-очк.",
+        stats.fg2Pct != null ? `${stats.fg2Line}, ${formatPlain(Math.round(stats.fg2Pct * 10) / 10)}%` : stats.fg2Line
+      )}
+      ${devStatLine("3-очк.", stats.fg3Line)}
+      ${devStatLine("Штрафные", stats.ftLine)}
+      ${devStatLine("Подборы", formatPlain(stats.rebounds))}
+      ${devStatLine("Передачи", formatPlain(stats.assists))}
+      ${devStatLine("Потери", formatPlain(stats.turnovers))}
+      ${devStatLine("Перехваты", formatPlain(stats.steals))}
+      ${devStatLine("Передачи / потери", stats.astTo != null ? formatPlain(stats.astTo) : "—")}
+      ${devStatLine("+ / −", stats.plusMinus != null ? formatPlusMinus(stats.plusMinus) : "—")}
+    </ul>
+  </section>`;
+}
+
+function renderDevelopmentPage() {
+  const cfg = data.development || {};
+  const pack = devBuildMetrics();
+  const latest = pack.latestU14;
+  const latestNote = latest
+    ? `Последний протокол МЛБЛ U14 (${latest.date}): ${latest.turnovers} ${ruCount(latest.turnovers, "потеря", "потери", "потерь")} при ${latest.assists} ${ruCount(latest.assists, "передаче", "передачах", "передачах")}.`
+    : "";
+  const strengths = [];
+  const growth = [];
+  if (pack.u12) {
+    strengths.push(`В МЛБЛ-Дети U12 (25/26): ${formatPlain(pack.u12.steals)} перехвата и ${formatPlain(pack.u12.rebounds)} подбора за игру, КПИ в журнале был выше, чем в «Быстром прорыве» 24/25.`);
+  }
+  if (pack.other2526) {
+    strengths.push(
+      `Против привычных соперников МЛБЛ (6 игр в 25/26): ${formatPlain(pack.other2526.points)} очка, ${pack.other2526.fg2Pct != null ? `${formatPlain(Math.round(pack.other2526.fg2Pct))}%` : "—"} двухочковых, ${formatPlain(pack.other2526.assists)} передачи, +/− ${formatPlusMinus(pack.other2526.plusMinus)}.`
+    );
+  }
+  if (pack.strong2526) {
+    growth.push(
+      `Против сильных соперников (9 игр, ПМ + ключевые команды U12): в среднем ${pack.strong2526.minutes} мин, ${formatPlain(pack.strong2526.points)} очка, ${pack.strong2526.fg2Pct != null ? `${formatPlain(Math.round(pack.strong2526.fg2Pct))}%` : "—"} двухочковых, ${formatPlain(pack.strong2526.turnovers)} потери, +/− ${formatPlusMinus(pack.strong2526.plusMinus)}.`
+    );
+  }
+  if (pack.u14) {
+    growth.push(
+      `МЛБЛ U14 26/27 (возвращение): ${pack.u14.minutes} мин, ${formatPlain(pack.u14.turnovers)} потери за игру, ${pack.u14.fg2Line} двухочковых, передачи/потери ${pack.u14.astTo != null ? formatPlain(pack.u14.astTo) : "—"}.`
+    );
+  }
+  if (latest && Number(latest.turnovers) >= 4) {
+    growth.push(`В игре ${latest.date} — ${latest.turnovers} потерь при ${latest.assists} передаче: главная тема ближайших недель.`);
+  }
+  const priorities = (cfg.priorities || [])
+    .map((item) => {
+      const current = devMetricValue(item.goalMetric, pack);
+      const goal = item.goalTo;
+      const exercises = (item.exercises || []).map((line) => `<li>${esc(line)}</li>`).join("");
+      return `<article class="panel dev-priority" id="dev-${esc(item.id)}">
+        <h3>${esc(item.title)}</h3>
+        <p>${esc(item.why)}</p>
+        <p class="dev-goal">Сейчас: <strong>${devFormatGoalValue(item.goalMetric, current)}</strong> → цель к концу сезона: <strong>${devFormatGoalValue(item.goalMetric, goal)}</strong> (${esc(item.goalLabel)}).</p>
+        <p class="caption">${esc(item.frequency)}</p>
+        <ul>${exercises}</ul>
+      </article>`;
+    })
+    .join("");
+  const phases = (cfg.phases || [])
+    .map(
+      (phase) => `<article class="dev-phase">
+        <h3>${esc(phase.label)}</h3>
+        <p><strong>Фокус:</strong> ${esc(phase.focus)}</p>
+        <p>${esc(phase.sessions)}</p>
+      </article>`
+    )
+    .join("");
+  const watch = (cfg.watchOnSite || [])
+    .map((item) => `<li><strong>${esc(item.label)}.</strong> ${esc(item.hint)}</li>`)
+    .join("");
+  const methods = (cfg.methodology || []).map((line) => `<li>${esc(line)}</li>`).join("");
+  document.getElementById("app").innerHTML = `${pageHead(cfg.title || "План развития", esc(cfg.lede || ""))}
+    ${updatedLine()}
+    <section class="block block--first" id="dev-portrait">
+      <h2>Портрет по цифрам</h2>
+      <p class="caption">${esc(cfg.ageLabel || "")}${pack.body ? ` · ${esc(pack.body)}` : ""} · ${esc(data.player.position || "")}</p>
+      <p class="callout-lead">${esc(cfg.injuryNote || "")}</p>
+      <div class="split">
+        <section class="panel good">
+          <h3>Сильные стороны</h3>
+          <ul>${strengths.map((line) => `<li>${esc(line)}</li>`).join("") || "<li>Пока мало данных.</li>"}</ul>
+        </section>
+        <section class="panel work">
+          <h3>Зоны роста</h3>
+          <ul>${growth.map((line) => `<li>${esc(line)}</li>`).join("") || "<li>Пока мало данных.</li>"}</ul>
+        </section>
+      </div>
+      ${latestNote ? `<p class="plaque">${esc(latestNote)}</p>` : ""}
+    </section>
+    <section class="block" id="dev-seasons">
+      <h2>Срез по журналам</h2>
+      <div class="dev-grid">
+        ${devStatsGrid(pack.strong2526, `2025/26 · сильные соперники (${pack.strong2526 ? pack.strong2526.games : 0} игр)`)}
+        ${devStatsGrid(pack.other2526, `2025/26 · остальные соперники МЛБЛ (${pack.other2526 ? pack.other2526.games : 0} игр)`)}
+        ${devStatsGrid(pack.season2627, "2026/27 · ПМ + МЛБЛ U14")}
+        ${devStatsGrid(pack.u14, "2026/27 · только МЛБЛ U14")}
+      </div>
+    </section>
+    <section class="block" id="dev-priorities">
+      <h2>Приоритеты и KPI</h2>
+      <p class="caption">Цифры «Сейчас» считаются из data.json при каждой загрузке страницы.</p>
+      <div class="dev-priority-grid">${priorities}</div>
+    </section>
+    <section class="block" id="dev-phases">
+      <h2>Этапы до конца сезона 2026/27</h2>
+      <div class="dev-phase-grid">${phases}</div>
+    </section>
+    <section class="block" id="dev-track">
+      <h2>Как отслеживать</h2>
+      <ul class="dev-watch">${watch}</ul>
+    </section>
+    <section class="block block--quiet" id="dev-methods">
+      <h2>Откуда идеи</h2>
+      <ul class="dev-methods">${methods}</ul>
+    </section>
+    <p class="cross-link"><a href="career.html">Все игры и средние — на вкладке «Карьера»</a> · <a href="index.html#trend">Динамика на профиле</a></p>`;
+}
+
 function renderCareerPage() {
   const totals = careerTotals();
   const best = totals.best || { points: "—", opponent: "", tournament: "", when: "" };
@@ -2174,6 +2468,7 @@ function render() {
   const page = document.body.dataset.page;
   const titles = {
     career: `${data.player.name} — карьера`,
+    development: `${data.player.name} — план развития`,
     mama: `${data.player.name} — для мамы`,
     team: `${data.player.team} — команда`,
   };
@@ -2181,6 +2476,8 @@ function render() {
   renderNav();
   if (page === "career") {
     renderCareerPage();
+  } else if (page === "development") {
+    renderDevelopmentPage();
   } else if (page === "mama") {
     renderMamaPage();
   } else if (page === "team") {
@@ -2215,7 +2512,7 @@ function render() {
 }
 
 const REVEAL =
-  ".block, .ticker, .kpi, .season-card, .timeline-season, .meter-block, .review, .news-card, .fact, .bio-strip li, .match-row, .source-card, .panel";
+  ".block, .ticker, .kpi, .season-card, .timeline-season, .meter-block, .review, .news-card, .fact, .bio-strip li, .match-row, .source-card, .panel, .dev-snapshot, .dev-priority, .dev-phase";
 const COUNT = ".kpi b, .shield strong, .season-card strong, .tour-card strong, .hero-stat b";
 let revealer = null;
 
@@ -2868,6 +3165,8 @@ function tabPageIdFromPath() {
     "team.html": "team",
     mama: "mama",
     "mama.html": "mama",
+    development: "development",
+    "development.html": "development",
   };
   return map[file] || map[file.replace(/\.html$/, "")] || "profile";
 }

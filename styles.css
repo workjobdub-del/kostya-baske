@@ -2368,6 +2368,84 @@ svg .bar-hit.is-picked { fill: rgba(243, 217, 138, 0.1); }
   stroke-linejoin: round;
 }
 
+.tabbar--five a { font-size: 0.62rem; }
+
+.dev-grid {
+  display: grid;
+  gap: 0.85rem;
+}
+
+@media (min-width: 721px) {
+  .dev-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.dev-stats {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.dev-stats li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.dev-stats strong { color: var(--ink); font-weight: 600; }
+
+.dev-snapshot {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.dev-snapshot h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.dev-priority-grid,
+.dev-phase-grid {
+  display: grid;
+  gap: 0.85rem;
+}
+
+@media (min-width: 721px) {
+  .dev-priority-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dev-phase-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.dev-goal {
+  margin: 0.5rem 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: var(--radius);
+  background: rgba(232, 184, 74, 0.08);
+  border: 1px solid rgba(232, 184, 74, 0.22);
+}
+
+.dev-phase {
+  padding: 0.85rem 1rem;
+  border-left: 3px solid var(--gold-2);
+  background: var(--card);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.dev-watch,
+.dev-methods {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.dev-watch li,
+.dev-methods li {
+  margin: 0.35rem 0;
+}
+
 .page-head {
   margin: 0 0 0.45rem;
   padding: 0.05rem 0.05rem 0;
