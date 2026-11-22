@@ -735,6 +735,58 @@ def our_score_pair(game):
     return game["score_b"], game["score_a"]
 
 
+def score_pair_from_item(item, our_team_id: int | None = None) -> tuple[int, int] | None:
+    teams = (item.get("Game") or {}).get("GameTeams") or []
+    if not teams:
+        return None
+    if our_team_id is not None:
+        ours = next((team for team in teams if team.get("TeamID") == our_team_id), None)
+        if not ours:
+            return None
+        theirs = next((team for team in teams if team.get("TeamID") != our_team_id), None)
+        if not theirs:
+            return None
+        our_score = ours.get("GameTeamScore")
+        their_score = theirs.get("GameTeamScore")
+        if not isinstance(our_score, int) or not isinstance(their_score, int):
+            return None
+        return our_score, their_score
+    number = item.get("TeamNumber")
+    ours = next((team for team in teams if team.get("GameTeamNumber") == number), None)
+    theirs = next((team for team in teams if team.get("GameTeamNumber") != number), None)
+    if not ours or not theirs:
+        return None
+    our_score = ours.get("GameTeamScore")
+    their_score = theirs.get("GameTeamScore")
+    if not isinstance(our_score, int) or not isinstance(their_score, int):
+        return None
+    return our_score, their_score
+
+
+PROTOCOL_ROW_SYNC_KEYS = (
+    "score",
+    "opponent",
+    "minutes",
+    "points",
+    "fg2",
+    "rebounds",
+    "assists",
+    "steals",
+    "turnovers",
+    "fg3",
+    "ft",
+    "offRebounds",
+    "started",
+)
+
+
+def sync_protocol_row(row: dict, stat: dict) -> None:
+    fresh = public_row(stat)
+    for key in PROTOCOL_ROW_SYNC_KEYS:
+        if key in fresh:
+            row[key] = fresh[key]
+
+
 def count_stat(item, key) -> int:
     value = item.get(key)
     return int(value) if isinstance(value, int) else 0
@@ -767,36 +819,35 @@ def public_row(stat) -> dict:
     return row
 
 
-def stat_from_player(item, game):
-    pair = our_score_pair(game) if game else None
+def stat_from_player(item, game, *, our_team_id: int | None = None):
+    pair = score_pair_from_item(item, our_team_id)
+    if pair is None and game:
+        pair = our_score_pair(game)
     if pair is None:
-        teams = (item.get("Game") or {}).get("GameTeams") or []
-        number = item.get("TeamNumber")
-        ours = next((team for team in teams if team.get("GameTeamNumber") == number), None)
-        theirs = next((team for team in teams if team.get("GameTeamNumber") != number), None)
-        if not ours or not theirs:
-            return None
-        our_score = ours.get("GameTeamScore")
-        their_score = theirs.get("GameTeamScore")
-        if not isinstance(our_score, int) or not isinstance(their_score, int):
-            return None
-        pair = (our_score, their_score)
-        when = parse_ru_date(str(item.get("GameDate") or ""))
-        block = item.get("TeamNameB") if number == 1 else item.get("TeamNameA")
-        opponent = str((block or {}).get("CompTeamShortNameRu") or "")
-        our_name = "Росток-2014"
-        game_id = (item.get("Game") or {}).get("GameID")
-        comp = ""
-    else:
+        pair = score_pair_from_item(item, None)
+    if pair is None:
+        return None
+    when = parse_ru_date(str(item.get("GameDate") or ""))
+    game_id = (item.get("Game") or {}).get("GameID")
+    comp = ""
+    our_name = U14_OUR_NAME if our_team_id == U14_TEAM_ID else "Росток-2014"
+    opponent = ""
+    if game:
         when = game["date"]
         opponent = game["opp"]
         our_name = game["our"]
         game_id = game["id"]
         comp = game["comp"]
-        our_score, their_score = pair
+    if not opponent:
+        number = item.get("TeamNumber")
+        block = item.get("TeamNameB") if number == 1 else item.get("TeamNameA")
+        opponent = str((block or {}).get("CompTeamShortNameRu") or "")
+    if our_team_id == U14_TEAM_ID:
+        opponent = normalize_u14_opponent(opponent)
+        our_name = U14_OUR_NAME
+    our_score, their_score = pair
     if not when or not opponent:
         return None
-    our_score, their_score = pair
     word = result_word(our_score, their_score)
     source = item
     return {
@@ -1727,6 +1778,7 @@ def apply_protocols(data, stats, notes):
         notes.append("личный протокол: в API пока нет строк игрока, блок «Последний матч» не трогал")
         return set()
     added = 0
+    refreshed = 0
     logs: dict[str, dict] = {}
     known: dict[str, set] = {}
     for stat in sorted(stats, key=lambda item: item["when"]):
@@ -1735,6 +1787,14 @@ def apply_protocols(data, stats, notes):
         logs[log_id] = log
         keys = known.setdefault(log_id, {row.get("gameId") or row.get("date") for row in log["rows"]})
         key = stat.get("gameId") or stat["date"]
+        game_id = stat.get("gameId")
+        if isinstance(game_id, int):
+            existing = next((row for row in log["rows"] if row.get("gameId") == game_id), None)
+            if existing:
+                sync_protocol_row(existing, stat)
+                apply_fixed_review(existing)
+                refreshed += 1
+                continue
         if key in keys:
             continue
         row = public_row(stat)
@@ -1744,6 +1804,8 @@ def apply_protocols(data, stats, notes):
         added += 1
     if added:
         notes.append(f"личный протокол: новых игр {added}")
+    elif refreshed:
+        notes.append(f"личный протокол: обновлены строки {refreshed}")
     else:
         notes.append("личный протокол: новых игр нет")
     if not any(
@@ -2020,10 +2082,10 @@ def update_basket(data, notes):
             continue
         by_id = {game["id"]: game for game in comp_games}
         for item in payload["GameStats"]:
-            stat = stat_from_log(item)
+            calendar_game = by_id.get((item.get("Game") or {}).get("GameID"))
+            stat = stat_from_player(item, calendar_game, our_team_id=TEAM_ID)
             if not stat or stat.get("gameId") in seen:
                 continue
-            calendar_game = by_id.get(stat.get("gameId"))
             if calendar_game:
                 stat["comp"] = calendar_game["comp"]
                 stat["our_name"] = calendar_game["our"]
@@ -2045,7 +2107,7 @@ def update_basket(data, notes):
                         player = person
             if not player:
                 continue
-            stat = stat_from_player(player, game)
+            stat = stat_from_player(player, game, our_team_id=TEAM_ID)
             if stat and stat.get("gameId") not in seen:
                 stat["logId"] = MOS_LOG_ID
                 stats.append(stat)
@@ -2118,23 +2180,15 @@ def fetch_u14_stats(games, notes) -> list:
         notes.append(f"МЛБЛ U14: протокол не прочитан ({type(exc).__name__})")
         return stats
     for item in payload["GameStats"]:
-        stat = stat_from_log(item)
+        game_id = (item.get("Game") or {}).get("GameID")
+        calendar_game = by_id.get(game_id)
+        stat = stat_from_player(item, calendar_game, our_team_id=U14_TEAM_ID)
         if not stat or stat.get("gameId") in seen:
             continue
-        calendar_game = by_id.get(stat.get("gameId"))
+        stat["comp"] = (calendar_game or {}).get("comp") or U14_COMP_LABEL
+        stat["our_name"] = U14_OUR_NAME
         if calendar_game:
-            stat["comp"] = calendar_game.get("comp") or U14_COMP_LABEL
-            stat["our_name"] = calendar_game["our"]
-            stat["opponent"] = calendar_game["opp"]
-            pair = our_score_pair(calendar_game)
-            if pair:
-                stat["our"], stat["their"] = pair
-                stat["score"] = f"{pair[0]}:{pair[1]}, {result_word(*pair)}"
-                stat["result"] = result_word(*pair)
-        else:
-            stat["comp"] = U14_COMP_LABEL
-            stat["our_name"] = U14_OUR_NAME
-            stat["opponent"] = normalize_u14_opponent(stat.get("opponent"))
+            stat["opponent"] = normalize_u14_opponent(calendar_game["opp"])
         stat["logId"] = U14_LOG_ID
         seen.add(stat.get("gameId"))
         stats.append(stat)
@@ -2515,6 +2569,45 @@ def self_test():
     assert extract_score("24 октября, 16:00, зал. Команда выиграла 62:37.") == (62, 37)
     assert extract_score("Счёт 16:8, победа.") == (16, 8)
     assert plaque_for(rows, old) == "Таблица ещё не обновлена: победа 62:37"
+    away_u14 = stat_from_player(
+        {
+            "GameDate": "08.11.2026",
+            "TeamNumber": 2,
+            "TeamNameA": {"CompTeamShortNameRu": "MO.BASKET U14"},
+            "TeamNameB": {"CompTeamShortNameRu": "ШВСМ Росток U14"},
+            "Game": {
+                "GameID": 1088404,
+                "GameTeams": [
+                    {"GameTeamNumber": 1, "TeamID": 79205, "GameTeamScore": 71},
+                    {"GameTeamNumber": 2, "TeamID": U14_TEAM_ID, "GameTeamScore": 43},
+                ],
+            },
+            "PlayedTime": "8:47",
+            "Points": 0,
+            "Shots2": "0/3",
+            "Shots3": "0/1",
+            "Shots1": "0/0",
+            "Rebound": 4,
+            "OffRebound": 1,
+            "Assist": 0,
+            "Steal": 1,
+            "Turnover": 0,
+            "Foul": 1,
+            "IsStart": False,
+        },
+        {
+            "id": 1088404,
+            "date": date(2026, 11, 8),
+            "opp": "MO.BASKET U14",
+            "our": "ШВСМ Росток U14",
+            "home": False,
+            "score_a": 2,
+            "score_b": 0,
+            "comp": U14_COMP_LABEL,
+        },
+        our_team_id=U14_TEAM_ID,
+    )
+    assert away_u14["score"] == "43:71, поражение" and away_u14["result"] == "поражение"
     stat = stat_from_log(
         {
             "GameDate": "24.10.2026",
