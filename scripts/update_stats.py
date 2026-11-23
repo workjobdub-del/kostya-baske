@@ -1682,6 +1682,159 @@ def apply_manual_games(data: dict, notes: list[str]) -> None:
     refresh_mama_pending_manual(data)
 
 
+def opponent_from_fixture_title(title: str) -> str:
+    parts = [part.strip() for part in re.split(r"\s*[—–-]\s*", str(title or "")) if part.strip()]
+    if len(parts) < 2:
+        return str(title or "").strip()
+    if re.search(r"росток-2014", parts[0], re.I) and not re.search(r"росток-2014", parts[1], re.I):
+        return parts[1]
+    if re.search(r"росток-2014", parts[1], re.I):
+        return parts[0]
+    return parts[1]
+
+
+def fixture_opp_key(text: str) -> str:
+    raw = str(text or "").lower().replace("ё", "е")
+    raw = re.sub(r"[«»\"]", "", raw)
+    raw = re.sub(r"\bu14\b", " ", raw)
+    raw = re.sub(r"швсм", " ", raw)
+    raw = re.sub(r"[^a-zа-я0-9]+", " ", raw)
+    raw = re.sub(r"\b(2013|2014|2015|2016)\s+\d+\b", r"\1", raw)
+    return re.sub(r"\s+", " ", raw).strip()
+
+
+def fixture_opp_tokens(text: str) -> list[str]:
+    generic = {
+        "basket",
+        "baskets",
+        "баскет",
+        "academy",
+        "академия",
+        "сшор",
+        "школа",
+        "центр",
+        "sport",
+        "sports",
+        "club",
+        "клуб",
+        "team",
+        "юниор",
+        "юноши",
+    }
+    return [token for token in fixture_opp_key(text).split() if token and token not in generic]
+
+
+def tokens_compatible_fixture(left: str, right: str) -> bool:
+    a = fixture_opp_tokens(left)
+    b = fixture_opp_tokens(right)
+    if not a or not b or len(a) != len(b):
+        return False
+    return all(token in b for token in a)
+
+
+def fixture_stamp_from_detail(detail: str) -> date | None:
+    text = str(detail or "")
+    numeric = re.search(r"(\d{2})\.(\d{2})\.(\d{2,4})", text)
+    if numeric:
+        year = int(numeric.group(3))
+        if year < 100:
+            year += 2000
+        try:
+            return date(year, int(numeric.group(2)), int(numeric.group(1)))
+        except ValueError:
+            return None
+    match = re.search(r"(\d{1,2})\s+([а-яё]+)", text, re.I)
+    if not match:
+        return None
+    for month, name in enumerate(MONTHS, start=1):
+        if match.group(2).lower().startswith(name[:4]):
+            try:
+                return date(2026, month, int(match.group(1)))
+            except ValueError:
+                return None
+    return None
+
+
+def fixture_scored(detail: str) -> bool:
+    return bool(re.search(r"победа|поражение", str(detail or ""), re.I) or extract_score(detail))
+
+
+def fixtures_same_day_and_opponent(left: dict, right: dict) -> bool:
+    if str(left.get("tour") or "") != str(right.get("tour") or ""):
+        return False
+    if not tokens_compatible_fixture(
+        opponent_from_fixture_title(left.get("title")),
+        opponent_from_fixture_title(right.get("title")),
+    ):
+        return False
+    left_day = fixture_stamp_from_detail(left.get("detail"))
+    right_day = fixture_stamp_from_detail(right.get("detail"))
+    return bool(left_day and right_day and left_day == right_day)
+
+
+def manual_upcoming_still_visible(manual: dict, official: list[dict], now: date) -> bool:
+    day = fixture_stamp_from_detail(manual.get("detail"))
+    if day and day < now:
+        return False
+    if fixture_scored(manual.get("detail")) and str(manual.get("status") or "") != "Ещё не сыгран":
+        return False
+    probe = {**manual, "tour": manual.get("tour") or "Первенство Москвы"}
+    return not any(fixtures_same_day_and_opponent(probe, row) for row in official)
+
+
+def prune_manual_upcoming(data: dict, now: date, notes: list[str]) -> None:
+    items = data.get("manualUpcoming")
+    if not isinstance(items, list):
+        return
+    kept = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        day = fixture_stamp_from_detail(item.get("detail"))
+        if day and day < now:
+            continue
+        kept.append(item)
+    if len(kept) != len(items):
+        data["manualUpcoming"] = kept
+        notes.append("анонсы: убрал прошедшие ручные матчи из manualUpcoming")
+
+
+def test_manual_upcoming():
+    now = date(2026, 11, 23)
+    manual = {
+        "tour": "Первенство Москвы",
+        "title": "Росток-2014 — Тимирязевская-2014",
+        "detail": "28 ноября, 10:30, зал «Росток».",
+        "status": "Ещё не сыгран",
+    }
+    official = []
+    assert manual_upcoming_still_visible(manual, official, now)
+    official_dup = [
+        {
+            "tour": "Первенство Москвы",
+            "title": "Росток-2014 — Тимирязевская-2014",
+            "detail": "28 ноября, 12:00, зал «Росток». Счёт 70:60, победа.",
+            "status": "Личного протокола нет",
+        }
+    ]
+    assert not manual_upcoming_still_visible(manual, official_dup, now)
+    past = {**manual, "detail": "20 октября, 10:30, зал «Росток»."}
+    assert not manual_upcoming_still_visible(past, [], date(2026, 11, 23))
+    sample = {
+        "season": {"matches": official_dup.copy()},
+        "manualUpcoming": [manual, past],
+        "manualGames": {},
+    }
+    notes: list[str] = []
+    prune_manual_upcoming(sample, now, notes)
+    assert len(sample["manualUpcoming"]) == 1
+    assert sample["manualUpcoming"][0]["title"] == manual["title"]
+    sample["season"]["matches"] = []
+    before = copy.deepcopy(sample.get("manualUpcoming"))
+    merge_matches([], [], set(), now)
+    assert sample["manualUpcoming"] == before
+
+
 def ensure_log(data, log_id=MOS_LOG_ID, label: str | None = None):
     label = label or LOG_LABELS[log_id]
     tournaments = data["gameLogs"]["tournaments"]
@@ -2825,6 +2978,7 @@ def self_test():
     short_good, _short_work, _short_close = build_mama_notes(sample)
     assert all("фолит" not in line for line in short_good)
     assert len(short_good) == 3
+    test_manual_upcoming()
     test_manual_body()
 
 
@@ -3172,6 +3326,7 @@ def main():
     refresh_opponents(data, notes)
     sync_fixed_reviews(data)
     apply_manual_games(data, notes)
+    prune_manual_upcoming(data, today(), notes)
     try:
         from kpi_sync import refresh_kpi
 

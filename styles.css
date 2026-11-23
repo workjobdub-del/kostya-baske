@@ -2828,6 +2828,18 @@ html, body { overflow-x: clip; }
 
 .fixture-opp { margin: 0.15rem 0 0; font-size: 1.05rem; }
 
+.chip--note {
+  border-color: rgba(232, 184, 74, 0.35);
+  color: var(--gold-2);
+}
+
+.status--note {
+  color: var(--gold-2);
+  white-space: normal;
+  text-align: right;
+  max-width: 7.5rem;
+}
+
 .fixture-meta {
   display: flex;
   flex-wrap: wrap;
