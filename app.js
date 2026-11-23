@@ -1753,6 +1753,56 @@ function devPassKidLine(ratio) {
   return "потерь пока больше, чем удачных передач — нужно наоборот";
 }
 
+function devExerciseLine(ex, index, priorityId) {
+  const text = typeof ex === "string" ? ex : ex.text || "";
+  const video = ex && typeof ex === "object" ? ex.video : null;
+  const youtubeId = video && video.youtubeId;
+  if (!youtubeId) return `<li class="dev-exercise">${esc(text)}</li>`;
+  const watchLabel = video.label ? `▶ Смотреть: ${video.label}` : "▶ Смотреть, как делать";
+  const embedId = `dev-vid-${priorityId}-${index}`;
+  const ytUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(youtubeId)}`;
+  return `<li class="dev-exercise">${esc(text)}
+    <p class="dev-video-actions">
+      <button type="button" class="dev-video-btn" data-youtube-id="${esc(youtubeId)}" data-embed-target="${esc(embedId)}" data-closed-label="${esc(watchLabel)}" data-video-title="${esc(video.label || "Упражнение")}" aria-expanded="false">${esc(watchLabel)}</button>
+      <a class="dev-video-link" href="${esc(ytUrl)}" target="_blank" rel="noopener noreferrer">Открыть на YouTube</a>
+    </p>
+    <div class="dev-video-panel" id="${esc(embedId)}" hidden></div>
+  </li>`;
+}
+
+function onDevVideoToggle(button) {
+  const youtubeId = button.getAttribute("data-youtube-id");
+  const targetId = button.getAttribute("data-embed-target");
+  const panel = targetId ? document.getElementById(targetId) : null;
+  if (!youtubeId || !panel) return;
+  const open = button.getAttribute("aria-expanded") === "true";
+  const closedLabel = button.getAttribute("data-closed-label") || "▶ Смотреть, как делать";
+  if (open) {
+    panel.hidden = true;
+    panel.innerHTML = "";
+    button.setAttribute("aria-expanded", "false");
+    button.textContent = closedLabel;
+    return;
+  }
+  document.querySelectorAll(".dev-video-panel").forEach((node) => {
+    if (node === panel) return;
+    node.hidden = true;
+    node.innerHTML = "";
+  });
+  document.querySelectorAll(".dev-video-btn[aria-expanded='true']").forEach((btn) => {
+    btn.setAttribute("aria-expanded", "false");
+    const label = btn.getAttribute("data-closed-label");
+    if (label) btn.textContent = label;
+  });
+  if (navigator.onLine) {
+    const title = button.getAttribute("data-video-title") || "Упражнение";
+    panel.innerHTML = `<div class="dev-video-frame"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(youtubeId)}?rel=0" title="${esc(title)}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`;
+    panel.hidden = false;
+    button.setAttribute("aria-expanded", "true");
+    button.textContent = "Скрыть видео";
+  }
+}
+
 function devGoalBlock(item, current) {
   const metric = item.goalMetric;
   const goal = item.goalTo;
@@ -1877,7 +1927,9 @@ function renderDevelopmentPage() {
   const priorities = (cfg.priorities || [])
     .map((item) => {
       const current = devMetricValue(item.goalMetric, pack);
-      const exercises = (item.exercises || []).map((line) => `<li>${esc(line)}</li>`).join("");
+      const exercises = (item.exercises || [])
+        .map((line, index) => devExerciseLine(line, index, item.id))
+        .join("");
       return `<article class="panel dev-priority" id="dev-${esc(item.id)}">
         <h3>${esc(item.title)}</h3>
         <p>${esc(item.why)}</p>
@@ -2725,6 +2777,12 @@ document.addEventListener("click", (event) => {
   if (syncButton) {
     event.preventDefault();
     onSyncClick(syncButton.getAttribute("data-sync"));
+    return;
+  }
+  const devVideoBtn = event.target.closest(".dev-video-btn");
+  if (devVideoBtn) {
+    event.preventDefault();
+    onDevVideoToggle(devVideoBtn);
     return;
   }
   const editBody = event.target.closest("[data-edit-body]");
