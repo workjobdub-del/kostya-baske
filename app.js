@@ -1012,6 +1012,25 @@ function oppButton(name, tour) {
   return `<button type="button" class="opp-link" data-opp="${esc(clean)}" data-tour="${esc(tour || "")}" aria-label="${esc(label)}">${esc(clean)}</button>`;
 }
 
+function fixtureDayEqual(a, b) {
+  if (!a || !b || !a.stamp || !b.stamp) return false;
+  const da = new Date(a.stamp);
+  const db = new Date(b.stamp);
+  return da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate();
+}
+
+function fixturesSameDayAndOpponent(left, right) {
+  if (left.tour !== right.tour) return false;
+  if (!tokensCompatible(oppTokens(left.opponent), oppTokens(right.opponent))) return false;
+  return fixtureDayEqual(left, right);
+}
+
+function normalizeFixture(match, tour) {
+  const when = scheduleParts(match.detail);
+  const scored = /победа|поражение|\d+\s*:\s*\d+/i.test(String(match.detail || ""));
+  return { ...match, tour, ...when, opponent: opponentFromTitle(match.title), scored };
+}
+
 function collectFixtures() {
   const items = [];
   ((data.season && data.season.matches) || []).forEach((match) => {
@@ -1020,11 +1039,38 @@ function collectFixtures() {
   ((data.u14Schedule && data.u14Schedule.matches) || []).forEach((match) => {
     items.push({ ...match, tour: "МЛБЛ U14" });
   });
-  return items.map((match) => {
-    const when = scheduleParts(match.detail);
-    const scored = /победа|поражение|\d+\s*:\s*\d+/i.test(String(match.detail || ""));
-    return { ...match, ...when, opponent: opponentFromTitle(match.title), scored };
-  });
+  const official = items.map((match) => normalizeFixture(match, match.tour));
+  const manual = (data.manualUpcoming || [])
+    .map((match) =>
+      normalizeFixture(
+        {
+          ...match,
+          status: match.status || "Ещё не сыгран",
+          manualAnnouncement: true,
+          sourceNote: match.sourceNote || "по анонсу клуба",
+        },
+        match.tour || "Первенство Москвы"
+      )
+    )
+    .filter((match) => isUpcomingFixture(match))
+    .filter((match) => !official.some((row) => fixturesSameDayAndOpponent(row, match)));
+  return [...official, ...manual];
+}
+
+function seasonMatchesMerged() {
+  const rows = [...((data.season && data.season.matches) || [])];
+  collectFixtures()
+    .filter((item) => item.manualAnnouncement && item.tour === "Первенство Москвы")
+    .forEach((item) => {
+      rows.push({
+        title: item.title,
+        detail: item.detail,
+        status: item.status,
+        manualAnnouncement: true,
+        sourceNote: item.sourceNote,
+      });
+    });
+  return rows.sort((a, b) => (scheduleParts(a.detail).stamp || 0) - (scheduleParts(b.detail).stamp || 0));
 }
 
 function isUpcomingFixture(item) {
@@ -1059,11 +1105,35 @@ function fixtureLine(item, short) {
 
 function renderUpcomingCard(item) {
   const place = item.arena ? `зал «${item.arena}»` : "";
+  const note = item.manualAnnouncement ? `<span class="chip chip--note">${esc(item.sourceNote || "по анонсу клуба")}</span>` : "";
   return `<article class="fixture">
     <p class="fixture-when"><b>${esc(fixtureWhen(item, false))}</b>${item.time ? `<span>${esc(item.time)}</span>` : ""}</p>
     <p class="fixture-opp">${oppButton(item.opponent, item.tour)}</p>
-    <p class="fixture-meta"><span class="chip">${esc(item.tour)}</span>${place ? `<span>${esc(place)}</span>` : ""}</p>
+    <p class="fixture-meta"><span class="chip">${esc(item.tour)}</span>${note}${place ? `<span>${esc(place)}</span>` : ""}</p>
   </article>`;
+}
+
+function renderSeasonMatchCard(match) {
+  const tour = "Первенство Москвы";
+  const when = scheduleParts(match.detail);
+  const scored = /победа|поражение|\d+\s*:\s*\d+/i.test(String(match.detail || ""));
+  const upcoming = isUpcomingFixture({ ...match, ...when, scored });
+  const opponent = opponentFromTitle(match.title);
+  const title = upcoming ? oppButton(opponent, tour) : esc(match.title);
+  const manual = match.manualAnnouncement || /анонсу клуба/i.test(String(match.status || ""));
+  const status = manual
+    ? `<span class="status status--note">${esc(match.sourceNote || "по анонсу клуба")}</span>`
+    : match.status
+      ? `<span class="status">${esc(match.status)}</span>`
+      : "";
+  return `<article class="match-row">
+        <div>
+          <h3>${title}</h3>
+          <p>${esc(match.detail)}</p>
+          ${match.aiReview ? `<p class="game-review">${esc(match.aiReview)}</p>` : ""}
+        </div>
+        ${status}
+      </article>`;
 }
 
 function renderUpcomingBlock(limit) {
@@ -2360,18 +2430,7 @@ function renderProfile() {
 
 function renderSeason() {
   const block = data.season;
-  const matches = block.matches
-    .map(
-      (match) => `<article class="match-row">
-        <div>
-          <h3>${esc(match.title)}</h3>
-          <p>${esc(match.detail)}</p>
-          ${match.aiReview ? `<p class="game-review">${esc(match.aiReview)}</p>` : ""}
-        </div>
-        ${match.status ? `<span class="status">${esc(match.status)}</span>` : ""}
-      </article>`
-    )
-    .join("");
+  const matches = seasonMatchesMerged().map((match) => renderSeasonMatchCard(match)).join("");
   const u14 = data.u14Schedule;
   const u14Block =
     u14 && u14.matches && u14.matches.length
