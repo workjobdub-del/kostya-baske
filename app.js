@@ -875,7 +875,7 @@ function renderHero() {
       </div>
     </div>
     ${updatedLine()}
-    <div id="notify" class="notify notify--hero"></div>
+    <div id="notify-hero" class="notify notify--hero" hidden></div>
   </section>`;
 }
 
@@ -3124,8 +3124,41 @@ window.addEventListener("resize", () => {
 
 const ONESIGNAL_APP_ID = "7a9c32d2-ee00-46aa-9cfd-009842e4dab4";
 const notifySdk = { ready: null, state: "idle", detail: "" };
+const NOTIFY_HINT_KEY = "kostya-notify-known";
+const NOTIFY_FLASH_MS = 2400;
+let notifyFlashUntil = 0;
 const TAG_GAMES = "Игры";
 const TAG_NEWS = "Новости команды";
+
+function rememberNotifyEnabled(enabled) {
+  try {
+    sessionStorage.setItem(NOTIFY_HINT_KEY, enabled ? "1" : "0");
+  } catch (error) {}
+}
+
+function rememberedNotifyEnabled() {
+  try {
+    return sessionStorage.getItem(NOTIFY_HINT_KEY) === "1";
+  } catch (error) {
+    return false;
+  }
+}
+
+function notifyPermissionGranted() {
+  try {
+    return typeof Notification !== "undefined" && Notification.permission === "granted";
+  } catch (error) {
+    return false;
+  }
+}
+
+function notificationsActive(OneSignal) {
+  return pushOptedIn(OneSignal) && notifyPermissionGranted();
+}
+
+function notifySdkKnown() {
+  return notifySdk.state === "ready" || notifySdk.state === "error" || notifySdk.state === "timeout";
+}
 
 function workerTarget() {
   const path = location.pathname;
@@ -3217,34 +3250,32 @@ function applyNotifyTags(box, tags) {
   }
 }
 
-function renderNotify() {
-  ensureSheets();
-  const box = document.getElementById("notify");
+function renderNotifySheet() {
+  const box = document.getElementById("notify-sheet");
   if (!box) return;
   const OneSignal = window.oneSignal;
-  const opted = pushOptedIn(OneSignal);
+  const active = notifySdkKnown() ? notificationsActive(OneSignal) : pushOptedIn(OneSignal) && rememberedNotifyEnabled();
+  if (!active) {
+    box.hidden = true;
+    box.innerHTML = "";
+    return;
+  }
+  box.hidden = false;
   const gamesOn = box.querySelector("[data-tag='games']");
   const newsOn = box.querySelector("[data-tag='news']");
   const keepGames = gamesOn ? gamesOn.checked : true;
   const keepNews = newsOn ? newsOn.checked : false;
-  const status = opted
-    ? "Уведомления включены. Игры приходят сразу, новости команды — если отметить вторую галочку."
-    : "Браузер спросит разрешение только после кнопки. Сам при первом заходе не спрашивает.";
   box.innerHTML = `<h2>Уведомления</h2>
-    <p>${status}</p>
+    <p>Игры приходят сразу, новости команды — если отметить вторую галочку.</p>
     <div class="notify-options">
       <label><input type="checkbox" data-tag="games" ${keepGames ? "checked" : ""}> Игры</label>
       <label><input type="checkbox" data-tag="news" ${keepNews ? "checked" : ""}> Новости команды</label>
     </div>
     <div class="notify-actions">
-      ${
-        opted
-          ? `<button type="button" class="is-off" data-notify="off">Выключить уведомления</button>`
-          : `<button type="button" class="is-on" data-notify="on">Включить уведомления</button>`
-      }
+      <button type="button" class="is-off" data-notify="off">Выключить уведомления</button>
     </div>
     <p class="notify-note" data-notify-note hidden></p>`;
-  if (OneSignal && opted) {
+  if (OneSignal) {
     let tags = null;
     try {
       tags = OneSignal.User.getTags();
@@ -3260,10 +3291,74 @@ function renderNotify() {
   }
 }
 
+function renderNotifyHero() {
+  const box = document.getElementById("notify-hero");
+  if (!box || document.body.dataset.page !== "profile") return;
+  const OneSignal = window.oneSignal;
+  const known = notifySdkKnown();
+  const active = known ? notificationsActive(OneSignal) : false;
+  const remembered = rememberedNotifyEnabled();
+  const flashing = notifyFlashUntil > Date.now();
+  if (known) rememberNotifyEnabled(active);
+
+  if (!known && remembered) {
+    box.hidden = true;
+    box.innerHTML = "";
+    return;
+  }
+
+  if (active && !flashing) {
+    box.hidden = true;
+    box.innerHTML = "";
+    return;
+  }
+
+  if (flashing) {
+    box.hidden = false;
+    box.innerHTML = `<p class="notify-flash" role="status">Уведомления включены</p>`;
+    return;
+  }
+
+  box.hidden = false;
+  box.innerHTML = `<p class="notify-hero-lead">Сообщения о матчах и новостях команды — по желанию.</p>
+    <div class="notify-actions">
+      <button type="button" class="is-on" data-notify="on">Включить уведомления</button>
+    </div>
+    <p class="notify-note" data-notify-note hidden></p>`;
+}
+
+function syncNotifySheetHint() {
+  const hint = document.querySelector(".notify-sheet-hint");
+  if (!hint) return;
+  const OneSignal = window.oneSignal;
+  const active = notifySdkKnown()
+    ? notificationsActive(OneSignal)
+    : rememberedNotifyEnabled();
+  hint.hidden = active;
+}
+
+function renderNotify() {
+  ensureSheets();
+  renderNotifySheet();
+  renderNotifyHero();
+  syncNotifySheetHint();
+}
+
+function flashNotifyEnabled() {
+  notifyFlashUntil = Date.now() + NOTIFY_FLASH_MS;
+  renderNotifyHero();
+  window.setTimeout(() => {
+    if (notifyFlashUntil <= Date.now()) {
+      notifyFlashUntil = 0;
+      renderNotifyHero();
+    }
+  }, NOTIFY_FLASH_MS + 80);
+}
+
 async function saveNotifyTags() {
   const OneSignal = window.oneSignal;
-  const box = document.getElementById("notify");
-  if (!OneSignal || !box) return;
+  const box = document.getElementById("notify-sheet");
+  if (!OneSignal || !box || box.hidden) return;
   const games = box.querySelector("[data-tag='games']").checked;
   const news = box.querySelector("[data-tag='news']").checked;
   if (games) await Promise.resolve(OneSignal.User.addTag(TAG_GAMES, "1"));
@@ -3319,22 +3414,27 @@ async function enableNotifications(OneSignal) {
     return;
   }
   const opted = await waitForOptedIn(OneSignal);
-  renderNotify();
-  if (!opted) {
+  if (!opted || !notificationsActive(OneSignal)) {
+    renderNotify();
     notifyNote("Браузер не разрешил уведомления. Включите их в настройках сайта.");
     return;
   }
+  rememberNotifyEnabled(true);
   try {
     await saveNotifyTagsWithRetry();
   } catch (error) {
     notifyNote(
-      "Уведомления включены, но темы не сохранились. Переключите галочки «Игры» / «Новости» ещё раз."
+      "Уведомления включены, но темы не сохранились. Переключите галочки «Игры» / «Новости» в настройках."
     );
   }
+  flashNotifyEnabled();
+  renderNotify();
 }
 
 function notifyNote(text) {
-  const note = document.querySelector("[data-notify-note]");
+  const note =
+    document.querySelector("#notify-hero [data-notify-note]") ||
+    document.querySelector("#notify-sheet [data-notify-note]");
   if (!note) return;
   note.hidden = !text;
   note.textContent = text || "";
@@ -3378,6 +3478,8 @@ document.addEventListener("click", (event) => {
     if (action === "off") {
       try {
         await Promise.resolve(OneSignal.User.PushSubscription.optOut());
+        rememberNotifyEnabled(false);
+        notifyFlashUntil = 0;
         renderNotify();
       } catch (error) {
         notifyNote("Не удалось выключить.");
@@ -3497,7 +3599,10 @@ function setupNotifications() {
         window.oneSignal = OneSignal;
         notifySdk.state = "ready";
         notifySdk.detail = "";
-        OneSignal.User.PushSubscription.addEventListener("change", () => renderNotify());
+        OneSignal.User.PushSubscription.addEventListener("change", () => {
+          rememberNotifyEnabled(notificationsActive(OneSignal));
+          renderNotify();
+        });
       } catch (error) {
         window.oneSignal = null;
         notifySdk.state = "error";
@@ -4224,7 +4329,8 @@ function ensureSheets() {
   sync.setAttribute("data-noswipe", "");
   sync.innerHTML = `<div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="sync-sheet-title">
       <h2 id="sync-sheet-title">Настройки</h2>
-      <p class="caption">Уведомления о матчах — в шапке на вкладке «Профиль».</p>
+      <div id="notify-sheet" class="notify notify--in-sheet" hidden></div>
+      <p class="caption notify-sheet-hint">Если уведомления выключены, включить их можно в шапке на вкладке «Профиль».</p>
       <details class="fold sheet-admin">
         <summary>Для администратора · синхронизация с GitHub</summary>
         <p class="caption">Нужно только владельцу. Обычным посетителям токен не требуется: кнопка «Обновить» и так проверяет свежие файлы.</p>

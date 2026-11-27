@@ -2443,6 +2443,23 @@ svg .bar-hit.is-picked { fill: rgba(243, 217, 138, 0.1); }
   width: 100%;
 }
 
+.notify--hero .notify-hero-lead {
+  margin: 0 0 0.45rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.notify--hero .notify-flash {
+  margin: 0;
+  padding: 0.35rem 0;
+  text-align: center;
+  color: var(--good);
+  font-weight: 600;
+}
+
+.notify-sheet-hint[hidden] { display: none; }
+
 .sheet-admin { margin-top: 0.65rem; }
 
 body[data-page="development"] .to-top {
