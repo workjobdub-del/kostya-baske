@@ -7,9 +7,10 @@
   --line: rgba(255, 255, 255, 0.1);
   --card: #161a22;
   --card-2: #1e2430;
-  --gold: #f97316;
-  --gold-2: #fb923c;
-  --gold-deep: #c2410c;
+  --gold: #ff6a1a;
+  --gold-2: #ff8f3c;
+  --gold-deep: #e25500;
+  --glow: rgba(255, 106, 26, 0.45);
   --silver: #a8b0bd;
   --good: #34d399;
   --work: #fb7185;
@@ -3511,5 +3512,215 @@ body[data-page="profile"] .player-card.player-card--athlete .num {
   .tabbar a {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* —— Смелее: v05 + мобильные скроллбары —— */
+
+.jam .reveal:not(.in) {
+  opacity: 1;
+  transform: none;
+}
+
+.jam .block.in h2,
+.jam .reveal.in {
+  animation-duration: 420ms;
+}
+
+.jam .block.in h2 {
+  animation-fill-mode: both;
+}
+
+.block {
+  background: linear-gradient(165deg, rgba(255, 106, 26, 0.06), transparent 55%), var(--card);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+}
+
+.block h2 {
+  font-family: var(--display);
+  font-size: clamp(1.15rem, 4.5vw, 1.45rem);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--ink);
+}
+
+.block h2::before {
+  width: 4px;
+  height: 1.1em;
+  border-radius: 3px;
+  box-shadow: 0 0 12px var(--glow);
+}
+
+.player-card.player-card--athlete {
+  padding: 1.15rem 1rem 0.85rem;
+  border: 1px solid rgba(255, 143, 60, 0.35);
+  background:
+    radial-gradient(120% 80% at 100% 0%, rgba(255, 106, 26, 0.22), transparent 50%),
+    linear-gradient(155deg, rgba(255, 106, 26, 0.12), transparent 48%),
+    var(--card);
+  box-shadow:
+    0 0 0 1px rgba(255, 106, 26, 0.08),
+    0 20px 50px rgba(0, 0, 0, 0.45),
+    0 0 48px rgba(255, 106, 26, 0.12);
+}
+
+.player-card.player-card--athlete[data-number]::after {
+  font-size: clamp(6.5rem, 42vw, 10.5rem);
+  -webkit-text-stroke: 2px rgba(255, 106, 26, 0.2);
+  opacity: 0.95;
+  right: -0.02em;
+  top: -0.22em;
+}
+
+.player-card.player-card--athlete::before {
+  content: "";
+  position: absolute;
+  inset: auto -20% -35% 40%;
+  height: 55%;
+  background: radial-gradient(ellipse at center, rgba(255, 106, 26, 0.35), transparent 68%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+body[data-page="profile"] .player-card.player-card--athlete h1 .player-name {
+  font-size: clamp(1.55rem, 6.5vw, 1.85rem);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+body[data-page="profile"] .player-card.player-card--athlete .num {
+  font-size: 1.05rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 106, 26, 0.18);
+  border: 1px solid rgba(255, 143, 60, 0.45);
+}
+
+.hero-stats--headline {
+  gap: 0.35rem;
+  padding: 0.75rem 0.45rem;
+  background: rgba(0, 0, 0, 0.38);
+  border-color: rgba(255, 143, 60, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.hero-stat--headline {
+  min-width: 0;
+  padding: 0.15rem 0.1rem;
+  text-align: center;
+}
+
+.hero-stat--headline b {
+  font-size: clamp(2rem, 9.5vw, 2.65rem);
+  color: #fff;
+  text-shadow: 0 0 24px rgba(255, 106, 26, 0.35);
+}
+
+.hero-stat--headline span {
+  margin-top: 0.25rem;
+  font-size: clamp(0.58rem, 2.65vw, 0.68rem);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kpi-tile {
+  border-color: rgba(255, 143, 60, 0.22);
+  background: linear-gradient(160deg, rgba(255, 106, 26, 0.1), transparent 50%), var(--card-2);
+}
+
+.kpi-value {
+  font-family: var(--display);
+  font-size: clamp(1.5rem, 6vw, 1.85rem);
+  font-weight: 700;
+}
+
+.kpi-tile h3 {
+  font-family: var(--font);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.season-card.is-current,
+.fixture {
+  border-color: rgba(255, 143, 60, 0.3);
+  background: linear-gradient(160deg, rgba(255, 106, 26, 0.08), transparent 55%), var(--card-2);
+}
+
+@media (max-width: 720px) {
+  .tabbar a[aria-current="page"] {
+    background: linear-gradient(180deg, rgba(255, 106, 26, 0.28), rgba(255, 106, 26, 0.12));
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 143, 60, 0.5),
+      0 0 16px rgba(255, 106, 26, 0.2);
+    color: #fff;
+  }
+
+  .tabbar a[aria-current="page"] span {
+    font-weight: 700;
+  }
+}
+
+@media (hover: hover) {
+  .block:hover,
+  .kpi-tile:hover,
+  .season-card:hover {
+    border-color: rgba(255, 143, 60, 0.45);
+    transform: translateY(-2px);
+  }
+}
+
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  html,
+  body {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .table-scroll,
+  #nav,
+  .segmented,
+  .modes,
+  .modes--pages,
+  .tabbar,
+  .wrap,
+  main,
+  .sheet-card {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .table-scroll::-webkit-scrollbar,
+  #nav::-webkit-scrollbar,
+  .segmented::-webkit-scrollbar,
+  .modes::-webkit-scrollbar,
+  .modes--pages::-webkit-scrollbar,
+  main::-webkit-scrollbar,
+  .wrap::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jam .reveal.in,
+  .jam .block.in h2 {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .player-card.player-card--athlete::before {
+    display: none;
   }
 }
