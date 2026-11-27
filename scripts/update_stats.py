@@ -690,6 +690,132 @@ def walk_comps(nodes, found):
         walk_comps(node.get("Children"), found)
 
 
+DEFAULT_VENUE_ENTRIES = [
+    {
+        "match": ["росток"],
+        "aliases": ["Росток"],
+        "address": "Москва, Строгинский бульвар, 3, корп. 1",
+    },
+    {
+        "match": ["глория"],
+        "aliases": ['ФОК "Глория"', "ФОК «Глория»"],
+        "address": "Москва, ул. Зоологическая, 26А",
+    },
+    {
+        "match": ["дружба"],
+        "aliases": ["Дружба. Зал 2", "Дружба. Зал 3"],
+        "address": "Москва, Лужнецкая набережная, 24, стр. 5",
+    },
+]
+
+
+def normalize_arena_key(text: str) -> str:
+    return re.sub(r"[«»\"\s]+", " ", (text or "").lower().replace("ё", "е")).strip()
+
+
+def arena_address_from_api(game: dict) -> str | None:
+    if not isinstance(game, dict):
+        return None
+    for key, value in game.items():
+        if value in (None, "", 0):
+            continue
+        if not isinstance(value, str):
+            continue
+        low = key.lower()
+        if "address" in low and "arena" in low:
+            return value.strip()
+    return None
+
+
+def venue_entry_patterns(entry: dict) -> list[str]:
+    raw = []
+    match = entry.get("match")
+    if isinstance(match, str):
+        raw.append(match)
+    elif isinstance(match, list):
+        raw.extend(str(item) for item in match)
+    raw.extend(str(item) for item in (entry.get("aliases") or []))
+    out = []
+    for item in raw:
+        key = normalize_arena_key(item)
+        if key:
+            out.append(key)
+    return out
+
+
+def venue_lookup_address(arena: str, data: dict) -> str:
+    key = normalize_arena_key(arena)
+    if not key:
+        return ""
+    for entry in (data.get("venues") or {}).get("entries") or []:
+        if not isinstance(entry, dict):
+            continue
+        address = str(entry.get("address") or "").strip()
+        if not address:
+            continue
+        arena_key = normalize_arena_key(arena)
+        for pattern in venue_entry_patterns(entry):
+            if pattern == arena_key or pattern in arena_key or arena_key in pattern:
+                return address
+    return ""
+
+
+def ensure_venues_catalog(data: dict, notes: list[str]) -> None:
+    venues = data.setdefault("venues", {})
+    entries = venues.get("entries")
+    if not isinstance(entries, list):
+        venues["entries"] = copy.deepcopy(DEFAULT_VENUE_ENTRIES)
+        notes.append("залы: создан справочник адресов")
+        return
+    known_patterns: set[str] = set()
+    for entry in entries:
+        if isinstance(entry, dict):
+            known_patterns.update(venue_entry_patterns(entry))
+    added = 0
+    for default in DEFAULT_VENUE_ENTRIES:
+        patterns = venue_entry_patterns(default)
+        if any(pattern in known_patterns or any(p in pattern or pattern in p for p in known_patterns) for pattern in patterns):
+            continue
+        entries.append(copy.deepcopy(default))
+        known_patterns.update(patterns)
+        added += 1
+    if added:
+        notes.append(f"залы: добавил {added} известных площадок")
+
+
+def sync_venue_addresses_from_games(data: dict, games: list[dict], notes: list[str]) -> None:
+    api_hits: list[tuple[str, str]] = []
+    for game in games or []:
+        arena = str(game.get("arena") or "").strip()
+        address = str(game.get("arena_address") or "").strip() or arena_address_from_api(game) or ""
+        if arena and address:
+            api_hits.append((arena, address))
+    if not api_hits:
+        return
+    venues = data.setdefault("venues", {})
+    entries = venues.setdefault("entries", [])
+    changed = 0
+    for arena, address in api_hits:
+        found = False
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            patterns = venue_entry_patterns(entry)
+            arena_key = normalize_arena_key(arena)
+            if not any(p == arena_key or p in arena_key or arena_key in p for p in patterns):
+                continue
+            found = True
+            if str(entry.get("address") or "").strip() != address:
+                entry["address"] = address
+                changed += 1
+            break
+        if not found:
+            entries.append({"match": [normalize_arena_key(arena)], "aliases": [arena], "address": address})
+            changed += 1
+    if changed:
+        notes.append(f"залы: адрес из API обновлён ({changed})")
+
+
 def team_games(calendar, team_id=TEAM_ID):
     games = []
     if not isinstance(calendar, list):
@@ -720,6 +846,9 @@ def team_games(calendar, team_id=TEAM_ID):
             "home": home,
             "comp": str(game.get("CompNameRu") or ""),
         }
+        api_addr = arena_address_from_api(game)
+        if api_addr:
+            entry["arena_address"] = api_addr
         if team_id == U14_TEAM_ID:
             normalize_u14_game(entry)
         games.append(entry)
@@ -1799,6 +1928,19 @@ def prune_manual_upcoming(data: dict, now: date, notes: list[str]) -> None:
         notes.append("анонсы: убрал прошедшие ручные матчи из manualUpcoming")
 
 
+def test_venues():
+    sample = {"venues": {"entries": []}}
+    ensure_venues_catalog(sample, [])
+    assert venue_lookup_address("Росток", sample) == "Москва, Строгинский бульвар, 3, корп. 1"
+    assert venue_lookup_address('ФОК "Глория"', sample) == "Москва, ул. Зоологическая, 26А"
+    assert venue_lookup_address("Дружба. Зал 3", sample) == "Москва, Лужнецкая набережная, 24, стр. 5"
+    assert arena_address_from_api({"ArenaRu": "Росток", "GameID": 1}) is None
+    assert arena_address_from_api({"ArenaRu": "Росток", "ArenaAddressRu": "Москва, тест"}) == "Москва, тест"
+    games = [{"arena": "Росток", "arena_address": "Москва, из API"}]
+    sync_venue_addresses_from_games(sample, games, [])
+    assert venue_lookup_address("Росток", sample) == "Москва, из API"
+
+
 def test_manual_upcoming():
     now = date(2026, 11, 23)
     manual = {
@@ -2315,6 +2457,7 @@ def update_basket(data, notes):
         else:
             data["mama"]["pending"] = pending
             notes.append("игра без протокола: плашка обновлена")
+    sync_venue_addresses_from_games(data, games, notes)
     refresh_body(data, notes)
     return stats if read_any else []
 
@@ -2383,6 +2526,7 @@ def refresh_u14_schedule(data, games, notes) -> None:
         if title:
             match["title"] = normalize_u14_match_title(str(title))
     schedule["matches"] = matches
+    sync_venue_addresses_from_games(data, games, notes)
     if matches != old_matches or schedule.get("label") != U14_COMP_LABEL:
         notes.append("МЛБЛ U14: расписание обновлено")
 
@@ -2979,6 +3123,7 @@ def self_test():
     assert all("фолит" not in line for line in short_good)
     assert len(short_good) == 3
     test_manual_upcoming()
+    test_venues()
     test_manual_body()
 
 
@@ -3327,6 +3472,7 @@ def main():
     sync_fixed_reviews(data)
     apply_manual_games(data, notes)
     prune_manual_upcoming(data, today(), notes)
+    ensure_venues_catalog(data, notes)
     try:
         from kpi_sync import refresh_kpi
 

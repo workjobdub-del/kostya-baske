@@ -925,6 +925,51 @@ function scheduleParts(detail) {
   return { date, time, arena, stamp };
 }
 
+function normalizeArenaKey(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/[«»"]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function venueForArena(arena) {
+  const key = normalizeArenaKey(arena);
+  if (!key) return null;
+  const entries = (data.venues && data.venues.entries) || [];
+  for (const entry of entries) {
+    const address = String(entry.address || "").trim();
+    if (!address) continue;
+    const patterns = [].concat(entry.match || []).concat(entry.aliases || []);
+    for (const pattern of patterns) {
+      const needle = normalizeArenaKey(pattern);
+      if (!needle) continue;
+      if (key === needle || key.includes(needle) || needle.includes(key)) {
+        return { address };
+      }
+    }
+  }
+  return null;
+}
+
+function yandexMapsUrl(address) {
+  return `https://yandex.ru/maps/?text=${encodeURIComponent(String(address || "").trim())}`;
+}
+
+function upcomingVenueAddressHtml(arena) {
+  const address = (venueForArena(arena) || {}).address;
+  if (!address) return "";
+  return `<p class="fixture-address"><a href="${esc(yandexMapsUrl(address))}" target="_blank" rel="noopener noreferrer">${esc(address)}</a></p>`;
+}
+
+function fixtureVenueHtml(item) {
+  if (!item.arena) return "";
+  const hall = `<p class="fixture-venue">зал «${esc(item.arena)}»</p>`;
+  if (!isUpcomingFixture(item)) return hall;
+  return `${hall}${upcomingVenueAddressHtml(item.arena)}`;
+}
+
 function opponentFromTitle(title) {
   const parts = String(title || "").split(" — ").map((item) => item.trim()).filter(Boolean);
   if (parts.length < 2) return String(title || "");
@@ -1028,7 +1073,15 @@ function fixturesSameDayAndOpponent(left, right) {
 function normalizeFixture(match, tour) {
   const when = scheduleParts(match.detail);
   const scored = /победа|поражение|\d+\s*:\s*\d+/i.test(String(match.detail || ""));
-  return { ...match, tour, ...when, opponent: opponentFromTitle(match.title), scored };
+  const venue = venueForArena(when.arena);
+  return {
+    ...match,
+    tour,
+    ...when,
+    opponent: opponentFromTitle(match.title),
+    scored,
+    venueAddress: venue ? venue.address : "",
+  };
 }
 
 function collectFixtures() {
@@ -1104,12 +1157,13 @@ function fixtureLine(item, short) {
 }
 
 function renderUpcomingCard(item) {
-  const place = item.arena ? `зал «${item.arena}»` : "";
   const note = item.manualAnnouncement ? `<span class="chip chip--note">${esc(item.sourceNote || "по анонсу клуба")}</span>` : "";
+  const venue = item.arena ? fixtureVenueHtml(item) : "";
   return `<article class="fixture">
     <p class="fixture-when"><b>${esc(fixtureWhen(item, false))}</b>${item.time ? `<span>${esc(item.time)}</span>` : ""}</p>
     <p class="fixture-opp">${oppButton(item.opponent, item.tour)}</p>
-    <p class="fixture-meta"><span class="chip">${esc(item.tour)}</span>${note}${place ? `<span>${esc(place)}</span>` : ""}</p>
+    <p class="fixture-meta"><span class="chip">${esc(item.tour)}</span>${note}</p>
+    ${venue}
   </article>`;
 }
 
@@ -1126,10 +1180,12 @@ function renderSeasonMatchCard(match) {
     : match.status
       ? `<span class="status">${esc(match.status)}</span>`
       : "";
+  const venueExtra = upcoming && when.arena ? upcomingVenueAddressHtml(when.arena) : "";
   return `<article class="match-row">
         <div>
           <h3>${title}</h3>
           <p>${esc(match.detail)}</p>
+          ${venueExtra}
           ${match.aiReview ? `<p class="game-review">${esc(match.aiReview)}</p>` : ""}
         </div>
         ${status}
@@ -2438,15 +2494,20 @@ function renderSeason() {
     <h3>${esc(u14.label || "МЛБЛ U14")}</h3>
     ${u14.caption ? `<p class="caption">${esc(u14.caption)}</p>` : ""}
     <div class="match-list">${u14.matches
-      .map(
-        (match) => `<article class="match-row">
+      .map((match) => {
+        const when = scheduleParts(match.detail);
+        const scored = /победа|поражение|\d+\s*:\s*\d+/i.test(String(match.detail || ""));
+        const upcoming = isUpcomingFixture({ ...match, ...when, scored });
+        const venueExtra = upcoming && when.arena ? upcomingVenueAddressHtml(when.arena) : "";
+        return `<article class="match-row">
         <div>
           <h3>${esc(match.title)}</h3>
           <p>${esc(match.detail)}</p>
+          ${venueExtra}
         </div>
         ${match.status ? `<span class="status">${esc(match.status)}</span>` : ""}
-      </article>`
-      )
+      </article>`;
+      })
       .join("")}</div>
   </section>`
       : "";
