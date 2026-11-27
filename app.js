@@ -3123,6 +3123,7 @@ window.addEventListener("resize", () => {
 });
 
 const ONESIGNAL_APP_ID = "7a9c32d2-ee00-46aa-9cfd-009842e4dab4";
+const notifySdk = { ready: null, state: "idle", detail: "" };
 const TAG_GAMES = "Игры";
 const TAG_NEWS = "Новости команды";
 
@@ -3132,7 +3133,10 @@ function workerTarget() {
   const at = path.indexOf(marker);
   const scope =
     at >= 0 ? `${path.slice(0, at + marker.length)}/` : path.slice(0, path.lastIndexOf("/") + 1) || "/";
-  return { path: "sw.js", scope };
+  const scopeNorm = scope.startsWith("/") ? scope : `/${scope}`;
+  const rootPrefix = scopeNorm.replace(/^\//, "").replace(/\/$/, "");
+  const serviceWorkerPath = rootPrefix ? `${rootPrefix}/sw.js` : "sw.js";
+  return { scope: scopeNorm, serviceWorkerPath };
 }
 
 function siteBase() {
@@ -3342,26 +3346,46 @@ document.addEventListener("change", (event) => {
   saveNotifyTags().catch(() => notifyNote("Не удалось сохранить выбор тем."));
 });
 
+function notifyUnavailableHint() {
+  if (notifySdk.state === "loading") {
+    return "Подключаем уведомления — подождите пару секунд и нажмите снова.";
+  }
+  if (notifySdk.detail) return notifySdk.detail;
+  return "Не удалось подключить уведомления. Обновите страницу или закройте и откройте приложение снова.";
+}
+
+async function oneSignalClient() {
+  if (window.oneSignal) return window.oneSignal;
+  if (notifySdk.ready) {
+    await Promise.race([notifySdk.ready, new Promise((resolve) => window.setTimeout(resolve, 12000))]);
+  }
+  return window.oneSignal || null;
+}
+
 document.addEventListener("click", (event) => {
   const button = event.target.closest("[data-notify]");
   if (!button) return;
-  const OneSignal = window.oneSignal;
-  if (!OneSignal) {
-    notifyNote("Сервис уведомлений ещё не ответил. Откройте сайт по HTTPS и попробуйте ещё раз.");
-    return;
-  }
-  const action = button.getAttribute("data-notify");
-  if (action === "off") {
-    try {
-      Promise.resolve(OneSignal.User.PushSubscription.optOut())
-        .then(() => renderNotify())
-        .catch(() => notifyNote("Не удалось выключить."));
-    } catch (error) {
-      notifyNote("Не удалось выключить.");
+  void (async () => {
+    if (button.disabled) return;
+    const action = button.getAttribute("data-notify");
+    button.disabled = true;
+    const OneSignal = await oneSignalClient();
+    button.disabled = false;
+    if (!OneSignal) {
+      notifyNote(notifyUnavailableHint());
+      return;
     }
-    return;
-  }
-  void enableNotifications(OneSignal);
+    if (action === "off") {
+      try {
+        await Promise.resolve(OneSignal.User.PushSubscription.optOut());
+        renderNotify();
+      } catch (error) {
+        notifyNote("Не удалось выключить.");
+      }
+      return;
+    }
+    void enableNotifications(OneSignal);
+  })();
 });
 
 function genuineWaiting(reg) {
@@ -3436,28 +3460,49 @@ async function attachUpdateWatch() {
 function setupNotifications() {
   attachServiceWorkerReload();
   if (!window.OneSignalDeferred) window.OneSignalDeferred = [];
-  return new Promise((resolve) => {
+  if (notifySdk.ready) return notifySdk.ready;
+  notifySdk.state = "loading";
+  notifySdk.ready = new Promise((resolve) => {
     let settled = false;
     const finish = () => {
       if (settled) return;
       settled = true;
+      if (!window.oneSignal && notifySdk.state === "loading") {
+        notifySdk.state = "timeout";
+        notifySdk.detail =
+          "Сервис уведомлений долго не отвечает. Проверьте интернет, обновите страницу или перезапустите приложение.";
+      }
       resolve();
     };
+    if (typeof window.OneSignal === "undefined") {
+      const sdkScript = document.querySelector('script[src*="OneSignalSDK.page.js"]');
+      if (!sdkScript) {
+        notifySdk.state = "error";
+        notifySdk.detail = "Модуль уведомлений не загрузился. Обновите страницу.";
+        finish();
+        return;
+      }
+    }
     window.OneSignalDeferred.push(async (OneSignal) => {
       const target = workerTarget();
       try {
         await OneSignal.init({
           appId: ONESIGNAL_APP_ID,
-          serviceWorkerPath: target.path,
+          serviceWorkerPath: target.serviceWorkerPath,
           serviceWorkerParam: { scope: target.scope },
           notifyButton: { enable: false },
           welcomeNotification: { disable: true },
           promptOptions: { slidedown: { prompts: [{ type: "push", autoPrompt: false }] } },
         });
         window.oneSignal = OneSignal;
+        notifySdk.state = "ready";
+        notifySdk.detail = "";
         OneSignal.User.PushSubscription.addEventListener("change", () => renderNotify());
       } catch (error) {
         window.oneSignal = null;
+        notifySdk.state = "error";
+        notifySdk.detail =
+          "Не удалось запустить уведомления. Обновите страницу; если не поможет — в Chrome: «Настройки сайта» → «Очистить данные».";
       }
       try {
         await attachUpdateWatch();
@@ -3465,8 +3510,9 @@ function setupNotifications() {
       renderNotify();
       finish();
     });
-    window.setTimeout(finish, 4000);
+    window.setTimeout(finish, 12000);
   });
+  return notifySdk.ready;
 }
 
 function tabPageIdFromPath() {
