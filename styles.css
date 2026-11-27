@@ -1,25 +1,31 @@
 :root {
-  --bg: #07080c;
-  --bg-2: #12141c;
-  --ink: #f4efe4;
-  --muted: #c8c2b6;
-  --dim: #9a9488;
-  --line: rgba(232, 184, 74, 0.28);
-  --card: #141820;
-  --card-2: #1c212c;
-  --gold: #e8b84a;
-  --gold-2: #f3d98a;
-  --gold-deep: #a97828;
-  --silver: #b7beca;
-  --good: #8fd19a;
-  --work: #f0a36a;
+  --bg: #0b0d12;
+  --bg-2: #12151c;
+  --ink: #f2f4f8;
+  --muted: #9ba3b0;
+  --dim: #6e7785;
+  --line: rgba(255, 255, 255, 0.1);
+  --card: #161a22;
+  --card-2: #1e2430;
+  --gold: #f97316;
+  --gold-2: #fb923c;
+  --gold-deep: #c2410c;
+  --silver: #a8b0bd;
+  --good: #34d399;
+  --work: #fb7185;
   --bar: 44px;
   --nav-h: 44px;
   --tap: 44px;
   --sticky: var(--bar);
-  --display: "Oswald", "Arial Narrow", sans-serif;
-  --font: "Onest", "Segoe UI", system-ui, sans-serif;
-  --cut: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-pill: 999px;
+  --display: "Unbounded", "Manrope", sans-serif;
+  --font: "Manrope", system-ui, sans-serif;
+  --cut: none;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --shadow-card: 0 12px 40px rgba(0, 0, 0, 0.35);
 }
 
 * { box-sizing: border-box; }
@@ -27,14 +33,14 @@
 html {
   scroll-behavior: smooth;
   scroll-padding-top: calc(var(--sticky) + 8px);
-  background-color: #07080c;
+  background-color: var(--bg);
 }
 
 body {
   position: relative;
   z-index: 0;
   margin: 0;
-  background-color: #07080c;
+  background-color: var(--bg);
   color: var(--ink);
   font-family: var(--font);
   font-size: 16px;
@@ -1167,9 +1173,15 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(900px 460px at 100% -60px, rgba(255, 140, 40, 0.2), transparent 62%),
-    radial-gradient(680px 380px at -8% 18%, rgba(255, 90, 31, 0.12), transparent 64%),
-    linear-gradient(180deg, #161821 0%, #07080c 72%);
+    radial-gradient(720px 380px at 100% -120px, rgba(249, 115, 22, 0.09), transparent 55%),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 39px,
+      rgba(255, 255, 255, 0.018) 39px,
+      rgba(255, 255, 255, 0.018) 40px
+    ),
+  linear-gradient(180deg, #12151c 0%, var(--bg) 68%);
 }
 
 .modes a { transition: color 180ms ease; }
@@ -3268,4 +3280,236 @@ body[data-page="profile"] .player-card.player-card--compact .sync-settings {
   width: 44px;
   flex-basis: 44px;
   padding: 0;
+}
+
+/* —— Спортивный редизайн 2026-11-28-04 —— */
+
+.player-card,
+.block,
+.fold,
+.shield,
+.season-card,
+.kpi-tile,
+.fixture,
+.game-card,
+.sheet-card,
+.notify--hero {
+  clip-path: none;
+  border-radius: var(--radius-md);
+}
+
+.player-card {
+  border-color: var(--line);
+  background: linear-gradient(165deg, rgba(249, 115, 22, 0.08), transparent 42%), var(--card);
+  box-shadow: var(--shadow-card);
+}
+
+.block {
+  border-color: var(--line);
+  background: var(--card);
+}
+
+.block h2::before {
+  border-radius: 2px;
+  clip-path: none;
+  background: var(--gold);
+}
+
+.topbar {
+  background: rgba(11, 13, 18, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom-color: var(--line);
+}
+
+.modes a[aria-current="page"] {
+  color: var(--gold-2);
+  background: rgba(249, 115, 22, 0.12);
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 -2px 0 var(--gold);
+}
+
+.page-head h1 {
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 720px) {
+  .tabbar {
+    gap: 0.12rem;
+    padding: 0.35rem 0.35rem calc(0.4rem + env(safe-area-inset-bottom));
+    background: rgba(11, 13, 18, 0.94);
+    backdrop-filter: blur(14px);
+    border-top-color: var(--line);
+  }
+
+  .tabbar a {
+    min-height: var(--tap);
+    padding: 0.25rem 0.15rem;
+    border-radius: var(--radius-md);
+    transition: color 160ms var(--ease-out), background 160ms var(--ease-out);
+  }
+
+  .tabbar a[aria-current="page"] {
+    color: var(--ink);
+    background: rgba(249, 115, 22, 0.16);
+    box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.35);
+  }
+
+  .tabbar a[aria-current="page"] svg {
+    color: var(--gold-2);
+  }
+}
+
+@media (min-width: 721px) {
+  .wrap {
+    max-width: 720px;
+    padding-bottom: 2.5rem;
+  }
+
+  .modes.modes--pages a {
+    border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-weight: 600;
+    font-size: 0.82rem;
+  }
+}
+
+.player-card.player-card--athlete {
+  position: relative;
+  overflow: hidden;
+  padding: 1rem 1rem 0.75rem;
+}
+
+.player-card.player-card--athlete[data-number]::after {
+  content: attr(data-number);
+  position: absolute;
+  right: -0.05em;
+  top: -0.15em;
+  font-family: var(--display);
+  font-size: clamp(5.5rem, 34vw, 8.5rem);
+  font-weight: 700;
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(249, 115, 22, 0.14);
+  transform: skewX(-8deg);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.player-card.player-card--athlete .player-card-main,
+.player-card.player-card--athlete .hero-stats--headline,
+.player-card.player-card--athlete .sync-bar,
+.player-card.player-card--athlete .notify--hero {
+  position: relative;
+  z-index: 1;
+}
+
+body[data-page="profile"] .player-card.player-card--athlete h1 .player-name {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.45rem;
+  letter-spacing: 0.02em;
+}
+
+body[data-page="profile"] .player-card.player-card--athlete .num {
+  font-family: var(--display);
+  color: var(--gold);
+}
+
+.hero-season-tag {
+  margin: 0.55rem 0 0.35rem;
+  color: var(--dim);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hero-stats--headline {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+  max-width: none;
+  margin: 0.15rem 0 0.55rem;
+  padding: 0.65rem 0.55rem;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  transform: skewX(-2deg);
+}
+
+.hero-stat--headline b {
+  display: block;
+  font-family: var(--display);
+  font-size: clamp(1.65rem, 7vw, 2.15rem);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-stat--headline span {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.kpi-tile,
+.season-card,
+.shield {
+  border-color: var(--line);
+  background: var(--card-2);
+}
+
+.kpi-value,
+.shield strong,
+.hero-stat b,
+.season-card strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi-delta.is-up { color: var(--good); }
+.kpi-delta.is-down { color: var(--work); }
+
+.sheet-actions button.is-on,
+.notify-actions button.is-on,
+.segmented button[aria-pressed="true"] {
+  background: var(--gold);
+  color: #140a04;
+  border-color: transparent;
+  border-radius: var(--radius-pill);
+}
+
+.sheet-actions button.is-off,
+.notify-actions button.is-off,
+.quiet-button,
+.sync-refresh {
+  border-radius: var(--radius-pill);
+}
+
+.chip,
+.chip--note {
+  border-radius: var(--radius-pill);
+  border-color: rgba(249, 115, 22, 0.35);
+  color: var(--gold-2);
+}
+
+.fixture-address a {
+  color: var(--gold-2);
+  text-decoration-color: rgba(249, 115, 22, 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jam .player-card::before,
+  .modes a[aria-current="page"]::after,
+  .tabbar a {
+    animation: none !important;
+    transition: none !important;
+  }
 }
