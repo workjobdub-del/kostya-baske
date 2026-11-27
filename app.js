@@ -1,6 +1,6 @@
 "use strict";
 
-const SERIES_COLORS = ["#b7beca", "#e8b84a"];
+const SERIES_COLORS = ["#9cb4d0", "#e8b84a", "#7bc4ff"];
 const FONT = "Oswald, sans-serif";
 
 const state = { game: null, trend: null, news: "2014", newsShown: 5, newsReady: false, section: "", lastY: 0, chartPoints: [] };
@@ -755,13 +755,13 @@ function heroStats() {
     ${updatedLine()}`;
 }
 
-const ASSET_V = "2026-11-07-01";
+const ASSET_V = "2026-11-28-01";
 const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
 const ICON_REFRESH = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>`;
 const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
 
 function siteLogoMark() {
-  return `<div class="player-logo"><img src="logo.png?v=${ASSET_V}" width="995" height="978" alt="Костя Д. №7"></div>`;
+  return `<div class="player-logo"><img src="logo.png?v=${ASSET_V}" width="384" height="377" alt="Костя Д. №7"></div>`;
 }
 
 function kpiFormatMetric(metric) {
@@ -853,7 +853,7 @@ function renderKpiBlock() {
     ? `<p class="kpi-scope-headline">${esc(block.scopeHeadline)}</p>`
     : "";
   return `<section class="block" id="kpi">
-    <h2>Ключевые показатели (KPI)</h2>
+    <h2>Ключевые показатели (КПИ)</h2>
     ${block.caption ? `<p class="caption">${esc(block.caption)}</p>` : ""}
     ${headlineScope}
     ${badges.join("")}
@@ -875,6 +875,7 @@ function renderHero() {
       </div>
     </div>
     ${updatedLine()}
+    <div id="notify" class="notify notify--hero"></div>
   </section>`;
 }
 
@@ -957,10 +958,14 @@ function yandexMapsUrl(address) {
   return `https://yandex.ru/maps/?text=${encodeURIComponent(String(address || "").trim())}`;
 }
 
-function upcomingVenueAddressHtml(arena) {
+function venueAddressHtml(arena) {
   const address = (venueForArena(arena) || {}).address;
   if (!address) return "";
   return `<p class="fixture-address"><a href="${esc(yandexMapsUrl(address))}" target="_blank" rel="noopener noreferrer">${esc(address)}</a></p>`;
+}
+
+function upcomingVenueAddressHtml(arena) {
+  return venueAddressHtml(arena);
 }
 
 function fixtureVenueHtml(item) {
@@ -1249,13 +1254,30 @@ function renderStandingsFolds() {
   return `<section class="block" id="standings"><h2>Турнирные таблицы</h2>${moscow}${u14}</section>`;
 }
 
+function playedMatchMeta(detail) {
+  return String(detail || "")
+    .split(/\.\s+/)
+    .slice(1)
+    .join(". ")
+    .replace(/,?\s*зал\s*«[^»]+»/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function playedVenueBlock(item) {
+  if (!item.arena) return "";
+  return `<p class="fixture-venue">зал «${esc(item.arena)}»</p>${venueAddressHtml(item.arena)}`;
+}
+
 function renderPlayedMatch(item) {
   const review = item.aiReview ? `<p class="game-review">${esc(item.aiReview)}</p>` : "";
-  const result = String(item.detail || "").split(".").slice(1).join(".").replace(/\s+/g, " ").trim();
+  const result = playedMatchMeta(item.detail);
+  const venue = playedVenueBlock(item);
   return `<article class="match-row">
     <div>
       <h3>${oppButton(item.opponent, item.tour)}</h3>
-      <p>${esc(fixtureWhen(item, false))}${item.time ? `, ${esc(item.time)}` : ""}${item.arena ? ` · зал «${esc(item.arena)}»` : ""}</p>
+      <p>${esc(fixtureWhen(item, false))}${item.time ? `, ${esc(item.time)}` : ""}</p>
+      ${venue}
       ${result ? `<p>${esc(result)}</p>` : ""}
       ${review}
     </div>
@@ -1865,11 +1887,16 @@ function devFormatGoalValue(metric, value) {
 }
 
 function devFg2OfTen(pct, goalPct) {
+  const want = Math.round((goalPct || 35) / 10);
   if (pct == null) return "пока мало бросков с игры";
   const hits = Math.max(0, Math.round(pct / 10));
+  if (pct < 8) return `из 10 бросков с игры пока почти ни одного — хочу около ${want}`;
+  return `из 10 бросков с игры примерно ${hits} — хочу около ${want}`;
+}
+
+function devFg2GoalLine(goalPct) {
   const want = Math.round((goalPct || 35) / 10);
-  if (pct < 8) return `из 10 бросков с игры пока почти ни одного (хочу ${want})`;
-  return `из 10 бросков с игры — примерно ${hits} (хочу ${want})`;
+  return `примерно ${want} из 10 бросков с игры`;
 }
 
 function devPassKidLine(ratio) {
@@ -1877,6 +1904,83 @@ function devPassKidLine(ratio) {
   if (ratio >= 1) return "удачных передач больше, чем потерь";
   if (ratio >= 0.8) return "хороших передач почти столько же, сколько потерь";
   return "потерь пока больше, чем удачных передач — нужно наоборот";
+}
+
+function devKidTrend(metric, current, goal) {
+  if (current == null) return { mark: "→", label: "следим" };
+  if (metric === "turnoversU14") {
+    if (current <= goal) return { mark: "↑", label: "стало лучше" };
+    if (current <= goal + 0.5) return { mark: "→", label: "так же" };
+    return { mark: "→", label: "тренируем дальше" };
+  }
+  if (metric === "fg2PctU14") {
+    const hits = Math.round(current / 10);
+    const want = Math.round((goal || 35) / 10);
+    if (hits >= want) return { mark: "↑", label: "стало лучше" };
+    if (hits >= want - 1) return { mark: "→", label: "так же" };
+    return { mark: "→", label: "тренируем дальше" };
+  }
+  if (metric === "astToU14") {
+    if (current >= 1) return { mark: "↑", label: "стало лучше" };
+    if (current >= 0.8) return { mark: "→", label: "так же" };
+    return { mark: "→", label: "тренируем дальше" };
+  }
+  if (metric === "minutesU14") {
+    if (current >= goal) return { mark: "↑", label: "стало лучше" };
+    if (current >= goal - 2) return { mark: "→", label: "так же" };
+    return { mark: "→", label: "возвращаемся в игру" };
+  }
+  return { mark: "→", label: "так же" };
+}
+
+function devKidGoalText(item, current) {
+  if (item.goalMetric === "turnoversU14") {
+    if (current == null) return "Держим мяч спокойнее — столько потерь за игру, сколько сможешь.";
+    return `Сейчас в среднем ${ruCount(current, "потеря", "потери", "потерь")} за игру. Цель — не больше ${formatPlain(item.goalTo)}.`;
+  }
+  if (item.goalMetric === "fg2PctU14") {
+    return current == null ? devFg2OfTen(null, item.goalTo) : devFg2OfTen(current, item.goalTo);
+  }
+  if (item.goalMetric === "astToU14") {
+    return devPassKidLine(current);
+  }
+  if (item.goalMetric === "minutesU14") {
+    if (current == null) return `Выходим на площадку не короче ${formatRowClock(item.goalTo * 60)} за матч.`;
+    return `Сейчас в среднем ${formatRowClock(current * 60)} за игру — цель не меньше ${formatRowClock(item.goalTo * 60)}.`;
+  }
+  return item.why || "";
+}
+
+function renderDevKidGoals(priorities, pack) {
+  const items = (priorities || []).slice(0, 3);
+  if (!items.length) return "";
+  const cards = items
+    .map((item) => {
+      const current = devMetricValue(item.goalMetric, pack);
+      const trend = devKidTrend(item.goalMetric, current, item.goalTo);
+      return `<article class="dev-kid-goal">
+        <p class="dev-kid-mark" aria-hidden="true">${trend.mark}</p>
+        <div>
+          <h3>${esc(item.title)}</h3>
+          <p>${esc(devKidGoalText(item, current))}</p>
+          <p class="caption">${esc(trend.label)}</p>
+        </div>
+      </article>`;
+    })
+    .join("");
+  return `<section class="block block--first" id="dev-goals"><h2>Три цели</h2><div class="dev-kid-goals">${cards}</div></section>`;
+}
+
+function newsIsFirstTeam2014(text) {
+  const low = String(text || "").toLowerCase();
+  if (!/2014/.test(low)) return false;
+  if (/(2016|2015|2017|2018|2013)(?!\d)|набор\s+20(?!14)|\b20(16|15|17)\b/.test(low)) return false;
+  if (/2014\s*[\(\[]?\s*2\s*[\)\]]?|2014-2|2014\(2\)|втор(ой|ого)\s+состав|росток-2014-2/.test(low)) return false;
+  return true;
+}
+
+function newsPostsVisible(posts) {
+  return (posts || []).filter((post) => post.tag !== "2014" || newsIsFirstTeam2014(`${post.title || ""} ${post.text || ""}`));
 }
 
 function devExerciseLine(ex, index, priorityId) {
@@ -1940,11 +2044,11 @@ function devGoalBlock(item, current) {
   }
   if (metric === "fg2PctU14") {
     const pct = current;
-    const goalLine = devFg2OfTen(goal, goal);
+    const goalLine = devFg2GoalLine(goal);
     if (pct == null) {
       return `<p class="dev-goal"><strong>Хочу:</strong> ${goalLine}.</p>`;
     }
-    return `<p class="dev-goal"><strong>Сейчас:</strong> ${devFg2OfTen(pct, goal)} (${devFormatGoalValue(metric, pct)}).<br><strong>Хочу:</strong> ${goalLine}.</p>`;
+    return `<p class="dev-goal"><strong>Сейчас:</strong> ${devFg2OfTen(pct, goal)}.<br><strong>Хочу:</strong> ${goalLine}.</p>`;
   }
   if (metric === "astToU14") {
     const now = devPassKidLine(current);
@@ -2023,7 +2127,7 @@ function renderDevelopmentPage() {
   const pack = devBuildMetrics();
   const latest = pack.latestU14;
   const latestNote = latest
-    ? `В последней игре лиги U14 (${latest.date}): ${latest.turnovers} ${ruCount(latest.turnovers, "потеря", "потери", "потерь")} и ${latest.assists} ${ruCount(latest.assists, "удачная передача", "удачные передачи", "удачных передач")}. На этой неделе держим мяч крепче.`
+    ? `В последней игре лиги U14 (${latest.date}): ${ruCount(latest.turnovers, "потеря", "потери", "потерь")} и ${ruCount(latest.assists, "удачная передача", "удачные передачи", "удачных передач")}. Держим мяч крепче.`
     : "";
   const strengths = [];
   const growth = [];
@@ -2044,11 +2148,11 @@ function renderDevelopmentPage() {
   }
   if (pack.u14) {
     growth.push(
-      `В лиге U14 сейчас: ${pack.u14.minutes} на площадке, ${formatPlain(pack.u14.turnovers)} потери за игру, броски с двух очков ${pack.u14.fg2Line}, ${devPassKidLine(pack.u14.astTo)}.`
+      `В лиге U14 сейчас: ${pack.u14.minutes} на площадке, ${ruCount(pack.u14.turnovers, "потеря", "потери", "потерь")} за игру, броски с двух: ${pack.u14.fg2Line}. ${devPassKidLine(pack.u14.astTo)}.`
     );
   }
   if (latest && Number(latest.turnovers) >= 4) {
-    growth.push(`После игры ${latest.date} с ${latest.turnovers} потерями — на тренировках держим мяч и смотрим, где торопишься.`);
+    growth.push(`После игры ${latest.date} ${ruCount(latest.turnovers, "потеря", "потери", "потерь")} — на тренировках держим мяч и смотрим, где торопишься.`);
   }
   const priorities = (cfg.priorities || [])
     .map((item) => {
@@ -2078,9 +2182,11 @@ function renderDevelopmentPage() {
     .map((item) => `<li><strong>${esc(item.label)}.</strong> ${esc(item.hint)}</li>`)
     .join("");
   const coachNba = cfg.coachNba ? `<p class="callout-lead">${esc(cfg.coachNba)}</p>` : "";
+  const kidGoals = renderDevKidGoals(cfg.priorities || [], pack);
   document.getElementById("app").innerHTML = `${pageHead(cfg.title || "Твой план", esc(cfg.lede || ""))}
     ${updatedLine()}
-    <section class="block block--first" id="dev-portrait">
+    ${kidGoals}
+    <section class="block" id="dev-portrait">
       <h2>${esc(sec.portrait || "Как ты играешь")}</h2>
       <p class="caption">${esc(cfg.ageLabel || "")} · ${esc(data.player.position || "")}</p>
       <p class="callout-lead">${esc(cfg.injuryNote || "")}</p>
@@ -2096,15 +2202,15 @@ function renderDevelopmentPage() {
       </div>
       ${latestNote ? `<p class="plaque">${esc(latestNote)}</p>` : ""}
     </section>
-    <section class="block" id="dev-seasons">
-      <h2>${esc(sec.stats || "Твои цифры по играм")}</h2>
+    <details class="fold dev-adult" id="dev-seasons">
+      <summary>${esc(sec.stats || "Для взрослых · твои цифры по играм")}</summary>
       <div class="dev-grid">
-        ${devStatsGrid(pack.strong2526, `Прошлый сезон · сильные команды (${pack.strong2526 ? pack.strong2526.games : 0} игр)`)}
-        ${devStatsGrid(pack.other2526, `Прошлый сезон · остальные соперники (${pack.other2526 ? pack.other2526.games : 0} игр)`)}
+        ${devStatsGrid(pack.strong2526, `Прошлый сезон · сильные команды (${pack.strong2526 ? ruCount(pack.strong2526.games, "игра", "игры", "игр") : "0 игр"})`)}
+        ${devStatsGrid(pack.other2526, `Прошлый сезон · остальные соперники (${pack.other2526 ? ruCount(pack.other2526.games, "игра", "игры", "игр") : "0 игр"})`)}
         ${devStatsGrid(pack.season2627, "Этот сезон · все игры")}
         ${devStatsGrid(pack.u14, "Этот сезон · лига U14")}
       </div>
-    </section>
+    </details>
     <section class="block" id="dev-priorities">
       <h2>${esc(sec.priorities || "Чем заниматься")}</h2>
       <div class="dev-priority-grid">${priorities}</div>
@@ -2216,7 +2322,8 @@ function renderNewsPanel(restoreFocus) {
     { id: "all", label: "Все" },
     { id: "клуб", label: "Клуб" },
   ];
-  const has2014 = (newsData.posts || []).some((post) => post.tag === "2014");
+  const visiblePosts = newsPostsVisible(newsData.posts);
+  const has2014 = visiblePosts.some((post) => post.tag === "2014");
   if (!state.newsReady) {
     state.news = has2014 ? "2014" : "all";
     state.newsShown = 5;
@@ -2224,7 +2331,7 @@ function renderNewsPanel(restoreFocus) {
   }
   if (!has2014 && state.news === "2014") state.news = "all";
   if (!filters.some((item) => item.id === state.news)) state.news = "all";
-  const posts = newsData.posts
+  const posts = visiblePosts
     .filter((post) => state.news === "all" || post.tag === state.news)
     .slice()
     .sort((a, b) => {
@@ -2367,8 +2474,8 @@ function renderMamaPage() {
     ? `<p class="more-row"><button type="button" class="quiet-button" id="show-all-games" data-count="${hiddenCount}">Показать прошлые игры (${hiddenCount})</button></p><div id="all-mama-games" hidden>${hiddenPending}${groups}</div>`
     : "";
   document.getElementById("app").innerHTML = `${pageHead("Для мамы", esc(mama.summary || "Последние игры обычными словами."))}
-    ${renderUpcomingLine()}
-    <section class="block block--first" id="recent">
+    ${renderUpcomingBlock()}
+    <section class="block" id="recent">
       <h2>Свежие игры</h2>
       <div class="reviews">${latest}</div>
       ${more}
@@ -2411,20 +2518,6 @@ function lastProtocolContext() {
   return best;
 }
 
-function unofficialPlaque() {
-  const matches = ((data.season && data.season.matches) || []).filter((match) => {
-    const status = String(match.status || "");
-    return /протокол/i.test(status) && /нет/i.test(status);
-  });
-  if (!matches.length) return "";
-  const lines = matches.map((match) => {
-    const who = String(match.title || "").replace(/^Росток-2014\s*[—–-]\s*/, "");
-    const when = (String(match.detail || "").split(",")[0] || "").trim();
-    return `${when ? `${when}: ` : ""}${who} — ${match.status}`;
-  });
-  return `<p class="plaque">${lines.map((line) => esc(line)).join("<br>")}</p>`;
-}
-
 function renderLast() {
   const block = data.lastMatch;
   const context = lastProtocolContext();
@@ -2432,7 +2525,6 @@ function renderLast() {
   const tournament = context ? context.tournament : null;
   return `<section class="block block--first" id="last">
     <h2>${esc(heading("last"))}</h2>
-    ${unofficialPlaque()}
     ${block.notice ? `<p class="caption">${esc(block.notice)}</p>` : ""}
     <p class="caption">${esc(block.caption)}</p>
     ${facts(block.facts, tourLabel(tournament))}
@@ -2806,7 +2898,11 @@ function phoneLayout() {
 function syncChrome() {
   const toTop = document.getElementById("to-top");
   const y = window.scrollY;
-  if (toTop) toTop.hidden = y < window.innerHeight * 0.85;
+  if (toTop) {
+    const scrolled = y > window.innerHeight * 0.85;
+    const scrollingUp = y < state.lastY - 4;
+    toTop.hidden = !(scrolled && scrollingUp);
+  }
   state.lastY = y;
 }
 
@@ -3035,8 +3131,8 @@ function workerTarget() {
   const marker = "/kostya-baske";
   const at = path.indexOf(marker);
   const scope =
-    at >= 0 ? `${path.slice(at, at + marker.length)}/` : path.slice(0, path.lastIndexOf("/") + 1) || "/";
-  return { path: `${scope.replace(/^\//, "")}sw.js`, scope };
+    at >= 0 ? `${path.slice(0, at + marker.length)}/` : path.slice(0, path.lastIndexOf("/") + 1) || "/";
+  return { path: "sw.js", scope };
 }
 
 function siteBase() {
@@ -3338,6 +3434,7 @@ async function attachUpdateWatch() {
 }
 
 function setupNotifications() {
+  attachServiceWorkerReload();
   if (!window.OneSignalDeferred) window.OneSignalDeferred = [];
   return new Promise((resolve) => {
     let settled = false;
@@ -3584,38 +3681,20 @@ function setupTabSwipe() {
   document.addEventListener("touchcancel", reset, { passive: true });
 }
 
-function initServiceWorkerAutoUpdate() {
-  if (!("serviceWorker" in navigator)) return;
+function attachServiceWorkerReload() {
+  if (!("serviceWorker" in navigator) || window.__kostyaSwReload) return;
+  window.__kostyaSwReload = true;
   let hadController = Boolean(navigator.serviceWorker.controller);
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     if (!hadController) {
       hadController = true;
       return;
     }
-    if (sessionStorage.getItem("kostya-sw-pending-reload") !== "1") return;
-    sessionStorage.removeItem("kostya-sw-pending-reload");
+    const token = sessionStorage.getItem("kostya-sw-reload");
+    if (!token) return;
+    sessionStorage.removeItem("kostya-sw-reload");
     location.reload();
   });
-
-  const target = workerTarget();
-  navigator.serviceWorker
-    .register(target.path, { scope: target.scope })
-    .then((reg) => {
-      const kickWaiting = (worker) => {
-        if (!worker || !navigator.serviceWorker.controller) return;
-        sessionStorage.setItem("kostya-sw-pending-reload", "1");
-        worker.postMessage({ type: "SKIP_WAITING" });
-      };
-      kickWaiting(reg.waiting);
-      reg.addEventListener("updatefound", () => {
-        const worker = reg.installing;
-        if (!worker) return;
-        worker.addEventListener("statechange", () => {
-          if (worker.state === "installed") kickWaiting(worker);
-        });
-      });
-    })
-    .catch(() => {});
 }
 
 let sourceData = null;
@@ -4099,24 +4178,28 @@ function ensureSheets() {
   sync.setAttribute("data-noswipe", "");
   sync.innerHTML = `<div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="sync-sheet-title">
       <h2 id="sync-sheet-title">Настройки</h2>
-      <div id="notify" class="notify notify--in-sheet"></div>
-      <h3 class="sheet-sub">Синхронизация с GitHub</h3>
-      <p class="caption">Нужно только владельцу. Обычным посетителям токен не требуется: кнопка «Обновить» и так проверяет свежие файлы.</p>
-      <ol class="sheet-steps">
-        <li>GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token.</li>
-        <li>Доступ только к репозиторию <strong>workjobdub-del/kostya-baske</strong>. Права: Actions → Read and write.</li>
-        <li>Вставьте токен ниже. Он останется только в этом браузере и в файлы сайта не попадёт.</li>
-      </ol>
-      <form id="sync-form">
-        <label>Токен<input name="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></label>
-        <p class="sheet-note" data-token-note></p>
-        <p class="sheet-error" data-token-error hidden></p>
-        <div class="sheet-actions">
-          <button type="submit" class="is-on">Сохранить на этом устройстве</button>
-          <button type="button" class="is-off" data-token-clear>Удалить токен</button>
-          <button type="button" class="is-off" data-sheet-close>Закрыть</button>
-        </div>
-      </form>
+      <p class="caption">Уведомления о матчах — в шапке на вкладке «Профиль».</p>
+      <details class="fold sheet-admin">
+        <summary>Для администратора · синхронизация с GitHub</summary>
+        <p class="caption">Нужно только владельцу. Обычным посетителям токен не требуется: кнопка «Обновить» и так проверяет свежие файлы.</p>
+        <ol class="sheet-steps">
+          <li>GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token.</li>
+          <li>Доступ только к репозиторию <strong>workjobdub-del/kostya-baske</strong>. Права: Actions → Read and write.</li>
+          <li>Вставьте токен ниже. Он останется только в этом браузере и в файлы сайта не попадёт.</li>
+        </ol>
+        <form id="sync-form">
+          <label>Токен<input name="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></label>
+          <p class="sheet-note" data-token-note></p>
+          <p class="sheet-error" data-token-error hidden></p>
+          <div class="sheet-actions">
+            <button type="submit" class="is-on">Сохранить на этом устройстве</button>
+            <button type="button" class="is-off" data-token-clear>Удалить токен</button>
+          </div>
+        </form>
+      </details>
+      <div class="sheet-actions">
+        <button type="button" class="is-off" data-sheet-close>Закрыть</button>
+      </div>
     </div>`;
   const opp = document.createElement("div");
   opp.id = "opp-sheet";
@@ -4482,7 +4565,6 @@ async function init() {
   void setupNotifications();
 }
 
-initServiceWorkerAutoUpdate();
 applyTabSwipeEnter();
 setupTabSwipe();
 init();
