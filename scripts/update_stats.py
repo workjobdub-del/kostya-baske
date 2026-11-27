@@ -228,8 +228,19 @@ def letters(text: str) -> int:
     return len(re.findall(r"[A-Za-zА-Яа-яЁё]", text))
 
 
+def news_is_first_team_2014(text: str) -> bool:
+    low = (text or "").lower()
+    if not re.search(r"2014", low):
+        return False
+    if re.search(r"(2016|2015|2017|2018|2013)(?!\d)|набор\s+20(?!14)|\b20(16|15|17)\b", low):
+        return False
+    if re.search(r"2014\s*[\(\[]?\s*2\s*[\)\]]?|2014-2|2014\(2\)|втор(ой|ого)\s+состав|росток-2014-2", low):
+        return False
+    return True
+
+
 def tag_for(text: str) -> str:
-    return "2014" if re.search(r"2014", text) else "клуб"
+    return "2014" if news_is_first_team_2014(text) else "клуб"
 
 
 def one_decimal(values) -> float:
@@ -2559,13 +2570,27 @@ def pending_game(games, protocol_dates, old_matches, now):
             "Очков Кости за этот матч на сайте нет."
         )
     else:
-        text = "Матч уже в календаре, личного протокола на сайте нет. Счёт команды отсюда не дописываю."
+        text = "Матч уже в календаре. Личного протокола на сайте пока нет."
     return {"title": title, "text": text}
 
 
 def make_title(text: str) -> str:
-    line = text.split("\n", 1)[0].strip()
-    sentence = re.split(r"(?<=[.!])\s", line)[0].strip()
+    lines = [item.strip() for item in text.split("\n") if item.strip()]
+    chosen = ""
+    for line in lines[:4]:
+        if letters(line) < 12:
+            continue
+        if re.search(r"2014|матч|побед|—|игр", line, re.I) or chosen == "":
+            chosen = line
+        if re.search(r"2014|матч|побед", line, re.I) and letters(line) >= 20:
+            break
+    if not chosen:
+        chosen = lines[0] if lines else text.strip()
+    sentence = re.split(r"(?<=[.!?;:])\s", chosen, maxsplit=1)[0].strip()
+    if len(sentence) < 18 and len(lines) > 1:
+        pair = f"{sentence}. {lines[1].strip()}".strip()
+        if len(pair) <= 90:
+            sentence = pair
     if len(sentence) > 90:
         sentence = sentence[:87].rstrip() + "…"
     return sentence or "Пост клуба"
@@ -2694,6 +2719,15 @@ def fetch_club(notes):
 
 def merge_posts(news, incoming, notes):
     posts = news["posts"]
+    retagged = 0
+    for item in posts:
+        blob = f"{item.get('title', '')} {item.get('text', '')}"
+        tag = tag_for(blob)
+        if item.get("tag") != tag:
+            item["tag"] = tag
+            retagged += 1
+    if retagged:
+        notes.append(f"новости: пересортировал метки ({retagged})")
     by_link = {item.get("link"): item for item in posts}
     added = 0
     for item in incoming:
@@ -2767,6 +2801,9 @@ def self_test():
     posts = parse_telegram(page)
     assert len(posts) == 1 and posts[0]["tag"] == "2014" and posts[0]["link"].endswith("/3110")
     assert tag_for("набор 2016 года") == "клуб"
+    assert tag_for("Команда 2014 обыграла соперника") == "2014"
+    assert tag_for("Росток-2014-2 сыграл матч") == "клуб"
+    assert news_is_first_team_2014("Глория-2014-3") is True
     rows = parse_standings(
         [
             {

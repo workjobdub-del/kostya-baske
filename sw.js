@@ -2,7 +2,7 @@ importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 
 "use strict";
 
-const VERSION = "2026-11-23-05";
+const VERSION = "2026-11-28-01";
 const STATIC = `kostya-static-${VERSION}`;
 const DATA = `kostya-data-${VERSION}`;
 
@@ -13,9 +13,11 @@ const PRECACHE = [
   "./mama.html",
   "./team.html",
   "./development.html",
-  "./styles.css?v=2026-11-23-05",
-  "./app.js?v=2026-11-23-05",
-  "./manifest.json?v=2026-11-23-05",
+  "./data.json",
+  "./news.json",
+  "./styles.css?v=2026-11-28-01",
+  "./app.js?v=2026-11-28-01",
+  "./manifest.json?v=2026-11-28-01",
   "./favicon.svg",
   "./logo.svg",
   "./logo.png",
@@ -28,10 +30,20 @@ const PRECACHE = [
   "./icon-maskable-v3-512.png",
 ];
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(STATIC).then((cache) => cache.addAll(PRECACHE)).then(() => self.skipWaiting())
+async function precacheAll(cache, urls) {
+  await Promise.all(
+    urls.map(async (url) => {
+      try {
+        await cache.add(url);
+      } catch (error) {
+        console.warn("precache skip", url, error);
+      }
+    })
   );
+}
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open(STATIC).then((cache) => precacheAll(cache, PRECACHE)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (event) => {
