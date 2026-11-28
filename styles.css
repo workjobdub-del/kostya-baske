@@ -731,6 +731,80 @@ tbody tr:hover { background: rgba(95, 168, 160, 0.08); }
 
 .match-row p { margin: 0.15rem 0 0; color: var(--muted); }
 
+.match-row-main { min-width: 0; flex: 1 1 auto; }
+
+.match-row-aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.45rem;
+  flex: 0 0 auto;
+}
+
+.match-result {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.match-result-pill {
+  display: inline-block;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.match-result-pill.is-win {
+  background: rgba(47, 159, 88, 0.16);
+  color: #1f7a41;
+  border: 1px solid rgba(47, 159, 88, 0.32);
+}
+
+.match-result-pill.is-loss {
+  background: rgba(198, 90, 68, 0.12);
+  color: #9a4528;
+  border: 1px solid rgba(198, 90, 68, 0.28);
+}
+
+.match-result-pill.is-draw {
+  background: rgba(20, 20, 20, 0.06);
+  color: var(--muted);
+  border: 1px solid rgba(20, 20, 20, 0.1);
+}
+
+.match-result-score {
+  font-size: 1.12rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+
+.opp-list .opp-h2h-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.65rem;
+}
+
+.opp-h2h-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.review h3 .match-result {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 0.25rem;
+}
+
 .status {
   flex: 0 0 auto;
   padding: 0.28rem 0.6rem;
@@ -1078,6 +1152,18 @@ tbody tr:hover { background: rgba(95, 168, 160, 0.08); }
   .match-row {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .match-row-aside {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .match-result {
+    justify-content: flex-start;
   }
 
   .meter-line { grid-template-columns: 1fr; }

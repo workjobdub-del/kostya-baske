@@ -268,10 +268,8 @@ function paragraphs(list) {
 }
 
 function factValue(item) {
-  const parts = scoreParts(item.value);
-  if (!parts.kind || !/\d+\s*:\s*\d+/.test(String(item.value))) return esc(item.value);
-  const clean = String(item.value).replace(/,\s*победа/gi, "").replace(/,\s*поражение/gi, "");
-  return `${esc(clean)} ${resultBadge(parts.kind, parts.word)}`;
+  if (!/\d+\s*:\s*\d+/.test(String(item.value || ""))) return esc(item.value);
+  return matchResultBlock(item.value);
 }
 
 function facts(items, tour) {
@@ -582,30 +580,69 @@ function findLogRow(date) {
   return null;
 }
 
+function scoreNumsFromText(text) {
+  const t = String(text || "");
+  let m = t.match(/счёт\s*(\d+)\s*:\s*(\d+)/i);
+  if (m) return m;
+  m = t.match(/(\d+)\s*:\s*(\d+)\s*,\s*(?:победа|поражение)/i);
+  if (m) return m;
+  const all = [...t.matchAll(/(\d+)\s*:\s*(\d+)/gi)];
+  for (const hit of all) {
+    const left = Number(hit[1]);
+    const right = Number(hit[2]);
+    if (left > 23 || right > 23) return hit;
+    if (left <= 23 && right < 60) continue;
+  }
+  return null;
+}
+
 function scoreParts(score) {
   const text = String(score || "");
-  const nums = text.match(/(\d+)\s*:\s*(\d+)/);
+  const nums = scoreNumsFromText(text);
   let kind = "";
   if (text.includes("победа")) kind = "win";
   else if (text.includes("поражение")) kind = "loss";
   else if (nums) {
     const left = Number(nums[1]);
     const right = Number(nums[2]);
-    kind = left > right ? "win" : left < right ? "loss" : "";
+    kind = left > right ? "win" : left < right ? "loss" : left === right ? "draw" : "";
   }
-  const clean = nums ? `${nums[1]}:${nums[2]}` : text.replace(/,\s*победа|,\s*поражение/g, "");
-  const word = kind === "win" ? "Победа" : kind === "loss" ? "Поражение" : "Счёт";
+  const clean = nums ? `${nums[1]}:${nums[2]}` : text.replace(/,\s*победа|,\s*поражение/gi, "").trim();
+  const word = kind === "win" ? "Победа" : kind === "loss" ? "Поражение" : kind === "draw" ? "Ничья" : "Счёт";
   return { kind, clean, word, team: nums ? Number(nums[1]) : null };
 }
 
+function matchResultParts(score, weWon) {
+  const parts = scoreParts(score);
+  if (typeof weWon === "boolean") {
+    parts.kind = weWon ? "win" : "loss";
+    parts.word = weWon ? "Победа" : "Поражение";
+  }
+  return parts;
+}
+
+function matchResultBlock(score, weWon) {
+  const parts = matchResultParts(score, weWon);
+  if (!parts.clean || !/^\d+:\d+$/.test(parts.clean)) return "";
+  const fromText = scoreNumsFromText(score);
+  if (!fromText && typeof weWon !== "boolean") return "";
+  if (!parts.kind && typeof weWon !== "boolean") return "";
+  const kind = parts.kind || "draw";
+  const pillKind = kind === "draw" ? "draw" : kind;
+  return `<span class="match-result" role="status">
+    <span class="match-result-pill is-${pillKind}">${esc(parts.word)}</span>
+    <span class="match-result-score">${esc(parts.clean)}</span>
+  </span>`;
+}
+
 function resultBadge(kind, word) {
-  if (kind !== "win" && kind !== "loss") return "";
-  return `<span class="badge is-${kind}">${esc(word)}</span>`;
+  if (kind !== "win" && kind !== "loss" && kind !== "draw") return "";
+  const pillKind = kind === "draw" ? "draw" : kind;
+  return `<span class="match-result-pill is-${pillKind}">${esc(word)}</span>`;
 }
 
 function scoreHtml(score) {
-  const parts = scoreParts(score);
-  return `${esc(parts.clean)} ${resultBadge(parts.kind, parts.word)}`;
+  return matchResultBlock(score);
 }
 
 function shareLine(row) {
@@ -844,7 +881,7 @@ function heroSeasonHeadlineStats() {
   return `${scope}<div class="hero-stats hero-stats--headline" aria-label="Ключевые средние за сезон">${cells}</div>`;
 }
 
-const ASSET_V = "2026-11-28-20";
+const ASSET_V = "2026-11-28-21";
 const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
 const ICON_REFRESH = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>`;
 const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
@@ -1375,22 +1412,19 @@ function renderUpcomingCard(item) {
 
 function renderSeasonMatchCard(match) {
   const tour = "Первенство Москвы";
-  const when = scheduleParts(match.detail);
-  const scored = /победа|поражение|\d+\s*:\s*\d+/i.test(String(match.detail || ""));
-  const upcoming = isUpcomingFixture({ ...match, ...when, scored });
-  const opponent = opponentFromTitle(match.title);
-  const title = oppButton(opponent, tour);
+  const item = normalizeFixture(match, tour);
+  if (!isUpcomingFixture(item) && item.scored) return renderPlayedMatch(item);
   const manual = match.manualAnnouncement || /анонсу клуба/i.test(String(match.status || ""));
   const status = manual
     ? `<span class="status status--note">${esc(match.sourceNote || "по анонсу клуба")}</span>`
     : match.status
       ? `<span class="status">${esc(match.status)}</span>`
       : "";
-  const venueExtra = upcoming && when.arena ? upcomingVenueAddressHtml(when.arena) : "";
+  const venueExtra = item.arena ? upcomingVenueAddressHtml(item.arena) : "";
   return `<article class="match-row">
-        <div>
-          <h3>${title}</h3>
-          <p>${esc(match.detail)}</p>
+        <div class="match-row-main">
+          <h3>${oppButton(item.opponent, tour)}</h3>
+          <p>${esc(fixtureWhen(item, false))}${item.time ? `, ${esc(item.time)}` : ""}</p>
           ${venueExtra}
           ${match.aiReview ? `<p class="game-review">${esc(match.aiReview)}</p>` : ""}
         </div>
@@ -1456,16 +1490,6 @@ function renderStandingsFolds() {
   return `<section class="block" id="standings"><h2>Турнирные таблицы</h2>${moscow}${u14}</section>`;
 }
 
-function playedMatchMeta(detail) {
-  return String(detail || "")
-    .split(/\.\s+/)
-    .slice(1)
-    .join(". ")
-    .replace(/,?\s*зал\s*«[^»]+»/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 function playedVenueBlock(item) {
   if (!item.arena) return "";
   return `<p class="fixture-venue">зал «${esc(item.arena)}»</p>${venueAddressHtml(item.arena)}`;
@@ -1473,17 +1497,17 @@ function playedVenueBlock(item) {
 
 function renderPlayedMatch(item) {
   const review = item.aiReview ? `<p class="game-review">${esc(item.aiReview)}</p>` : "";
-  const result = playedMatchMeta(item.detail);
   const venue = playedVenueBlock(item);
+  const result = matchResultBlock(item.detail);
+  const aside = `<div class="match-row-aside">${result}<span class="chip">${esc(item.tour)}</span></div>`;
   return `<article class="match-row">
-    <div>
+    <div class="match-row-main">
       <h3>${oppButton(item.opponent, item.tour)}</h3>
       <p>${esc(fixtureWhen(item, false))}${item.time ? `, ${esc(item.time)}` : ""}</p>
       ${venue}
-      ${result ? `<p>${esc(result)}</p>` : ""}
       ${review}
     </div>
-    <span class="chip">${esc(item.tour)}</span>
+    ${aside}
   </article>`;
 }
 
@@ -2651,7 +2675,7 @@ function mamaArticle(tournament, row) {
   const limited = row.minutes == null && row.fg2 == null ? `<p class="caption">Других цифр в протоколе этой лиги нет.</p>` : "";
   const mvp = isMvpMatch(row) ? ` ${mvpBadgeHtml()}` : "";
   return `<article class="review">
-    <h3>${title} ${resultBadge(parts.kind, parts.word)}${mvp}</h3>
+    <h3>${title} ${matchResultBlock(row.score)}${mvp}</h3>
     <p>${esc(mamaFacts(row))}</p>
     ${shareLine(row)}
     ${limited}
@@ -2858,14 +2882,13 @@ function renderSeason() {
     ${u14.caption ? `<p class="caption">${esc(u14.caption)}</p>` : ""}
     <div class="match-list">${u14.matches
       .map((match) => {
-        const when = scheduleParts(match.detail);
-        const scored = /победа|поражение|\d+\s*:\s*\d+/i.test(String(match.detail || ""));
-        const upcoming = isUpcomingFixture({ ...match, ...when, scored });
-        const venueExtra = upcoming && when.arena ? upcomingVenueAddressHtml(when.arena) : "";
+        const item = normalizeFixture(match, "МЛБЛ U14");
+        if (!isUpcomingFixture(item) && item.scored) return renderPlayedMatch(item);
+        const venueExtra = item.arena ? upcomingVenueAddressHtml(item.arena) : "";
         return `<article class="match-row">
-        <div>
+        <div class="match-row-main">
           <h3>${matchTitleHtml(match.title, "МЛБЛ U14")}</h3>
-          <p>${esc(match.detail)}</p>
+          <p>${esc(fixtureWhen(item, false))}${item.time ? `, ${esc(item.time)}` : ""}</p>
           ${venueExtra}
         </div>
         ${match.status ? `<span class="status">${esc(match.status)}</span>` : ""}
@@ -4805,8 +4828,7 @@ function renderOppH2h(h2h, fallbackName) {
     const record = h2h.record ? `${h2h.record} в личных встречах` : "";
     const list = h2h.games
       .map((game) => {
-        const tag = game.weWon ? "победа" : "поражение";
-        return `<li><b>${esc(fullDate(game.date))}</b>${game.tournament ? ` · ${esc(game.tournament)}` : ""} · ${esc(game.score)} · ${esc(tag)}</li>`;
+        return `<li class="opp-h2h-row"><span class="opp-h2h-meta"><b>${esc(fullDate(game.date))}</b>${game.tournament ? ` · ${esc(game.tournament)}` : ""}</span>${matchResultBlock(game.score, game.weWon)}</li>`;
       })
       .join("");
     return `<section class="opp-h2h"><h3 class="sheet-sub">Встречи с «Ростком»</h3>${record ? `<p class="caption">${esc(record)}</p>` : ""}<ul class="opp-list">${list}</ul></section>`;
@@ -4819,7 +4841,12 @@ function renderOppH2h(h2h, fallbackName) {
     return `<section class="opp-h2h"><h3 class="sheet-sub">Встречи с «Ростком»</h3><p class="caption">Раньше не встречались.</p></section>`;
   }
   const list = meetings
-    .map((item) => `<li><b>${esc(item.date)}</b>${item.tour ? ` · ${esc(item.tour)}` : ""}${item.score ? ` · ${esc(item.score)}` : ""}${item.note ? `<br>${esc(item.note)}` : ""}</li>`)
+    .map((item) => {
+      const meta = `<b>${esc(item.date)}</b>${item.tour ? ` · ${esc(item.tour)}` : ""}`;
+      const result = item.score ? matchResultBlock(item.score) : "";
+      const note = item.note ? `<br>${esc(item.note)}` : "";
+      return `<li class="opp-h2h-row">${result ? `<span class="opp-h2h-meta">${meta}</span>${result}${note}` : `${meta}${note}`}</li>`;
+    })
     .join("");
   return `<section class="opp-h2h"><h3 class="sheet-sub">Встречи с «Ростком»</h3><ul class="opp-list">${list}</ul></section>`;
 }
