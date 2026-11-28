@@ -580,9 +580,25 @@ function findLogRow(date) {
   return null;
 }
 
+function scoreNumsFromText(text) {
+  const t = String(text || "");
+  let m = t.match(/счёт\s*(\d+)\s*:\s*(\d+)/i);
+  if (m) return m;
+  m = t.match(/(\d+)\s*:\s*(\d+)\s*,\s*(?:победа|поражение)/i);
+  if (m) return m;
+  const all = [...t.matchAll(/(\d+)\s*:\s*(\d+)/gi)];
+  for (const hit of all) {
+    const left = Number(hit[1]);
+    const right = Number(hit[2]);
+    if (left > 23 || right > 23) return hit;
+    if (left <= 23 && right < 60) continue;
+  }
+  return null;
+}
+
 function scoreParts(score) {
   const text = String(score || "");
-  const nums = text.match(/(\d+)\s*:\s*(\d+)/);
+  const nums = scoreNumsFromText(text);
   let kind = "";
   if (text.includes("победа")) kind = "win";
   else if (text.includes("поражение")) kind = "loss";
@@ -608,6 +624,9 @@ function matchResultParts(score, weWon) {
 function matchResultBlock(score, weWon) {
   const parts = matchResultParts(score, weWon);
   if (!parts.clean || !/^\d+:\d+$/.test(parts.clean)) return "";
+  const fromText = scoreNumsFromText(score);
+  if (!fromText && typeof weWon !== "boolean") return "";
+  if (!parts.kind && typeof weWon !== "boolean") return "";
   const kind = parts.kind || "draw";
   const pillKind = kind === "draw" ? "draw" : kind;
   return `<span class="match-result" role="status">
