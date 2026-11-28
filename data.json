@@ -4250,5 +4250,85 @@
         "hint": "На «Профиле» — график, если хочешь сравнить матчи."
       }
     ]
+  },
+  "placeHistory": {
+    "moscow": {
+      "compId": 153217,
+      "teamId": 38872,
+      "playoffLine": 2,
+      "totalTeams": 7,
+      "singleGame": true,
+      "caption": "Пока одна игра — график появится после следующих. Зелёная точка — победа, красная — поражение.",
+      "officialPlace": 6,
+      "points": [
+        {
+          "date": "24.10.26",
+          "opponent": "Гольяново",
+          "score": "62:37",
+          "place": 1,
+          "result": "win",
+          "label": "24.10.26"
+        }
+      ]
+    },
+    "u14": {
+      "compId": 144801,
+      "teamId": 79167,
+      "playoffLine": 8,
+      "totalTeams": 11,
+      "singleGame": false,
+      "caption": "Так менялось наше место после каждой игры. Зелёная точка — победа, красная — поражение. Чем выше, тем лучше. Пунктир — зона плей-офф (топ-8).",
+      "officialPlace": 6,
+      "points": [
+        {
+          "date": "19.09.26",
+          "opponent": "Росток-2013",
+          "score": "30:75",
+          "place": 4,
+          "result": "loss",
+          "label": "19.09.26"
+        },
+        {
+          "date": "04.10.26",
+          "opponent": "Первомайская",
+          "score": "61:57",
+          "place": 6,
+          "result": "win",
+          "label": "04.10.26"
+        },
+        {
+          "date": "31.10.26",
+          "opponent": "Takeshot Academy",
+          "score": "63:84",
+          "place": 8,
+          "result": "loss",
+          "label": "31.10.26"
+        },
+        {
+          "date": "07.11.26",
+          "opponent": "Багратион",
+          "score": "50:46",
+          "place": 3,
+          "result": "win",
+          "label": "07.11.26"
+        },
+        {
+          "date": "08.11.26",
+          "opponent": "MO.BASKET",
+          "score": "43:71",
+          "place": 4,
+          "result": "loss",
+          "label": "08.11.26"
+        },
+        {
+          "date": "22.11.26",
+          "opponent": "SP Basket",
+          "score": "52:113",
+          "place": 6,
+          "result": "loss",
+          "label": "22.11.26"
+        }
+      ]
+    }
   }
 }

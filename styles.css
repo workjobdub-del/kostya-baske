@@ -3097,6 +3097,53 @@ html, body { overflow-x: clip; }
 
 .rules-list li + li { margin-top: 0.45rem; }
 
+.place-chart {
+  margin: 0.65rem 0 1rem;
+  padding: 0.65rem 0.55rem 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--good) 6%, var(--card));
+}
+
+.place-chart-cap {
+  margin: 0 0 0.45rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.place-chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.place-chart-line {
+  stroke: var(--good);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
+.place-chart-playoff {
+  stroke: color-mix(in srgb, var(--good) 55%, var(--muted));
+  stroke-width: 1.25;
+  stroke-dasharray: 5 4;
+}
+
+.place-chart-y,
+.place-chart-x,
+.place-chart-opp {
+  fill: var(--muted);
+  font-size: 9px;
+}
+
+.place-chart-opp {
+  font-size: 8px;
+}
+
 .rules-roster {
   margin: 0 0.9rem 0.65rem;
   font-size: 0.88rem;

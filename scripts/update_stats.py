@@ -1164,6 +1164,225 @@ def parse_u14_standings(payload):
     return rows
 
 
+def _moscow_chart_opponent(name: str) -> str:
+    text = str(name or "").strip()
+    text = re.sub(r"-2014-\d+$", "", text)
+    text = re.sub(r"-2014$", "", text)
+    return text or "Соперник"
+
+
+def _extract_group_games(payload: list) -> tuple[list[int], dict[int, str], dict[int, int], list[dict]]:
+    if not isinstance(payload, list) or len(payload) < 2:
+        raise ValueError("standings-payload")
+    team_ids: list[int] = []
+    names: dict[int, str] = {}
+    start_place: dict[int, int] = {}
+    games: dict[int, dict] = {}
+    for item in payload:
+        tid = item.get("TeamID")
+        if not isinstance(tid, int) or tid == ROSTOK_SECOND_TEAM_ID:
+            continue
+        team_ids.append(tid)
+        start_place[tid] = int(item.get("StartPlace") or item.get("Place") or 99)
+        names[tid] = ((item.get("CompTeamName") or {}).get("CompTeamShortNameRu") or "").strip()
+    for item in payload:
+        tid = item.get("TeamID")
+        if tid == ROSTOK_SECOND_TEAM_ID:
+            continue
+        for result in item.get("Results") or []:
+            if not isinstance(result, dict):
+                continue
+            game_id = result.get("GameID")
+            if not isinstance(game_id, int) or game_id in games:
+                continue
+            when = parse_ru_date(str(result.get("GameDate") or ""))
+            score_a, score_b = result.get("ScoreA"), result.get("ScoreB")
+            team_a, team_b = result.get("TeamAid"), result.get("TeamBid")
+            if (
+                when
+                and isinstance(score_a, int)
+                and isinstance(score_b, int)
+                and isinstance(team_a, int)
+                and isinstance(team_b, int)
+                and team_a in names
+                and team_b in names
+            ):
+                games[game_id] = {
+                    "id": game_id,
+                    "date": when,
+                    "aid": team_a,
+                    "bid": team_b,
+                    "sa": score_a,
+                    "sb": score_b,
+                }
+    ordered = sorted(games.values(), key=lambda row: (row["date"], row["id"]))
+    return team_ids, names, start_place, ordered
+
+
+def _place_stats_init(team_ids: list[int]) -> dict[int, dict]:
+    return {
+        tid: {"played": 0, "wins": 0, "losses": 0, "pts": 0, "gp": 0, "gc": 0}
+        for tid in team_ids
+    }
+
+
+def _apply_game_to_stats(stats: dict[int, dict], game: dict) -> None:
+    for tid, scored, conceded in (
+        (game["aid"], game["sa"], game["sb"]),
+        (game["bid"], game["sb"], game["sa"]),
+    ):
+        if tid not in stats:
+            continue
+        row = stats[tid]
+        row["played"] += 1
+        row["gp"] += scored
+        row["gc"] += conceded
+        if scored > conceded:
+            row["wins"] += 1
+            row["pts"] += 2
+        else:
+            row["losses"] += 1
+            row["pts"] += 1
+
+
+def _mini_h2h(team_id: int, tied: set[int], played: list[dict]) -> tuple[int, int]:
+    pts = gd = 0
+    for game in played:
+        if game["aid"] not in tied or game["bid"] not in tied:
+            continue
+        if team_id == game["aid"]:
+            if game["sa"] > game["sb"]:
+                pts += 2
+            elif game["sa"] < game["sb"]:
+                pts += 1
+            gd += game["sa"] - game["sb"]
+        elif team_id == game["bid"]:
+            if game["sb"] > game["sa"]:
+                pts += 2
+            elif game["sb"] < game["sa"]:
+                pts += 1
+            gd += game["sb"] - game["sa"]
+    return pts, gd
+
+
+def _rank_from_stats(stats: dict[int, dict], played: list[dict], start_place: dict[int, int]) -> dict[int, int]:
+    played_ids = [tid for tid, row in stats.items() if row["played"] > 0]
+    unplayed = [tid for tid in stats if tid not in played_ids]
+    unplayed.sort(key=lambda tid: start_place.get(tid, 99))
+    buckets: dict[int, list[int]] = {}
+    for tid in played_ids:
+        buckets.setdefault(stats[tid]["pts"], []).append(tid)
+    ordered: list[int] = []
+    for pts in sorted(buckets.keys(), reverse=True):
+        group = buckets[pts]
+        if len(group) == 1:
+            ordered.append(group[0])
+            continue
+        tied = set(group)
+        group.sort(
+            key=lambda tid: (
+                -_mini_h2h(tid, tied, played)[0],
+                -_mini_h2h(tid, tied, played)[1],
+                -(stats[tid]["gp"] - stats[tid]["gc"]),
+                -stats[tid]["gp"],
+            )
+        )
+        ordered.extend(group)
+    ordered.extend(unplayed)
+    return {tid: index + 1 for index, tid in enumerate(ordered)}
+
+
+def _chart_opponent_label(name: str, *, u14: bool) -> str:
+    if u14:
+        return normalize_u14_opponent(name)
+    return _moscow_chart_opponent(name)
+
+
+def build_place_history(payload: list, our_team_id: int, playoff_line: int, *, u14: bool = False) -> dict:
+    team_ids, names, start_place, games = _extract_group_games(payload)
+    if our_team_id not in team_ids:
+        raise ValueError("our-team")
+    our_games = [game for game in games if our_team_id in (game["aid"], game["bid"])]
+    if not our_games:
+        raise ValueError("our-games")
+    stats = _place_stats_init(team_ids)
+    processed: set[int] = set()
+    played: list[dict] = []
+    points: list[dict] = []
+    for marker in our_games:
+        cutoff = marker["date"]
+        for game in games:
+            if game["id"] in processed or game["date"] > cutoff:
+                continue
+            _apply_game_to_stats(stats, game)
+            processed.add(game["id"])
+            played.append(game)
+        ranks = _rank_from_stats(stats, played, start_place)
+        opp_id = marker["bid"] if marker["aid"] == our_team_id else marker["aid"]
+        team_score, opp_score = (
+            (marker["sa"], marker["sb"]) if marker["aid"] == our_team_id else (marker["sb"], marker["sa"])
+        )
+        opponent = _chart_opponent_label(names.get(opp_id, ""), u14=u14)
+        when = short_date(marker["date"])
+        points.append(
+            {
+                "date": when,
+                "opponent": opponent,
+                "score": f"{team_score}:{opp_score}",
+                "place": ranks[our_team_id],
+                "result": "win" if team_score > opp_score else "loss",
+                "label": when,
+            }
+        )
+    official = next(int(item["Place"]) for item in payload if item.get("TeamID") == our_team_id)
+    single = len(points) == 1
+    caption = (
+        "Так менялось наше место после каждой игры. Зелёная точка — победа, красная — поражение. Чем выше, тем лучше."
+    )
+    if single:
+        caption = (
+            "Пока одна игра — график появится после следующих. Зелёная точка — победа, красная — поражение."
+        )
+    elif playoff_line:
+        caption += f" Пунктир — зона плей-офф (топ-{playoff_line})."
+    return {
+        "compId": payload[0].get("CompID"),
+        "teamId": our_team_id,
+        "playoffLine": playoff_line,
+        "totalTeams": len(team_ids),
+        "singleGame": single,
+        "caption": caption,
+        "officialPlace": official,
+        "points": points,
+    }
+
+
+def refresh_place_history(data: dict, notes: list) -> None:
+    before = copy.deepcopy(data.get("placeHistory"))
+    block = data.setdefault("placeHistory", {})
+    comp_id = (data.get("sync") or {}).get("compId") or 153217
+    try:
+        moscow_payload = api(f"/Widget/CompTeamResults/{comp_id}?format=json")
+        moscow = build_place_history(moscow_payload, TEAM_ID, 2, u14=False)
+        last = moscow["points"][-1]["place"] if moscow["points"] else None
+        if not moscow.get("singleGame") and last != moscow.get("officialPlace"):
+            notes.append(f"график места ПМ: расчётное {last} ≠ таблица {moscow.get('officialPlace')}")
+        block["moscow"] = moscow
+    except Exception as exc:
+        notes.append(f"график места ПМ: не обновил ({type(exc).__name__})")
+    try:
+        u14_payload = api(f"/Widget/CompTeamResults/{U14_COMP_ID}?format=json")
+        u14 = build_place_history(u14_payload, U14_TEAM_ID, 8, u14=True)
+        last = u14["points"][-1]["place"] if u14["points"] else None
+        if not u14.get("singleGame") and last != u14.get("officialPlace"):
+            notes.append(f"график места U14: расчётное {last} ≠ таблица {u14.get('officialPlace')}")
+        block["u14"] = u14
+    except Exception as exc:
+        notes.append(f"график места U14: не обновил ({type(exc).__name__})")
+    if data.get("placeHistory") != before:
+        notes.append("график места: обновлён")
+
+
 def _fmt_num(value) -> str:
     number = round(float(value) + 1e-9, 1)
     if abs(number - round(number)) < 0.05:
@@ -3315,6 +3534,47 @@ def self_test():
     assert tag_for("Команда 2014 обыграла соперника") == "2014"
     assert tag_for("Росток-2014-2 сыграл матч") == "клуб"
     assert news_is_first_team_2014("Глория-2014-3") is True
+    hist_one = build_place_history(
+        [
+            {
+                "Place": 6,
+                "TeamID": TEAM_ID,
+                "StartPlace": 6,
+                "CompID": 153217,
+                "CompTeamName": {"CompTeamShortNameRu": "Росток-2014"},
+                "Results": [
+                    {
+                        "GameDate": "24.10.2026",
+                        "GameID": 9001,
+                        "TeamAid": TEAM_ID,
+                        "TeamBid": 37363,
+                        "ScoreA": 62,
+                        "ScoreB": 37,
+                    }
+                ],
+            },
+            {
+                "Place": 4,
+                "TeamID": 37363,
+                "StartPlace": 4,
+                "CompTeamName": {"CompTeamShortNameRu": "Гольяново-2014-2"},
+                "Results": [
+                    {
+                        "GameDate": "24.10.2026",
+                        "GameID": 9001,
+                        "TeamAid": TEAM_ID,
+                        "TeamBid": 37363,
+                        "ScoreA": 62,
+                        "ScoreB": 37,
+                    }
+                ],
+            },
+        ],
+        TEAM_ID,
+        2,
+    )
+    assert hist_one["singleGame"] and hist_one["points"][0]["place"] == 1
+    assert hist_one["points"][0]["opponent"] == "Гольяново"
     rows = parse_standings(
         [
             {
@@ -4092,6 +4352,7 @@ def main():
         notes.append(f"kpi: не обновил ({type(exc).__name__})")
     refresh_mama_notes(data)
     refresh_display_copy(data)
+    refresh_place_history(data, notes)
     review_games(data, notes)
     merge_posts(news, fetch_telegram(notes) + fetch_club(notes), notes)
     deliver_pushes(data, news, before_games, before_news, notes)
