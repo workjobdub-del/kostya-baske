@@ -3865,44 +3865,84 @@ body[data-page="mama"] .wrap::before {
   background: rgba(255, 255, 255, 0.94);
 }
 
-.hero-visual {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  min-height: clamp(8.5rem, 46vw, 11.5rem);
-  padding: 0.15rem 0 0.45rem;
+.player-card--profile-hero {
+  padding-top: 0.85rem;
 }
 
-.hero-athlete {
+.hero-club-badge {
   position: absolute;
-  left: 50%;
-  bottom: 0.15rem;
-  width: clamp(10rem, 58vw, 14.5rem);
-  height: auto;
-  transform: translateX(-58%);
-  z-index: 1;
-  pointer-events: none;
-  filter: drop-shadow(0 14px 28px rgba(30, 30, 28, 0.16));
+  top: 0.65rem;
+  left: 0.65rem;
+  z-index: 5;
+  width: 2.65rem;
+  height: 2.65rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid rgba(20, 20, 20, 0.08);
+  box-shadow: 0 8px 20px rgba(30, 30, 28, 0.12);
 }
 
-.player-card--light .player-logo {
+.hero-club-badge img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(9.25rem, 44vw);
+  gap: 0.1rem 0.35rem;
+  align-items: end;
   position: relative;
+  z-index: 2;
+  margin-top: 0.15rem;
+  min-height: clamp(11.25rem, 59vw, 16.75rem);
+}
+
+.player-card--profile-hero .player-card-copy {
+  align-self: end;
+  padding: 2.25rem 0 0.4rem;
   z-index: 3;
 }
 
-.hero-display-bg--number {
-  left: 50%;
-  top: 0.35rem;
-  right: auto;
-  transform: translateX(-50%);
-  writing-mode: horizontal-tb;
-  font-size: clamp(7.5rem, 52vw, 11rem);
-  letter-spacing: -0.04em;
-  color: rgba(20, 20, 20, 0.065);
-  -webkit-text-stroke: 0.5px rgba(20, 20, 20, 0.05);
+.hero-art-stage {
+  position: relative;
+  align-self: stretch;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  min-height: clamp(10.75rem, 57vw, 15.25rem);
+  pointer-events: none;
+}
+
+.hero-art-stage .hero-display-bg--number {
+  position: absolute;
+  right: -0.12em;
+  bottom: 0.15rem;
+  left: auto;
+  top: auto;
+  transform: none;
+  font-size: clamp(14.5rem, 68vw, 18.75rem);
+  letter-spacing: -0.06em;
+  line-height: 0.76;
+  color: rgba(20, 20, 20, 0.07);
+  -webkit-text-stroke: 1px rgba(95, 168, 160, 0.24);
   z-index: 0;
+}
+
+.hero-athlete {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: min(100%, 11.75rem);
+  max-height: clamp(11.25rem, 59vw, 16.25rem);
+  height: auto;
+  object-fit: contain;
+  object-position: bottom right;
+  pointer-events: none;
+  filter: drop-shadow(0 12px 26px rgba(30, 30, 28, 0.14));
 }
 
 .opp-chip {
@@ -3928,8 +3968,10 @@ body[data-page="mama"] .wrap::before {
   font-weight: 800;
   letter-spacing: 0.02em;
   line-height: 1;
-  box-shadow: 0 6px 16px rgba(30, 30, 28, 0.12);
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
+  box-shadow:
+    0 6px 16px rgba(30, 30, 28, 0.12),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.14);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .opp-chip .opp-name {
@@ -3956,7 +3998,19 @@ body[data-page="mama"] .wrap::before {
 }
 
 .dev-ring-fill {
+  stroke: var(--gold);
+}
+
+.dev-goal-ring.is-reached .dev-ring-fill {
   stroke: var(--teal);
+}
+
+.dev-goal-ring.is-miss .dev-ring-fill {
+  stroke: var(--gold);
+}
+
+.dev-goal-ring.is-empty .dev-ring-fill {
+  stroke: rgba(20, 20, 20, 0.15);
 }
 
 .dev-ring-center {
@@ -4236,6 +4290,30 @@ body[data-page="profile"] .player-card.player-card--light h1 .player-name {
 
   .hero-display-bg--word {
     font-size: 7.5rem;
+  }
+
+  .player-card--profile-hero .hero-top {
+    grid-template-columns: 1fr minmax(13rem, 19rem);
+    min-height: 17.5rem;
+  }
+
+  .hero-art-stage .hero-display-bg--number {
+    font-size: 18.5rem;
+  }
+
+  .hero-athlete {
+    width: 13.75rem;
+    max-height: 17.5rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .hero-top {
+    grid-template-columns: minmax(0, 1fr) minmax(8.5rem, 46vw);
+  }
+
+  .hero-art-stage .hero-display-bg--number {
+    font-size: 15rem;
   }
 }
 

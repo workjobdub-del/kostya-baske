@@ -775,7 +775,7 @@ function heroSeasonHeadlineStats() {
   return `${scope}<div class="hero-stats hero-stats--headline" aria-label="Ключевые средние за сезон">${cells}</div>`;
 }
 
-const ASSET_V = "2026-11-28-09";
+const ASSET_V = "2026-11-28-10";
 const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
 const ICON_REFRESH = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>`;
 const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
@@ -784,8 +784,12 @@ function siteLogoMark() {
   return `<div class="player-logo"><img src="logo.png?v=${ASSET_V}" width="384" height="377" alt="Костя Д. №7"></div>`;
 }
 
+function heroClubBadge() {
+  return `<div class="hero-club-badge" aria-hidden="false"><img src="logo.png?v=${ASSET_V}" width="384" height="377" alt="Клуб Росток"></div>`;
+}
+
 function heroPlayerArt() {
-  return `<img class="hero-athlete" src="assets/hero-player.svg?v=${ASSET_V}" width="280" height="334" alt="" decoding="async">`;
+  return `<img class="hero-athlete" src="assets/hero-player.webp?v=${ASSET_V}" width="360" height="614" alt="" decoding="async">`;
 }
 
 function kpiFormatMetric(metric) {
@@ -925,17 +929,19 @@ function renderFixtureDateChips(items) {
 function renderHero() {
   const player = data.player;
   const body = heightLabel();
-  return `<section class="player-card player-card--compact player-card--athlete player-card--light" id="top" data-number="${esc(player.number)}">
+  return `<section class="player-card player-card--compact player-card--athlete player-card--light player-card--profile-hero" id="top" data-number="${esc(player.number)}">
+    ${heroClubBadge()}
     <span class="hero-display-bg hero-display-bg--word" aria-hidden="true">Костя</span>
-    <span class="hero-display-bg hero-display-bg--number" aria-hidden="true">7</span>
-    <div class="hero-visual">
-      ${heroPlayerArt()}
-      ${siteLogoMark()}
-    </div>
-    <div class="player-card-copy">
-      <h1><span class="player-name">${esc(player.name)}</span><span class="num">№${esc(player.number)}</span></h1>
-      <p class="hero-meta"><span class="team">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
-      ${body ? `<p class="hero-sub"><button type="button" class="body-chip" data-edit-body aria-label="Изменить рост и вес">${esc(body)}</button></p>` : ""}
+    <div class="hero-top">
+      <div class="player-card-copy">
+        <h1><span class="player-name">${esc(player.name)}</span><span class="num">№${esc(player.number)}</span></h1>
+        <p class="hero-meta"><span class="team">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
+        ${body ? `<p class="hero-sub"><button type="button" class="body-chip" data-edit-body aria-label="Изменить рост и вес">${esc(body)}</button></p>` : ""}
+      </div>
+      <div class="hero-art-stage" aria-hidden="true">
+        <span class="hero-display-bg hero-display-bg--number">7</span>
+        ${heroPlayerArt()}
+      </div>
     </div>
     ${heroSeasonHeadlineStats()}
     ${renderHeroQuickNav()}
@@ -1139,11 +1145,13 @@ function oppInitials(name) {
 
 function oppBadgeColor(name) {
   const raw = String(name || "");
-  if (/росток/i.test(raw)) return "#f07a2a";
+  if (/росток/i.test(raw)) return "#d96516";
   let hash = 0;
   for (let i = 0; i < raw.length; i += 1) hash = (hash * 33 + raw.charCodeAt(i)) >>> 0;
   const hue = hash % 360;
-  return `hsl(${hue}, 46%, 46%)`;
+  if (hue >= 45 && hue <= 70) return `hsl(${hue}, 70%, 34%)`;
+  if (hue >= 80 && hue <= 150) return `hsl(${hue}, 48%, 32%)`;
+  return `hsl(${hue}, 52%, 36%)`;
 }
 
 function oppBadgeHtml(name) {
@@ -2056,12 +2064,18 @@ function devGoalCurrentShort(metric, current) {
   return formatPlain(current);
 }
 
+function devGoalReached(metric, current, goal) {
+  if (current == null || goal == null) return false;
+  if (metric === "turnoversU14") return current <= goal;
+  return current >= goal;
+}
+
 function devGoalProgressPct(metric, current, goal) {
   if (goal == null || goal <= 0) return null;
   if (current == null) return null;
   if (metric === "turnoversU14") {
     if (current <= goal) return 100;
-    return Math.max(8, Math.min(100, Math.round((goal / current) * 100)));
+    return Math.max(5, Math.min(100, Math.round((goal / current) * 100)));
   }
   if (metric === "fg2PctU14") {
     return Math.max(0, Math.min(100, Math.round((current / goal) * 100)));
@@ -2074,6 +2088,8 @@ function devGoalProgressPct(metric, current, goal) {
 
 function devGoalRingSvg(metric, current, goal) {
   const pct = devGoalProgressPct(metric, current, goal);
+  const reached = devGoalReached(metric, current, goal);
+  const ringClass = current == null ? "is-empty" : reached ? "is-reached" : "is-miss";
   const r = 38;
   const stroke = 9;
   const c = 2 * Math.PI * r;
@@ -2085,8 +2101,10 @@ function devGoalRingSvg(metric, current, goal) {
   const aria =
     pct == null
       ? `Пока нет данных. Цель ${target}.`
-      : `Сейчас ${center}, цель ${target}, прогресс около ${pct} процентов.`;
-  return `<div class="dev-goal-ring" role="img" aria-label="${esc(aria)}">
+      : reached
+        ? `Цель достигнута: сейчас ${center}, цель ${target}.`
+        : `Сейчас ${center}, цель ${target}, прогресс около ${pct} процентов.`;
+  return `<div class="dev-goal-ring ${ringClass}" role="img" aria-label="${esc(aria)}">
     <svg viewBox="0 0 100 100" width="92" height="92" aria-hidden="true">
       <circle class="dev-ring-track" cx="50" cy="50" r="${r}" stroke-width="${stroke}" fill="none"></circle>
       <circle class="dev-ring-fill" cx="50" cy="50" r="${r}" stroke-width="${stroke}" fill="none" stroke-dasharray="${dash}" stroke-linecap="round" transform="rotate(-90 50 50)"></circle>
