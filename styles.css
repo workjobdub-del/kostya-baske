@@ -3442,6 +3442,11 @@ body[data-page="profile"] .player-card.player-card--light .num {
   font-size: 0.95rem;
 }
 
+body[data-page="profile"] .player-card.player-card--profile-hero .num {
+  background: #2f9e5b;
+  box-shadow: 0 6px 16px rgba(47, 158, 91, 0.28);
+}
+
 .hero-stats--headline {
   position: relative;
   z-index: 2;
@@ -3917,6 +3922,23 @@ body[data-page="mama"] .wrap::before {
   pointer-events: none;
 }
 
+.hero-art-stage::before {
+  content: "";
+  position: absolute;
+  right: -4%;
+  bottom: 12%;
+  width: clamp(7.25rem, 40vw, 11rem);
+  height: clamp(7.25rem, 40vw, 11rem);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 42% 38%,
+    rgba(207, 227, 224, 0.96) 0%,
+    rgba(207, 227, 224, 0.62) 52%,
+    rgba(207, 227, 224, 0) 74%
+  );
+  z-index: 1;
+}
+
 .hero-art-stage .hero-display-bg--number {
   position: absolute;
   right: -0.12em;
@@ -3927,8 +3949,8 @@ body[data-page="mama"] .wrap::before {
   font-size: clamp(14.5rem, 68vw, 18.75rem);
   letter-spacing: -0.06em;
   line-height: 0.76;
-  color: rgba(20, 20, 20, 0.07);
-  -webkit-text-stroke: 1px rgba(95, 168, 160, 0.24);
+  color: rgba(47, 158, 91, 0.09);
+  -webkit-text-stroke: 1.5px rgba(47, 158, 91, 0.32);
   z-index: 0;
 }
 
