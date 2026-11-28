@@ -722,12 +722,13 @@ function heightLabel() {
   return parsed.weight ? `${parsed.height} см · ${parsed.weight} кг` : `${parsed.height} см`;
 }
 
-function updatedLine() {
+function updatedLine(compact) {
   const when = data.updated ? `Обновлено: ${esc(formatNewsDate(data.updated))}` : "Статистика";
-  return `<div class="sync-bar">
+  const pageBar = compact ? "" : " sync-bar--page";
+  return `<div class="sync-bar${pageBar}">
       <p class="updated">${when}</p>
       <div class="sync-actions">
-        <button type="button" class="sync-refresh" data-sync="refresh">${ICON_REFRESH}<span>Обновить</span></button>
+        <button type="button" class="sync-refresh" data-sync="refresh" aria-label="Обновить">${ICON_REFRESH}<span>Обновить</span></button>
         <button type="button" class="sync-settings" data-sync="settings" aria-label="Настройки">${ICON_GEAR}</button>
       </div>
       <p class="sync-status" data-sync-status role="status"></p>
@@ -774,7 +775,7 @@ function heroSeasonHeadlineStats() {
   return `${scope}<div class="hero-stats hero-stats--headline" aria-label="Ключевые средние за сезон">${cells}</div>`;
 }
 
-const ASSET_V = "2026-11-28-06";
+const ASSET_V = "2026-11-28-07";
 const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
 const ICON_REFRESH = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>`;
 const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
@@ -921,20 +922,19 @@ function renderHero() {
   const player = data.player;
   const body = heightLabel();
   return `<section class="player-card player-card--compact player-card--athlete player-card--light" id="top" data-number="${esc(player.number)}">
-    <span class="hero-display-bg" aria-hidden="true">Костя</span>
-    <span class="hero-display-bg hero-display-bg--vert" aria-hidden="true">Росток</span>
-    <span class="hero-display-bg hero-display-bg--ghost" aria-hidden="true">Сезон</span>
-    <div class="player-card-main">
+    <span class="hero-display-bg hero-display-bg--word" aria-hidden="true">Костя</span>
+    <span class="hero-display-bg hero-display-bg--vert" aria-hidden="true">7</span>
+    <div class="hero-visual">
       ${siteLogoMark()}
-      <div class="player-card-copy">
-        <h1><span class="player-name">${esc(player.name)}</span><span class="num">№${esc(player.number)}</span></h1>
-        <p class="hero-meta"><span class="team">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
-        ${body ? `<p class="hero-sub"><button type="button" class="body-chip" data-edit-body aria-label="Изменить рост и вес">${esc(body)}</button></p>` : ""}
-      </div>
+    </div>
+    <div class="player-card-copy">
+      <h1><span class="player-name">${esc(player.name)}</span><span class="num">№${esc(player.number)}</span></h1>
+      <p class="hero-meta"><span class="team">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
+      ${body ? `<p class="hero-sub"><button type="button" class="body-chip" data-edit-body aria-label="Изменить рост и вес">${esc(body)}</button></p>` : ""}
     </div>
     ${heroSeasonHeadlineStats()}
     ${renderHeroQuickNav()}
-    ${updatedLine()}
+    ${updatedLine(true)}
     <div id="notify-hero" class="notify notify--hero" hidden></div>
   </section>`;
 }
@@ -2020,11 +2020,11 @@ function renderDevKidGoals(priorities, pack) {
       const current = devMetricValue(item.goalMetric, pack);
       const trend = devKidTrend(item.goalMetric, current, item.goalTo);
       return `<article class="dev-kid-goal">
-        <p class="dev-kid-mark" aria-hidden="true">${trend.mark}</p>
-        <div>
+        <div class="dev-kid-badge" aria-hidden="true">${trend.mark}</div>
+        <div class="dev-kid-body">
           <h3>${esc(item.title)}</h3>
-          <p>${esc(devKidGoalText(item, current))}</p>
-          <p class="caption">${esc(trend.label)}</p>
+          <p class="dev-kid-line">${esc(devKidGoalText(item, current))}</p>
+          <p class="dev-kid-progress caption">${esc(trend.label)}</p>
         </div>
       </article>`;
     })
@@ -2920,39 +2920,8 @@ function countUp(el) {
 
 function animateIn() {
   const root = document.getElementById("app");
-  if (!motionOk() || !("IntersectionObserver" in window)) return;
-  document.documentElement.classList.add("jam");
-  if (revealer) revealer.disconnect();
-  revealer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        const el = entry.target;
-        el.classList.add("in");
-        if (el.matches(COUNT)) countUp(el);
-        el.querySelectorAll(COUNT).forEach(countUp);
-        revealer.unobserve(el);
-      });
-    },
-    { rootMargin: "0px 0px -6% 0px", threshold: 0.06 }
-  );
-  root.querySelectorAll(REVEAL).forEach((el) => {
-    const parent = el.parentElement;
-    const index = parent ? Array.prototype.indexOf.call(parent.children, el) : 0;
-    el.classList.add("reveal");
-    el.style.setProperty("--i", String(Math.min(index, 7)));
-    const rect = el.getBoundingClientRect();
-    if (rect.top < window.innerHeight && rect.bottom > 0) {
-      el.classList.add("in");
-      if (el.matches(COUNT)) countUp(el);
-      el.querySelectorAll(COUNT).forEach(countUp);
-    }
-    revealer.observe(el);
-  });
-  root.querySelectorAll(".player-card .shield strong, .hero-stat b").forEach(countUp);
-  window.setTimeout(() => {
-    root.querySelectorAll(".reveal:not(.in)").forEach((el) => el.classList.add("in"));
-  }, 900);
+  if (!root) return;
+  root.querySelectorAll(COUNT).forEach(countUp);
 }
 
 function phoneLayout() {
