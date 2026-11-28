@@ -31,7 +31,7 @@ try {
     const page = await browser.newPage({ viewport: { width, height: height || 800 } });
     await page.goto(`http://127.0.0.1:${port}/${file}`, { waitUntil: "networkidle", timeout: 60000 });
     await page.waitForTimeout(400);
-    const out = path.join(outDir, `redesign-v12-${name}.png`);
+    const out = path.join(outDir, `redesign-v13-${name}.png`);
     await page.screenshot({ path: out, fullPage: Boolean(full) });
     await page.close();
     console.log("wrote", out);
