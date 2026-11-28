@@ -1,6 +1,6 @@
 "use strict";
 
-const SERIES_COLORS = ["#9cb4d0", "#e8b84a", "#7bc4ff"];
+const SERIES_COLORS = ["#5fa8a0", "#f07a2a", "#8ab4c8"];
 const FONT = "Oswald, sans-serif";
 
 const state = { game: null, trend: null, news: "2014", newsShown: 5, newsReady: false, section: "", lastY: 0, chartPoints: [] };
@@ -26,6 +26,8 @@ const TAB_SWIPE_MOVE_COMMIT_PX = 16;
 const TAB_SWIPE_EXPLICIT =
   "#trend-panel, .table-scroll, svg.points, .chart-scroll, .segmented, .news-list, [data-noswipe]";
 const TAB_SWIPE_ROOT_TAGS = new Set(["HTML", "BODY", "MAIN"]);
+
+const MONTHS_CHIP = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
 
 const MONTHS = [
   "января",
@@ -376,9 +378,9 @@ function pointsChart(tournament) {
 
   for (let tick = 0; tick <= top + 0.001; tick += step) {
     const y = pad.top + plotH - (tick / top) * plotH;
-    const grid = tick === 0 ? "#3a3f4b" : "#2c313c";
+    const grid = tick === 0 ? "#c5c4bd" : "#e0dfda";
     shapes += `<line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="${grid}"></line>`;
-    shapes += `<text x="${pad.left - 6}" y="${y + 4}" text-anchor="end" fill="#c8c2b6" font-size="12" font-family="${FONT}">${formatTick(tick)}</text>`;
+    shapes += `<text x="${pad.left - 6}" y="${y + 4}" text-anchor="end" fill="#7a7a74" font-size="12" font-family="${FONT}">${formatTick(tick)}</text>`;
   }
 
   if (fire) {
@@ -395,27 +397,27 @@ function pointsChart(tournament) {
     const y = pad.top + plotH - barH;
     const hot = fire && index >= fire.start && index <= fire.end;
     const kind = hot ? "fire" : point.loss ? "loss" : "win";
-    const color = hot ? "url(#fire-fill)" : point.loss ? "#6b717e" : "#e8b84a";
+    const color = hot ? "url(#fire-fill)" : point.loss ? "#9aa3ad" : "#5fa8a0";
     if (barH > 0) {
       const radius = Math.min(4, barW / 2, barH);
       shapes += `<path class="bar is-${kind}" style="--d:${index * 45}ms" d="M${x} ${y + barH} V${y + radius} Q${x} ${y} ${x + radius} ${y} H${x + barW - radius} Q${x + barW} ${y} ${x + barW} ${y + radius} V${y + barH} Z" fill="${color}"></path>`;
     }
-    shapes += `<text class="bar-value" style="--d:${index * 45 + 260}ms" x="${x + barW / 2}" y="${Math.max(pad.top - 4, y - 5)}" text-anchor="middle" fill="#f4efe4" font-size="13" font-weight="700" font-family="${FONT}">${esc(point.display)}</text>`;
+    shapes += `<text class="bar-value" style="--d:${index * 45 + 260}ms" x="${x + barW / 2}" y="${Math.max(pad.top - 4, y - 5)}" text-anchor="middle" fill="#141414" font-size="13" font-weight="700" font-family="${FONT}">${esc(point.display)}</text>`;
     if (index % showEvery === 0) {
-      shapes += `<text x="${x + barW / 2}" y="${height - 10}" text-anchor="middle" fill="#c8c2b6" font-size="12" font-family="${FONT}">${esc(point.label)}</text>`;
+      shapes += `<text x="${x + barW / 2}" y="${height - 10}" text-anchor="middle" fill="#7a7a74" font-size="12" font-family="${FONT}">${esc(point.label)}</text>`;
     }
     shapes += `<rect class="bar-hit" data-bar="${index}" x="${pad.left + index * slot}" y="${pad.top}" width="${slot}" height="${plotH}" fill="transparent"></rect>`;
   });
 
   if (top > 0) {
     const meanY = pad.top + plotH - (mean / top) * plotH;
-    shapes += `<line class="mean-line" x1="${pad.left}" y1="${meanY}" x2="${width - pad.right}" y2="${meanY}" stroke="#f3d98a" stroke-width="1.5" stroke-dasharray="5 4"></line>`;
-    shapes += `<text x="${width - pad.right}" y="${meanY - 5}" text-anchor="end" fill="#f3d98a" font-size="12" font-family="${FONT}">среднее ${formatAvg(mean)}</text>`;
+    shapes += `<line class="mean-line" x1="${pad.left}" y1="${meanY}" x2="${width - pad.right}" y2="${meanY}" stroke="#f07a2a" stroke-width="1.5" stroke-dasharray="5 4"></line>`;
+    shapes += `<text x="${width - pad.right}" y="${meanY - 5}" text-anchor="end" fill="#7a7a74" font-size="12" font-family="${FONT}">среднее ${formatAvg(mean)}</text>`;
   }
 
   state.chartPoints = points;
   const summary = points.map((point) => `${point.label}: ${point.display}`).join(", ");
-  const legend = `<ul class="legend chart-key"><li><span class="swatch" style="background:#e8b84a"></span>Победа</li><li><span class="swatch" style="background:#6b717e"></span>Поражение</li><li><span class="swatch swatch-mean"></span>Пунктир — среднее за турнир</li>${
+  const legend = `<ul class="legend chart-key"><li><span class="swatch" style="background:#5fa8a0"></span>Победа</li><li><span class="swatch" style="background:#9aa3ad"></span>Поражение</li><li><span class="swatch swatch-mean"></span>Пунктир — среднее за турнир</li>${
     fire ? `<li><span class="swatch swatch-fire"></span>${term("В ОГНЕ")}</li>` : ""
   }</ul>`;
   const readout = `<p class="chart-readout" id="chart-readout" aria-live="polite">Нажмите на столбец — покажу соперника и счёт.</p>`;
@@ -477,9 +479,9 @@ function groupedChart(view) {
     const y = view.signed
       ? pad.top + plotH - ((tick - minValue) / span) * plotH
       : pad.top + plotH - (tick / top) * plotH;
-    const grid = Math.abs(tick) < 0.001 ? "#3a3f4b" : "#2c313c";
+    const grid = Math.abs(tick) < 0.001 ? "#c5c4bd" : "#e0dfda";
     shapes += `<line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="${grid}"></line>`;
-    shapes += `<text x="${pad.left - 8}" y="${y + 4}" text-anchor="end" fill="#c8c2b6" font-size="12" font-family="${FONT}">${formatTick(tick)}</text>`;
+    shapes += `<text x="${pad.left - 8}" y="${y + 4}" text-anchor="end" fill="#7a7a74" font-size="12" font-family="${FONT}">${formatTick(tick)}</text>`;
   }
 
   categories.forEach((category, categoryIndex) => {
@@ -506,9 +508,9 @@ function groupedChart(view) {
         shapes += `<path class="bar" style="--d:${delay}ms" d="M${x} ${y + barH} V${y + radius} Q${x} ${y} ${x + radius} ${y} H${x + barW - radius} Q${x + barW} ${y} ${x + barW} ${y + radius} V${y + barH} Z" fill="${color}"></path>`;
       }
       const textDelay = (categoryIndex * series.length + seriesIndex) * 60 + 260;
-      shapes += `<text class="bar-value" style="--d:${textDelay}ms" x="${x + barW / 2}" y="${Math.max(12, y - 6)}" text-anchor="middle" fill="#f4efe4" font-size="${valueSize}" font-weight="700" font-family="${FONT}">${formatAvg(safe)}</text>`;
+      shapes += `<text class="bar-value" style="--d:${textDelay}ms" x="${x + barW / 2}" y="${Math.max(12, y - 6)}" text-anchor="middle" fill="#141414" font-size="${valueSize}" font-weight="700" font-family="${FONT}">${formatAvg(safe)}</text>`;
     });
-    shapes += `<text x="${groupX + groupW / 2}" y="${height - 14}" text-anchor="middle" fill="#f4efe4" font-size="${labelSize}" font-family="${FONT}">${esc(category)}</text>`;
+    shapes += `<text x="${groupX + groupW / 2}" y="${height - 14}" text-anchor="middle" fill="#7a7a74" font-size="${labelSize}" font-family="${FONT}">${esc(category)}</text>`;
   });
 
   const summary = series
@@ -720,12 +722,13 @@ function heightLabel() {
   return parsed.weight ? `${parsed.height} см · ${parsed.weight} кг` : `${parsed.height} см`;
 }
 
-function updatedLine() {
+function updatedLine(compact) {
   const when = data.updated ? `Обновлено: ${esc(formatNewsDate(data.updated))}` : "Статистика";
-  return `<div class="sync-bar">
+  const pageBar = compact ? "" : " sync-bar--page";
+  return `<div class="sync-bar${pageBar}">
       <p class="updated">${when}</p>
       <div class="sync-actions">
-        <button type="button" class="sync-refresh" data-sync="refresh">${ICON_REFRESH}<span>Обновить</span></button>
+        <button type="button" class="sync-refresh" data-sync="refresh" aria-label="Обновить">${ICON_REFRESH}<span>Обновить</span></button>
         <button type="button" class="sync-settings" data-sync="settings" aria-label="Настройки">${ICON_GEAR}</button>
       </div>
       <p class="sync-status" data-sync-status role="status"></p>
@@ -755,13 +758,38 @@ function heroStats() {
     ${updatedLine()}`;
 }
 
-const ASSET_V = "2026-11-28-01";
+function heroSeasonHeadlineStats() {
+  const season = currentSeason();
+  if (!season) return "";
+  const cells = [
+    ["Очки", season.points],
+    ["Подборы", season.rebounds],
+    ["Пасы", season.assists],
+  ]
+    .map(
+      ([label, value]) =>
+        `<div class="hero-stat hero-stat--headline"><b>${esc(formatAvg(value))}</b><span>${esc(label)}</span></div>`
+    )
+    .join("");
+  const scope = season.name ? `<p class="hero-season-tag">${esc(season.name)}</p>` : "";
+  return `${scope}<div class="hero-stats hero-stats--headline" aria-label="Ключевые средние за сезон">${cells}</div>`;
+}
+
+const ASSET_V = "2026-11-28-13";
 const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
 const ICON_REFRESH = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>`;
 const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
 
 function siteLogoMark() {
   return `<div class="player-logo"><img src="logo.png?v=${ASSET_V}" width="384" height="377" alt="Костя Д. №7"></div>`;
+}
+
+function heroClubBadge() {
+  return `<div class="hero-club-badge" aria-hidden="false"><img src="logo.png?v=${ASSET_V}" width="384" height="377" alt="Клуб Росток"></div>`;
+}
+
+function heroPlayerArt() {
+  return `<img class="hero-athlete" src="assets/hero-player.webp?v=${ASSET_V}" width="397" height="690" alt="" decoding="async">`;
 }
 
 function kpiFormatMetric(metric) {
@@ -828,12 +856,14 @@ function renderKpiBlock() {
       const wasLine = was
         ? `<p class="kpi-was">было ${esc(was)}${metric.wasScope ? ` · ${esc(metric.wasScope)}` : ""}</p>`
         : "";
-      return `<article class="kpi-tile">
-        <h3>${term(metric.label, metric.label)} ${metric.hint ? `<abbr class="term kpi-hint" tabindex="0" role="button" aria-expanded="false" data-term="${esc(metric.hint)}">?</abbr>` : ""}</h3>
-        <p class="kpi-value">${kpiFormatMetric(metric)} ${kpiDelta(metric)}</p>
-        ${scope}
-        ${wasLine}
-        ${team}
+      return `<article class="kpi-tile stat-row">
+        <div class="stat-row-copy">
+          <h3 class="stat-row-label">${term(metric.label, metric.label)} ${metric.hint ? `<abbr class="term kpi-hint" tabindex="0" role="button" aria-expanded="false" data-term="${esc(metric.hint)}">?</abbr>` : ""}</h3>
+          ${scope}
+          ${wasLine}
+          ${team}
+        </div>
+        <p class="stat-row-pill kpi-value">${kpiFormatMetric(metric)} ${kpiDelta(metric)}</p>
       </article>`;
     })
     .join("");
@@ -862,19 +892,60 @@ function renderKpiBlock() {
   </section>`;
 }
 
+const TILE_GO = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"></path><path d="M9 7h8v8"></path></svg>`;
+
+function renderHeroQuickNav() {
+  return `<nav class="tile-nav" aria-label="Быстрые переходы">
+    <a class="tile-nav-card" href="team.html"><span>Матчи</span><span class="tile-nav-go" aria-hidden="true">${TILE_GO}</span></a>
+    <a class="tile-nav-card" href="development.html"><span>План</span><span class="tile-nav-go" aria-hidden="true">${TILE_GO}</span></a>
+    <a class="tile-nav-card" href="mama.html"><span>Для мамы</span><span class="tile-nav-go" aria-hidden="true">${TILE_GO}</span></a>
+  </nav>`;
+}
+
+function renderFixtureDateChips(items) {
+  const dated = items.filter((item) => item.date);
+  if (!dated.length) return "";
+  const dateRow = dated
+    .map((item, index) => {
+      const day = item.date.getDate();
+      const month = MONTHS_CHIP[item.date.getMonth()];
+      return `<span class="date-chip${index === 0 ? " is-active" : ""}"><b>${day}</b><small>${esc(month)}</small></span>`;
+    })
+    .join("");
+  const times = [];
+  dated.forEach((item) => {
+    if (item.time && !times.includes(item.time)) times.push(item.time);
+  });
+  const timeRow = times.length
+    ? times
+        .map((time, index) => `<span class="time-chip${index === 0 ? " is-active" : ""}">${esc(time)}</span>`)
+        .join("")
+    : "";
+  return `<div class="fixture-chips"><div class="date-chip-row">${dateRow}</div>${
+    timeRow ? `<div class="time-chip-row">${timeRow}</div>` : ""
+  }</div>`;
+}
+
 function renderHero() {
   const player = data.player;
   const body = heightLabel();
-  return `<section class="player-card player-card--compact" id="top">
-    <div class="player-card-main">
-      ${siteLogoMark()}
+  return `<section class="player-card player-card--compact player-card--athlete player-card--light player-card--profile-hero" id="top" data-number="${esc(player.number)}">
+    ${heroClubBadge()}
+    <span class="hero-display-bg hero-display-bg--word" aria-hidden="true">Костя</span>
+    <div class="hero-top">
       <div class="player-card-copy">
         <h1><span class="player-name">${esc(player.name)}</span><span class="num">№${esc(player.number)}</span></h1>
         <p class="hero-meta"><span class="team">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
         ${body ? `<p class="hero-sub"><button type="button" class="body-chip" data-edit-body aria-label="Изменить рост и вес">${esc(body)}</button></p>` : ""}
       </div>
+      <div class="hero-art-stage" aria-hidden="true">
+        <span class="hero-display-bg hero-display-bg--number">7</span>
+        ${heroPlayerArt()}
+      </div>
     </div>
-    ${updatedLine()}
+    ${heroSeasonHeadlineStats()}
+    ${renderHeroQuickNav()}
+    ${updatedLine(true)}
     <div id="notify-hero" class="notify notify--hero" hidden></div>
   </section>`;
 }
@@ -1055,11 +1126,54 @@ function findOpponent(name, tour) {
   return exact.length === 1 ? exact[0] : null;
 }
 
-function oppButton(name, tour) {
+const OPP_BADGE_STOP = new Set(["2012", "2013", "2014", "2015", "2016", "2017", "2018", "1", "2", "3", "u14", "u12"]);
+
+function oppInitials(name) {
+  const raw = String(name || "").trim();
+  if (!raw) return "?";
+  if (/росток/i.test(raw)) return "Р";
+  const tokens = oppKey(raw)
+    .split(" ")
+    .filter((token) => token && !OPP_BADGE_STOP.has(token) && !/^20\d\d$/.test(token));
+  if (!tokens.length) {
+    const letters = raw.replace(/[^a-zA-Zа-яА-ЯёЁ]/g, "");
+    return (letters.slice(0, 2) || raw.slice(0, 2)).toUpperCase();
+  }
+  if (tokens.length === 1) return tokens[0].slice(0, 2).toUpperCase();
+  return (tokens[0][0] + tokens[1][0]).toUpperCase();
+}
+
+function oppBadgeColor(name) {
+  const raw = String(name || "");
+  if (/росток/i.test(raw)) return "#d96516";
+  let hash = 0;
+  for (let i = 0; i < raw.length; i += 1) hash = (hash * 33 + raw.charCodeAt(i)) >>> 0;
+  const hue = hash % 360;
+  if (hue >= 45 && hue <= 70) return `hsl(${hue}, 70%, 34%)`;
+  if (hue >= 80 && hue <= 150) return `hsl(${hue}, 48%, 32%)`;
+  return `hsl(${hue}, 52%, 36%)`;
+}
+
+function oppBadgeHtml(name) {
   const clean = String(name || "").trim();
-  if (!clean || /^росток-2014$/i.test(clean) || !findOpponent(clean, tour)) return esc(clean);
+  if (!clean) return "";
+  const initials = oppInitials(clean);
+  const color = oppBadgeColor(clean);
+  return `<span class="opp-badge" style="--opp-badge:${esc(color)}" aria-hidden="true">${esc(initials)}</span>`;
+}
+
+function oppNameHtml(name, tour) {
+  const clean = String(name || "").trim();
+  if (!clean) return "";
+  if (/^росток-2014$/i.test(clean) || !findOpponent(clean, tour)) return `<span class="opp-name">${esc(clean)}</span>`;
   const label = `Кратко о сопернике ${clean}`;
   return `<button type="button" class="opp-link" data-opp="${esc(clean)}" data-tour="${esc(tour || "")}" aria-label="${esc(label)}">${esc(clean)}</button>`;
+}
+
+function oppButton(name, tour) {
+  const clean = String(name || "").trim();
+  if (!clean) return "";
+  return `<span class="opp-chip">${oppBadgeHtml(clean)}${oppNameHtml(clean, tour)}</span>`;
 }
 
 function fixtureDayEqual(a, b) {
@@ -1178,7 +1292,7 @@ function renderSeasonMatchCard(match) {
   const scored = /победа|поражение|\d+\s*:\s*\d+/i.test(String(match.detail || ""));
   const upcoming = isUpcomingFixture({ ...match, ...when, scored });
   const opponent = opponentFromTitle(match.title);
-  const title = upcoming ? oppButton(opponent, tour) : esc(match.title);
+  const title = oppButton(opponent, tour);
   const manual = match.manualAnnouncement || /анонсу клуба/i.test(String(match.status || ""));
   const status = manual
     ? `<span class="status status--note">${esc(match.sourceNote || "по анонсу клуба")}</span>`
@@ -1205,7 +1319,8 @@ function renderUpcomingBlock(limit) {
     return `<section class="block block--first" id="upcoming"><h2>Ближайшие игры</h2><p class="caption">Новые игры в расписании пока не опубликованы.</p></section>`;
   }
   const cards = shown.map(renderUpcomingCard).join("");
-  return `<section class="block block--first" id="upcoming"><h2>Ближайшие игры</h2><div class="fixture-list">${cards}</div></section>`;
+  const chips = renderFixtureDateChips(shown);
+  return `<section class="block block--first" id="upcoming"><h2>Ближайшие игры</h2>${chips}<div class="fixture-list">${cards}</div></section>`;
 }
 
 function renderUpcomingLine() {
@@ -1933,6 +2048,74 @@ function devKidTrend(metric, current, goal) {
   return { mark: "→", label: "так же" };
 }
 
+function devGoalTargetLabel(metric, goal) {
+  if (goal == null) return "—";
+  if (metric === "fg2PctU14") return `${formatPlain(Math.round(goal * 10) / 10)}%`;
+  if (metric === "minutesU14") return formatRowClock(goal * 60);
+  return String(formatPlain(goal)).replace(".", ",");
+}
+
+function devGoalCurrentShort(metric, current) {
+  if (current == null) return "—";
+  if (metric === "turnoversU14") return String(formatPlain(current)).replace(".", ",");
+  if (metric === "fg2PctU14") return `${Math.round(current * 10) / 10}%`.replace(".", ",");
+  if (metric === "astToU14") return String(formatPlain(current)).replace(".", ",");
+  if (metric === "minutesU14") return formatRowClock(current * 60);
+  return formatPlain(current);
+}
+
+function devGoalReached(metric, current, goal) {
+  if (current == null || goal == null) return false;
+  if (metric === "turnoversU14") return current <= goal;
+  return current >= goal;
+}
+
+function devGoalProgressPct(metric, current, goal) {
+  if (goal == null || goal <= 0) return null;
+  if (current == null) return null;
+  if (metric === "turnoversU14") {
+    if (current <= goal) return 100;
+    return Math.max(5, Math.min(100, Math.round((goal / current) * 100)));
+  }
+  if (metric === "fg2PctU14") {
+    return Math.max(0, Math.min(100, Math.round((current / goal) * 100)));
+  }
+  if (metric === "astToU14" || metric === "minutesU14") {
+    return Math.max(0, Math.min(100, Math.round((current / goal) * 100)));
+  }
+  return null;
+}
+
+function devGoalRingSvg(metric, current, goal) {
+  const pct = devGoalProgressPct(metric, current, goal);
+  const reached = devGoalReached(metric, current, goal);
+  const ringClass = current == null ? "is-empty" : reached ? "is-reached" : "is-miss";
+  const r = 38;
+  const stroke = 9;
+  const c = 2 * Math.PI * r;
+  const track = c.toFixed(2);
+  const filled = pct == null ? 0 : (pct / 100) * c;
+  const dash = `${filled.toFixed(2)} ${track}`;
+  const center = devGoalCurrentShort(metric, current);
+  const target = devGoalTargetLabel(metric, goal);
+  const aria =
+    pct == null
+      ? `Пока нет данных. Цель ${target}.`
+      : reached
+        ? `Цель достигнута: сейчас ${center}, цель ${target}.`
+        : `Сейчас ${center}, цель ${target}, прогресс около ${pct} процентов.`;
+  return `<div class="dev-goal-ring ${ringClass}" role="img" aria-label="${esc(aria)}">
+    <svg viewBox="0 0 100 100" width="92" height="92" aria-hidden="true">
+      <circle class="dev-ring-track" cx="50" cy="50" r="${r}" stroke-width="${stroke}" fill="none"></circle>
+      <circle class="dev-ring-fill" cx="50" cy="50" r="${r}" stroke-width="${stroke}" fill="none" stroke-dasharray="${dash}" stroke-linecap="round" transform="rotate(-90 50 50)"></circle>
+    </svg>
+    <div class="dev-ring-center">
+      <b>${esc(center)}</b>
+      <small>цель ${esc(target)}</small>
+    </div>
+  </div>`;
+}
+
 function devKidGoalText(item, current) {
   if (item.goalMetric === "turnoversU14") {
     if (current == null) return "Держим мяч спокойнее — столько потерь за игру, сколько сможешь.";
@@ -1959,11 +2142,11 @@ function renderDevKidGoals(priorities, pack) {
       const current = devMetricValue(item.goalMetric, pack);
       const trend = devKidTrend(item.goalMetric, current, item.goalTo);
       return `<article class="dev-kid-goal">
-        <p class="dev-kid-mark" aria-hidden="true">${trend.mark}</p>
-        <div>
+        ${devGoalRingSvg(item.goalMetric, current, item.goalTo)}
+        <div class="dev-kid-body">
           <h3>${esc(item.title)}</h3>
-          <p>${esc(devKidGoalText(item, current))}</p>
-          <p class="caption">${esc(trend.label)}</p>
+          <p class="dev-kid-line">${esc(devKidGoalText(item, current))}</p>
+          <p class="dev-kid-progress caption">${esc(trend.label)}</p>
         </div>
       </article>`;
     })
@@ -2857,39 +3040,7 @@ function countUp(el) {
   requestAnimationFrame(frame);
 }
 
-function animateIn() {
-  const root = document.getElementById("app");
-  if (!motionOk() || !("IntersectionObserver" in window)) return;
-  document.documentElement.classList.add("jam");
-  if (revealer) revealer.disconnect();
-  revealer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        const el = entry.target;
-        el.classList.add("in");
-        if (el.matches(COUNT)) countUp(el);
-        el.querySelectorAll(COUNT).forEach(countUp);
-        revealer.unobserve(el);
-      });
-    },
-    { rootMargin: "0px 0px -6% 0px", threshold: 0.06 }
-  );
-  root.querySelectorAll(REVEAL).forEach((el) => {
-    const parent = el.parentElement;
-    const index = parent ? Array.prototype.indexOf.call(parent.children, el) : 0;
-    el.classList.add("reveal");
-    el.style.setProperty("--i", String(Math.min(index, 7)));
-    const rect = el.getBoundingClientRect();
-    if (rect.top < window.innerHeight && rect.bottom > 0) {
-      el.classList.add("in");
-      if (el.matches(COUNT)) countUp(el);
-      el.querySelectorAll(COUNT).forEach(countUp);
-    }
-    revealer.observe(el);
-  });
-  root.querySelectorAll(".player-card .shield strong, .hero-stat b").forEach(countUp);
-}
+function animateIn() {}
 
 function phoneLayout() {
   return window.matchMedia("(max-width: 720px)").matches;
