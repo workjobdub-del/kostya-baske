@@ -1,19 +1,21 @@
 :root {
-  --bg: #0b0d12;
-  --bg-2: #12151c;
-  --ink: #f2f4f8;
-  --muted: #9ba3b0;
-  --dim: #6e7785;
-  --line: rgba(255, 255, 255, 0.1);
-  --card: #161a22;
-  --card-2: #1e2430;
-  --gold: #ff6a1a;
-  --gold-2: #ff8f3c;
-  --gold-deep: #e25500;
-  --glow: rgba(255, 106, 26, 0.45);
-  --silver: #a8b0bd;
-  --good: #34d399;
-  --work: #fb7185;
+  --bg: #efeee8;
+  --bg-2: #e6e5df;
+  --ink: #141414;
+  --muted: #5c5c58;
+  --dim: #7a7a74;
+  --line: rgba(20, 20, 20, 0.1);
+  --card: rgba(255, 255, 255, 0.82);
+  --card-2: rgba(255, 255, 255, 0.92);
+  --teal: #5fa8a0;
+  --teal-soft: #cfe3e0;
+  --gold: #f07a2a;
+  --gold-2: #f07a2a;
+  --gold-deep: #d96818;
+  --glow: rgba(240, 122, 42, 0.22);
+  --silver: #8a8a84;
+  --good: #2f9d7a;
+  --work: #d64545;
   --bar: 44px;
   --nav-h: 44px;
   --tap: 44px;
@@ -26,7 +28,10 @@
   --font: "Manrope", system-ui, sans-serif;
   --cut: none;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --shadow-card: 0 12px 40px rgba(0, 0, 0, 0.35);
+  --shadow-card: 0 12px 36px rgba(30, 30, 28, 0.1);
+  --shadow-soft: 0 8px 22px rgba(30, 30, 28, 0.08);
+  --glass: rgba(255, 255, 255, 0.78);
+  --radius-xl: 22px;
 }
 
 * { box-sizing: border-box; }
@@ -49,7 +54,7 @@ body {
   line-height: 1.5;
 }
 
-::selection { background: rgba(232, 184, 74, 0.35); }
+::selection { background: rgba(95, 168, 160, 0.35); }
 
 :focus-visible {
   outline: 2px solid var(--gold);
@@ -94,7 +99,7 @@ body {
   height: var(--bar);
   min-height: var(--bar);
   padding: 0 0.35rem;
-  background: #07080c;
+  background: rgba(239, 238, 232, 0.94);
   border-bottom: 1px solid var(--line);
   transition: transform 180ms ease;
 }
@@ -1173,16 +1178,12 @@ body::before {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background:
-    radial-gradient(720px 380px at 100% -120px, rgba(249, 115, 22, 0.09), transparent 55%),
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 39px,
-      rgba(255, 255, 255, 0.018) 39px,
-      rgba(255, 255, 255, 0.018) 40px
-    ),
-  linear-gradient(180deg, #12151c 0%, var(--bg) 68%);
+  background-color: var(--bg);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg fill='none' stroke='%23cbcac3' stroke-width='1' opacity='0.55'%3E%3Cpath d='M-10 58c50-22 92-8 120 12s86 28 140 8'/%3E%3Cpath d='M-10 118c58-18 104-4 134 16s92 30 146 14'/%3E%3Cpath d='M-10 178c44-26 96-10 128 8s88 24 142 6'/%3E%3Cpath d='M20 238c48-20 92-6 118 10s84 26 122 12'/%3E%3C/g%3E%3C/svg%3E"),
+    radial-gradient(900px 380px at 100% -80px, rgba(95, 168, 160, 0.12), transparent 58%),
+    radial-gradient(520px 280px at -10% 30%, rgba(240, 122, 42, 0.08), transparent 62%);
+  background-size: 240px 240px, auto, auto;
 }
 
 .modes a { transition: color 180ms ease; }
@@ -2659,8 +2660,8 @@ body[data-page="development"] .to-top {
   clip-path: none;
   border-radius: 14px;
   padding: 0.8rem 0.85rem 0.7rem;
-  background: #161a22;
-  box-shadow: none;
+  background: var(--glass);
+  box-shadow: var(--shadow-soft);
 }
 
 .player-card.player-card--compact .player-logo img {
@@ -2874,8 +2875,8 @@ html, body { overflow-x: clip; }
     right: 0;
     bottom: 0;
     padding: 0.15rem 0.2rem calc(0.2rem + env(safe-area-inset-bottom));
-    background: #0c0e14;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(239, 238, 232, 0.96);
+    border-top: 1px solid var(--line);
   }
 
   body { padding-top: env(safe-area-inset-top); }
@@ -2903,9 +2904,9 @@ html, body { overflow-x: clip; }
 
 .fixture {
   padding: 0.7rem 0.85rem;
-  background: #10131a;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
+  background: var(--glass);
+  border: 1px solid rgba(20, 20, 20, 0.06);
+  border-radius: var(--radius-xl);
 }
 
 .fixture-when {
@@ -3283,7 +3284,7 @@ body[data-page="profile"] .player-card.player-card--compact .sync-settings {
   padding: 0;
 }
 
-/* —— Спортивный редизайн 2026-11-28-04 —— */
+/* —— Light sports UI (Dribbble ref) v06 —— */
 
 .player-card,
 .block,
@@ -3296,226 +3297,456 @@ body[data-page="profile"] .player-card.player-card--compact .sync-settings {
 .sheet-card,
 .notify--hero {
   clip-path: none;
-  border-radius: var(--radius-md);
-}
-
-.player-card {
-  border-color: var(--line);
-  background: linear-gradient(165deg, rgba(249, 115, 22, 0.08), transparent 42%), var(--card);
-  box-shadow: var(--shadow-card);
-}
-
-.block {
-  border-color: var(--line);
-  background: var(--card);
-}
-
-.block h2::before {
-  border-radius: 2px;
-  clip-path: none;
-  background: var(--gold);
+  border-radius: var(--radius-xl);
 }
 
 .topbar {
-  background: rgba(11, 13, 18, 0.92);
-  backdrop-filter: blur(10px);
+  background: rgba(239, 238, 232, 0.94);
+  backdrop-filter: blur(14px);
   border-bottom-color: var(--line);
 }
 
+.modes a {
+  color: var(--muted);
+}
+
 .modes a[aria-current="page"] {
-  color: var(--gold-2);
-  background: rgba(249, 115, 22, 0.12);
-  border-radius: var(--radius-sm);
-  box-shadow: inset 0 -2px 0 var(--gold);
+  color: var(--ink);
+  background: var(--teal-soft);
+  box-shadow: inset 0 0 0 1px rgba(95, 168, 160, 0.35);
 }
 
-.page-head h1 {
-  font-family: var(--display);
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
-@media (max-width: 720px) {
-  .tabbar {
-    gap: 0.12rem;
-    padding: 0.35rem 0.35rem calc(0.4rem + env(safe-area-inset-bottom));
-    background: rgba(11, 13, 18, 0.94);
-    backdrop-filter: blur(14px);
-    border-top-color: var(--line);
-  }
-
-  .tabbar a {
-    min-height: var(--tap);
-    padding: 0.25rem 0.15rem;
-    border-radius: var(--radius-md);
-    transition: color 160ms var(--ease-out), background 160ms var(--ease-out);
-  }
-
-  .tabbar a[aria-current="page"] {
-    color: var(--ink);
-    background: rgba(249, 115, 22, 0.16);
-    box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.35);
-  }
-
-  .tabbar a[aria-current="page"] svg {
-    color: var(--gold-2);
-  }
-}
-
-@media (min-width: 721px) {
-  .wrap {
-    max-width: 720px;
-    padding-bottom: 2.5rem;
-  }
-
-  .modes.modes--pages a {
-    border-radius: var(--radius-sm);
-    font-family: var(--font);
-    font-weight: 600;
-    font-size: 0.82rem;
-  }
-}
-
-.player-card.player-card--athlete {
-  position: relative;
-  overflow: hidden;
-  padding: 1rem 1rem 0.75rem;
-}
-
-.player-card.player-card--athlete[data-number]::after {
-  content: attr(data-number);
-  position: absolute;
-  right: -0.05em;
-  top: -0.15em;
-  font-family: var(--display);
-  font-size: clamp(5.5rem, 34vw, 8.5rem);
-  font-weight: 700;
-  line-height: 1;
-  color: transparent;
-  -webkit-text-stroke: 1px rgba(249, 115, 22, 0.14);
-  transform: skewX(-8deg);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.player-card.player-card--athlete .player-card-main,
-.player-card.player-card--athlete .hero-stats--headline,
-.player-card.player-card--athlete .sync-bar,
-.player-card.player-card--athlete .notify--hero {
+.wrap {
   position: relative;
   z-index: 1;
 }
 
-body[data-page="profile"] .player-card.player-card--athlete h1 .player-name {
+.block {
+  border: 1px solid rgba(20, 20, 20, 0.06);
+  background: var(--glass);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-soft);
+}
+
+.block h2 {
+  font-family: var(--display);
+  font-size: clamp(1.2rem, 4.8vw, 1.55rem);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.block h2::before {
+  background: var(--teal);
+  border-radius: 3px;
+  box-shadow: none;
+}
+
+.player-card.player-card--light {
+  position: relative;
+  overflow: hidden;
+  padding: 1.15rem 1rem 0.9rem;
+  border: 1px solid rgba(20, 20, 20, 0.06);
+  background: var(--glass);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow-card);
+}
+
+.player-card.player-card--light .player-card-main {
+  position: relative;
+  z-index: 2;
+}
+
+.player-card--light .player-logo img {
+  width: clamp(6.5rem, 36vw, 8.75rem);
+  filter: drop-shadow(0 12px 28px rgba(30, 30, 28, 0.18));
+}
+
+.hero-display-bg {
+  position: absolute;
+  z-index: 0;
   font-family: var(--display);
   font-weight: 700;
-  font-size: 1.45rem;
+  line-height: 0.82;
+  color: rgba(20, 20, 20, 0.055);
+  pointer-events: none;
+  user-select: none;
+}
+
+.hero-display-bg:not(.hero-display-bg--vert):not(.hero-display-bg--ghost) {
+  left: -0.04em;
+  top: 2.85rem;
+  font-size: clamp(4.2rem, 28vw, 7.5rem);
+  letter-spacing: -0.02em;
+}
+
+.hero-display-bg--vert {
+  right: -0.15em;
+  top: 0.6rem;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: clamp(2.8rem, 14vw, 4.2rem);
+  transform: rotate(180deg);
+}
+
+.hero-display-bg--ghost {
+  right: -0.1em;
+  bottom: 3.8rem;
+  font-size: clamp(3.5rem, 22vw, 5.8rem);
+}
+
+.player-card.player-card--light[data-number]::after {
+  content: attr(data-number);
+  position: absolute;
+  left: 0.15em;
+  top: -0.2em;
+  right: auto;
+  font-family: var(--display);
+  font-size: clamp(5rem, 38vw, 9rem);
+  font-weight: 700;
+  color: rgba(20, 20, 20, 0.04);
+  -webkit-text-stroke: 0;
+  transform: none;
+  z-index: 0;
+  pointer-events: none;
+}
+
+body[data-page="profile"] .player-card.player-card--light h1 .player-name {
+  font-family: var(--display);
+  font-size: clamp(1.65rem, 7vw, 2rem);
+  font-weight: 700;
   letter-spacing: 0.02em;
 }
 
-body[data-page="profile"] .player-card.player-card--athlete .num {
+body[data-page="profile"] .player-card.player-card--light .num {
+  color: #fff;
+  background: var(--gold);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-pill);
   font-family: var(--display);
-  color: var(--gold);
-}
-
-.hero-season-tag {
-  margin: 0.55rem 0 0.35rem;
-  color: var(--dim);
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 0.95rem;
 }
 
 .hero-stats--headline {
+  position: relative;
+  z-index: 2;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.45rem;
-  max-width: none;
-  margin: 0.15rem 0 0.55rem;
-  padding: 0.65rem 0.55rem;
-  background: rgba(0, 0, 0, 0.22);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  transform: skewX(-2deg);
+  gap: 0.5rem;
+  margin: 0.65rem 0 0.55rem;
+  padding: 0.7rem 0.5rem;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(20, 20, 20, 0.06);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
+  transform: none;
+}
+
+.hero-stat--headline {
+  min-width: 0;
+  padding: 0.2rem 0.15rem;
+  text-align: center;
 }
 
 .hero-stat--headline b {
-  display: block;
   font-family: var(--display);
-  font-size: clamp(1.65rem, 7vw, 2.15rem);
-  font-weight: 700;
-  line-height: 1;
+  font-size: clamp(1.85rem, 8.5vw, 2.45rem);
   color: var(--ink);
-  font-variant-numeric: tabular-nums;
+  text-shadow: none;
+  line-height: 1;
 }
 
 .hero-stat--headline span {
-  display: block;
-  margin-top: 0.2rem;
+  margin-top: 0.22rem;
+  font-size: clamp(0.58rem, 2.6vw, 0.68rem);
   color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.kpi-tile,
-.season-card,
-.shield {
-  border-color: var(--line);
-  background: var(--card-2);
+.tile-nav {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin: 0.55rem 0 0.35rem;
 }
 
-.kpi-value,
-.shield strong,
-.hero-stat b,
-.season-card strong {
+.tile-nav-card {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.35rem;
+  min-height: 72px;
+  padding: 0.65rem 0.65rem 0.55rem;
+  background: var(--glass);
+  border: 1px solid rgba(20, 20, 20, 0.06);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 650;
+  font-size: 0.88rem;
+}
+
+.tile-nav-go {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: #141414;
+  color: #fff;
+}
+
+.fixture-chips {
+  margin: 0 0 0.75rem;
+}
+
+.date-chip-row,
+.time-chip-row {
+  display: flex;
+  gap: 0.45rem;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+}
+
+.date-chip,
+.time-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.25rem;
+  min-height: 3.25rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(20, 20, 20, 0.08);
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
 
-.kpi-delta.is-up { color: var(--good); }
-.kpi-delta.is-down { color: var(--work); }
+.date-chip b {
+  font-family: var(--display);
+  font-size: 1.15rem;
+  line-height: 1.1;
+}
 
-.sheet-actions button.is-on,
+.date-chip small,
+.time-chip {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.date-chip.is-active,
+.time-chip.is-active {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+}
+
+.date-chip.is-active small {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.time-chip-row {
+  margin-top: 0.45rem;
+}
+
+.time-chip {
+  padding: 0.45rem 0.85rem;
+  min-height: var(--tap);
+  border-radius: var(--radius-pill);
+}
+
+.time-chip.is-active {
+  background: var(--teal-soft);
+  color: var(--ink);
+  border-color: rgba(95, 168, 160, 0.45);
+}
+
+.kpi-profile-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(20, 20, 20, 0.06);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
+}
+
+.stat-row-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.stat-row-label {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.stat-row-pill {
+  margin: 0;
+  flex-shrink: 0;
+  padding: 0.38rem 0.8rem;
+  background: #fff;
+  border-radius: var(--radius-pill);
+  font-family: var(--display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(30, 30, 28, 0.08);
+  color: var(--ink);
+}
+
+.fixture {
+  background: var(--glass);
+  border: 1px solid rgba(20, 20, 20, 0.06);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
+}
+
+.season-card.is-current {
+  border-color: rgba(95, 168, 160, 0.45);
+  background: linear-gradient(160deg, rgba(207, 227, 224, 0.65), transparent 55%), var(--glass);
+}
+
+.sync-refresh,
+.sync-settings,
+.body-chip,
+.icon-button,
+.quiet-button {
+  color: var(--muted);
+  border-color: rgba(20, 20, 20, 0.12);
+}
+
 .notify-actions button.is-on,
+.sheet-actions button.is-on,
 .segmented button[aria-pressed="true"] {
   background: var(--gold);
-  color: #140a04;
-  border-color: transparent;
-  border-radius: var(--radius-pill);
+  color: #fff;
 }
 
-.sheet-actions button.is-off,
-.notify-actions button.is-off,
-.quiet-button,
-.sync-refresh {
-  border-radius: var(--radius-pill);
+.chip {
+  background: var(--teal-soft);
+  color: var(--ink);
+  border: 1px solid rgba(95, 168, 160, 0.35);
 }
 
-.chip,
 .chip--note {
-  border-radius: var(--radius-pill);
-  border-color: rgba(249, 115, 22, 0.35);
-  color: var(--gold-2);
+  border-color: rgba(240, 122, 42, 0.35);
+  background: rgba(240, 122, 42, 0.12);
+  color: var(--gold-deep);
 }
 
-.fixture-address a {
-  color: var(--gold-2);
-  text-decoration-color: rgba(249, 115, 22, 0.4);
+.tabbar svg {
+  stroke: var(--muted);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .jam .player-card::before,
-  .modes a[aria-current="page"]::after,
+@media (max-width: 720px) {
+  .tabbar {
+    background: rgba(239, 238, 232, 0.96);
+    backdrop-filter: blur(16px);
+    border-top-color: var(--line);
+  }
+
   .tabbar a {
-    animation: none !important;
-    transition: none !important;
+    color: var(--muted);
+  }
+
+  .tabbar a[aria-current="page"] {
+    color: var(--ink);
+    background: var(--teal-soft);
+    box-shadow: inset 0 0 0 1px rgba(95, 168, 160, 0.4);
+  }
+
+  .tabbar a[aria-current="page"] svg {
+    stroke: var(--teal);
   }
 }
 
-/* —— Смелее: v05 + мобильные скроллбары —— */
+.sheet {
+  background: rgba(239, 238, 232, 0.55);
+}
+
+.sheet-card {
+  background: #fff;
+  border: 1px solid rgba(20, 20, 20, 0.08);
+  color: var(--ink);
+}
+
+.sheet-card input {
+  background: var(--bg);
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+.page-head h1 {
+  font-family: var(--display);
+}
+
+body[data-page="team"] .wrap::before,
+body[data-page="development"] .wrap::before,
+body[data-page="career"] .wrap::before,
+body[data-page="mama"] .wrap::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  font-family: var(--display);
+  font-weight: 700;
+  color: rgba(20, 20, 20, 0.05);
+}
+
+body[data-page="team"] .wrap::before {
+  content: "Росток";
+  top: 0.2rem;
+  right: 0;
+  font-size: clamp(3rem, 18vw, 5rem);
+}
+
+body[data-page="development"] .wrap::before {
+  content: "План";
+  top: 0;
+  left: 0;
+  font-size: clamp(3.2rem, 20vw, 5.2rem);
+}
+
+body[data-page="career"] .wrap::before {
+  content: "Сезон";
+  top: 0.1rem;
+  right: -0.1em;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: clamp(2.8rem, 14vw, 4rem);
+}
+
+body[data-page="mama"] .wrap::before {
+  content: "Матч";
+  top: 0.2rem;
+  left: 0;
+  font-size: clamp(3rem, 19vw, 4.8rem);
+}
+
+#app {
+  position: relative;
+  z-index: 1;
+}
 
 .jam .reveal:not(.in) {
   opacity: 1;
@@ -3524,152 +3755,25 @@ body[data-page="profile"] .player-card.player-card--athlete .num {
 
 .jam .block.in h2,
 .jam .reveal.in {
-  animation-duration: 420ms;
+  animation-duration: 360ms;
 }
 
 .jam .block.in h2 {
   animation-fill-mode: both;
 }
 
-.block {
-  background: linear-gradient(165deg, rgba(255, 106, 26, 0.06), transparent 55%), var(--card);
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
-}
-
-.block h2 {
-  font-family: var(--display);
-  font-size: clamp(1.15rem, 4.5vw, 1.45rem);
-  font-weight: 700;
-  letter-spacing: 0.03em;
+.kpi b,
+.season-card strong,
+.shield strong {
   color: var(--ink);
+  text-shadow: none;
 }
 
-.block h2::before {
-  width: 4px;
-  height: 1.1em;
-  border-radius: 3px;
-  box-shadow: 0 0 12px var(--glow);
-}
-
-.player-card.player-card--athlete {
-  padding: 1.15rem 1rem 0.85rem;
-  border: 1px solid rgba(255, 143, 60, 0.35);
-  background:
-    radial-gradient(120% 80% at 100% 0%, rgba(255, 106, 26, 0.22), transparent 50%),
-    linear-gradient(155deg, rgba(255, 106, 26, 0.12), transparent 48%),
-    var(--card);
-  box-shadow:
-    0 0 0 1px rgba(255, 106, 26, 0.08),
-    0 20px 50px rgba(0, 0, 0, 0.45),
-    0 0 48px rgba(255, 106, 26, 0.12);
-}
-
-.player-card.player-card--athlete[data-number]::after {
-  font-size: clamp(6.5rem, 42vw, 10.5rem);
-  -webkit-text-stroke: 2px rgba(255, 106, 26, 0.2);
-  opacity: 0.95;
-  right: -0.02em;
-  top: -0.22em;
-}
-
-.player-card.player-card--athlete::before {
-  content: "";
-  position: absolute;
-  inset: auto -20% -35% 40%;
-  height: 55%;
-  background: radial-gradient(ellipse at center, rgba(255, 106, 26, 0.35), transparent 68%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-body[data-page="profile"] .player-card.player-card--athlete h1 .player-name {
-  font-size: clamp(1.55rem, 6.5vw, 1.85rem);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-body[data-page="profile"] .player-card.player-card--athlete .num {
-  font-size: 1.05rem;
-  padding: 0.12rem 0.45rem;
-  border-radius: var(--radius-pill);
-  background: rgba(255, 106, 26, 0.18);
-  border: 1px solid rgba(255, 143, 60, 0.45);
-}
-
-.hero-stats--headline {
-  gap: 0.35rem;
-  padding: 0.75rem 0.45rem;
-  background: rgba(0, 0, 0, 0.38);
-  border-color: rgba(255, 143, 60, 0.28);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-}
-
-.hero-stat--headline {
-  min-width: 0;
-  padding: 0.15rem 0.1rem;
-  text-align: center;
-}
-
-.hero-stat--headline b {
-  font-size: clamp(2rem, 9.5vw, 2.65rem);
-  color: #fff;
-  text-shadow: 0 0 24px rgba(255, 106, 26, 0.35);
-}
-
-.hero-stat--headline span {
-  margin-top: 0.25rem;
-  font-size: clamp(0.58rem, 2.65vw, 0.68rem);
-  letter-spacing: 0.06em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.kpi-tile {
-  border-color: rgba(255, 143, 60, 0.22);
-  background: linear-gradient(160deg, rgba(255, 106, 26, 0.1), transparent 50%), var(--card-2);
-}
-
-.kpi-value {
-  font-family: var(--display);
-  font-size: clamp(1.5rem, 6vw, 1.85rem);
-  font-weight: 700;
-}
-
-.kpi-tile h3 {
-  font-family: var(--font);
-  font-weight: 600;
-  color: var(--muted);
-}
-
-.season-card.is-current,
-.fixture {
-  border-color: rgba(255, 143, 60, 0.3);
-  background: linear-gradient(160deg, rgba(255, 106, 26, 0.08), transparent 55%), var(--card-2);
-}
-
-@media (max-width: 720px) {
-  .tabbar a[aria-current="page"] {
-    background: linear-gradient(180deg, rgba(255, 106, 26, 0.28), rgba(255, 106, 26, 0.12));
-    box-shadow:
-      inset 0 0 0 1px rgba(255, 143, 60, 0.5),
-      0 0 16px rgba(255, 106, 26, 0.2);
-    color: #fff;
-  }
-
-  .tabbar a[aria-current="page"] span {
-    font-weight: 700;
-  }
-}
-
-@media (hover: hover) {
-  .block:hover,
-  .kpi-tile:hover,
-  .season-card:hover {
-    border-color: rgba(255, 143, 60, 0.45);
-    transform: translateY(-2px);
-  }
+.table-scroll,
+.match-row,
+.game-card {
+  background: var(--glass);
+  border-color: rgba(20, 20, 20, 0.08);
 }
 
 @media (max-width: 768px), (hover: none) and (pointer: coarse) {
@@ -3694,7 +3798,9 @@ body[data-page="profile"] .player-card.player-card--athlete .num {
   .tabbar,
   .wrap,
   main,
-  .sheet-card {
+  .sheet-card,
+  .date-chip-row,
+  .time-chip-row {
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
@@ -3705,7 +3811,9 @@ body[data-page="profile"] .player-card.player-card--athlete .num {
   .modes::-webkit-scrollbar,
   .modes--pages::-webkit-scrollbar,
   main::-webkit-scrollbar,
-  .wrap::-webkit-scrollbar {
+  .wrap::-webkit-scrollbar,
+  .date-chip-row::-webkit-scrollbar,
+  .time-chip-row::-webkit-scrollbar {
     display: none;
     width: 0;
     height: 0;
@@ -3719,8 +3827,13 @@ body[data-page="profile"] .player-card.player-card--athlete .num {
     opacity: 1 !important;
     transform: none !important;
   }
+}
 
-  .player-card.player-card--athlete::before {
-    display: none;
+@media (hover: hover) {
+  .tile-nav-card:hover,
+  .block:hover,
+  .stat-row:hover {
+    transform: translateY(-2px);
+    border-color: rgba(95, 168, 160, 0.35);
   }
 }

@@ -27,6 +27,8 @@ const TAB_SWIPE_EXPLICIT =
   "#trend-panel, .table-scroll, svg.points, .chart-scroll, .segmented, .news-list, [data-noswipe]";
 const TAB_SWIPE_ROOT_TAGS = new Set(["HTML", "BODY", "MAIN"]);
 
+const MONTHS_CHIP = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+
 const MONTHS = [
   "января",
   "февраля",
@@ -772,7 +774,7 @@ function heroSeasonHeadlineStats() {
   return `${scope}<div class="hero-stats hero-stats--headline" aria-label="Ключевые средние за сезон">${cells}</div>`;
 }
 
-const ASSET_V = "2026-11-28-05";
+const ASSET_V = "2026-11-28-06";
 const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
 const ICON_REFRESH = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>`;
 const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
@@ -845,12 +847,14 @@ function renderKpiBlock() {
       const wasLine = was
         ? `<p class="kpi-was">было ${esc(was)}${metric.wasScope ? ` · ${esc(metric.wasScope)}` : ""}</p>`
         : "";
-      return `<article class="kpi-tile">
-        <h3>${term(metric.label, metric.label)} ${metric.hint ? `<abbr class="term kpi-hint" tabindex="0" role="button" aria-expanded="false" data-term="${esc(metric.hint)}">?</abbr>` : ""}</h3>
-        <p class="kpi-value">${kpiFormatMetric(metric)} ${kpiDelta(metric)}</p>
-        ${scope}
-        ${wasLine}
-        ${team}
+      return `<article class="kpi-tile stat-row">
+        <div class="stat-row-copy">
+          <h3 class="stat-row-label">${term(metric.label, metric.label)} ${metric.hint ? `<abbr class="term kpi-hint" tabindex="0" role="button" aria-expanded="false" data-term="${esc(metric.hint)}">?</abbr>` : ""}</h3>
+          ${scope}
+          ${wasLine}
+          ${team}
+        </div>
+        <p class="stat-row-pill kpi-value">${kpiFormatMetric(metric)} ${kpiDelta(metric)}</p>
       </article>`;
     })
     .join("");
@@ -879,10 +883,47 @@ function renderKpiBlock() {
   </section>`;
 }
 
+const TILE_GO = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"></path><path d="M9 7h8v8"></path></svg>`;
+
+function renderHeroQuickNav() {
+  return `<nav class="tile-nav" aria-label="Быстрые переходы">
+    <a class="tile-nav-card" href="team.html"><span>Матчи</span><span class="tile-nav-go" aria-hidden="true">${TILE_GO}</span></a>
+    <a class="tile-nav-card" href="development.html"><span>План</span><span class="tile-nav-go" aria-hidden="true">${TILE_GO}</span></a>
+    <a class="tile-nav-card" href="mama.html"><span>Для мамы</span><span class="tile-nav-go" aria-hidden="true">${TILE_GO}</span></a>
+  </nav>`;
+}
+
+function renderFixtureDateChips(items) {
+  const dated = items.filter((item) => item.date);
+  if (!dated.length) return "";
+  const dateRow = dated
+    .map((item, index) => {
+      const day = item.date.getDate();
+      const month = MONTHS_CHIP[item.date.getMonth()];
+      return `<span class="date-chip${index === 0 ? " is-active" : ""}"><b>${day}</b><small>${esc(month)}</small></span>`;
+    })
+    .join("");
+  const times = [];
+  dated.forEach((item) => {
+    if (item.time && !times.includes(item.time)) times.push(item.time);
+  });
+  const timeRow = times.length
+    ? times
+        .map((time, index) => `<span class="time-chip${index === 0 ? " is-active" : ""}">${esc(time)}</span>`)
+        .join("")
+    : "";
+  return `<div class="fixture-chips"><div class="date-chip-row">${dateRow}</div>${
+    timeRow ? `<div class="time-chip-row">${timeRow}</div>` : ""
+  }</div>`;
+}
+
 function renderHero() {
   const player = data.player;
   const body = heightLabel();
-  return `<section class="player-card player-card--compact player-card--athlete" id="top" data-number="${esc(player.number)}">
+  return `<section class="player-card player-card--compact player-card--athlete player-card--light" id="top" data-number="${esc(player.number)}">
+    <span class="hero-display-bg" aria-hidden="true">Костя</span>
+    <span class="hero-display-bg hero-display-bg--vert" aria-hidden="true">Росток</span>
+    <span class="hero-display-bg hero-display-bg--ghost" aria-hidden="true">Сезон</span>
     <div class="player-card-main">
       ${siteLogoMark()}
       <div class="player-card-copy">
@@ -892,6 +933,7 @@ function renderHero() {
       </div>
     </div>
     ${heroSeasonHeadlineStats()}
+    ${renderHeroQuickNav()}
     ${updatedLine()}
     <div id="notify-hero" class="notify notify--hero" hidden></div>
   </section>`;
@@ -1223,7 +1265,8 @@ function renderUpcomingBlock(limit) {
     return `<section class="block block--first" id="upcoming"><h2>Ближайшие игры</h2><p class="caption">Новые игры в расписании пока не опубликованы.</p></section>`;
   }
   const cards = shown.map(renderUpcomingCard).join("");
-  return `<section class="block block--first" id="upcoming"><h2>Ближайшие игры</h2><div class="fixture-list">${cards}</div></section>`;
+  const chips = renderFixtureDateChips(shown);
+  return `<section class="block block--first" id="upcoming"><h2>Ближайшие игры</h2>${chips}<div class="fixture-list">${cards}</div></section>`;
 }
 
 function renderUpcomingLine() {

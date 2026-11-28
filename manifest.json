@@ -8,8 +8,8 @@
   "start_url": "/kostya-baske/",
   "scope": "/kostya-baske/",
   "display": "standalone",
-  "background_color": "#0b0d12",
-  "theme_color": "#0b0d12",
+  "background_color": "#efeee8",
+  "theme_color": "#efeee8",
   "icons": [
     {
       "src": "icon-v3-192.png?v=2026-11-23-01",
