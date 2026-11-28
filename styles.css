@@ -3360,6 +3360,50 @@ html, body { overflow-x: clip; }
 
 .opp-player-name { font-weight: 650; }
 
+.rostok-team-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  vertical-align: middle;
+  max-width: 100%;
+}
+
+.rostok-team-logo {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  object-fit: contain;
+  display: block;
+}
+
+.player-card--compact .hero-meta .rostok-team-name {
+  display: inline-flex;
+}
+
+.fixture-us {
+  margin: 0.15rem 0 0.2rem;
+  font-weight: 650;
+}
+
+.opp-legend-item--rostok .rostok-team-logo {
+  width: 18px;
+  height: 18px;
+}
+
+.page-head .lede .rostok-team-name {
+  display: inline-flex;
+}
+
+.lede-sep {
+  white-space: pre;
+}
+
+td .rostok-team-name,
+.fixture-us .rostok-team-name,
+.match-row h3 .rostok-team-name {
+  flex-wrap: wrap;
+}
+
 body[data-page="profile"] .player-card.player-card--compact {
   padding: 0.75rem 0.8rem 0.55rem;
 }
