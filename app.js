@@ -179,8 +179,8 @@ function standingName(row, tour) {
   const raw = String(row.team || "");
   const match = raw.match(/^(\d+)\.\s+(.+)$/);
   const name = match ? match[2] : raw;
-  if (row.highlight || /^росток-2014$/i.test(name)) return esc(raw);
   const prefix = match ? `${esc(match[1])}. ` : "";
+  if (row.highlight || isRostokTeamLabel(name)) return `${prefix}${rostokTeamNameHtml(name)}`;
   return `${prefix}${oppButton(name, tour)}`;
 }
 
@@ -844,10 +844,41 @@ function heroSeasonHeadlineStats() {
   return `${scope}<div class="hero-stats hero-stats--headline" aria-label="Ключевые средние за сезон">${cells}</div>`;
 }
 
-const ASSET_V = "2026-11-28-19";
+const ASSET_V = "2026-11-28-20";
 const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
 const ICON_REFRESH = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>`;
 const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
+
+function isRostokTeamLabel(text) {
+  const clean = String(text || "").trim();
+  return /^росток(-2014)?$/i.test(clean);
+}
+
+function rostokTeamLogoHtml(size = 20) {
+  return `<img class="rostok-team-logo" src="assets/rostok-logo.webp?v=${ASSET_V}" width="${size}" height="${size}" alt="Росток" decoding="async" loading="lazy">`;
+}
+
+function rostokTeamNameHtml(name) {
+  const clean = String(name || "").trim();
+  if (!isRostokTeamLabel(clean)) return esc(clean);
+  return `<span class="rostok-team-name">${rostokTeamLogoHtml()}<span>${esc(clean)}</span></span>`;
+}
+
+function rostokTeamNameInText(text) {
+  const source = String(text || "");
+  const match = source.match(/^(Росток-2014)([\s\S]*)$/i);
+  if (!match) return esc(source);
+  return `${rostokTeamNameHtml(match[1])}${esc(match[2])}`;
+}
+
+function matchTitleHtml(title, tour) {
+  const raw = String(title || "").trim();
+  const home = raw.match(/^(Росток-2014)\s*([—–-])\s*(.+)$/i);
+  if (home) return `${rostokTeamNameHtml(home[1])}<span class="match-title-sep"> ${esc(home[2])} </span>${oppButton(home[3].trim(), tour)}`;
+  const away = raw.match(/^(.+?)\s*([—–-])\s*(Росток-2014)$/i);
+  if (away) return `${oppButton(away[1].trim(), tour)}<span class="match-title-sep"> ${esc(away[2])} </span>${rostokTeamNameHtml(away[3])}`;
+  return esc(raw);
+}
 
 function siteLogoMark() {
   return `<div class="player-logo"><img src="logo.png?v=${ASSET_V}" width="384" height="377" alt="Костя Д. №7"></div>`;
@@ -989,7 +1020,7 @@ function renderHero() {
     <div class="hero-top">
       <div class="player-card-copy">
         <h1><span class="player-name">${esc(player.name)}</span><span class="num">№${esc(player.number)}</span></h1>
-        <p class="hero-meta"><span class="team">${esc(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
+        <p class="hero-meta"><span class="team">${rostokTeamNameHtml(player.team)}</span><span class="pos">${esc(player.position)}</span></p>
         ${body ? `<p class="hero-sub"><button type="button" class="body-chip" data-edit-body aria-label="Изменить рост и вес">${esc(body)}</button></p>` : ""}
       </div>
       <div class="hero-art-stage" aria-hidden="true">
@@ -1004,10 +1035,11 @@ function renderHero() {
   </section>`;
 }
 
-function pageHead(title, lede) {
+function pageHead(title, lede, ledeHtml) {
+  const ledeBlock = ledeHtml ? `<p class="lede">${ledeHtml}</p>` : lede ? `<p class="lede">${esc(lede)}</p>` : "";
   return `<header class="page-head" id="top">
     <h1>${esc(title)}</h1>
-    ${lede ? `<p class="lede">${lede}</p>` : ""}
+    ${ledeBlock}
   </header>`;
 }
 
@@ -1334,6 +1366,7 @@ function renderUpcomingCard(item) {
   const venue = item.arena ? fixtureVenueHtml(item) : "";
   return `<article class="fixture">
     <p class="fixture-when"><b>${esc(fixtureWhen(item, false))}</b>${item.time ? `<span>${esc(item.time)}</span>` : ""}</p>
+    <p class="fixture-us">${rostokTeamNameHtml("Росток-2014")}</p>
     <p class="fixture-opp">${oppButton(item.opponent, item.tour)}</p>
     <p class="fixture-meta"><span class="chip">${esc(item.tour)}</span>${note}</p>
     ${venue}
@@ -2487,7 +2520,7 @@ function renderCareerPage() {
         <div class="timeline-marker" aria-hidden="true"></div>
         <div class="timeline-body">
           ${current ? `<p class="timeline-kicker">Сейчас</p>` : ""}
-          <h2>${esc(year)} · ${esc(clubName(seasons))}</h2>
+          <h2>${esc(year)} · ${rostokTeamNameHtml(clubName(seasons))}</h2>
           ${milestones ? `<ul class="milestones">${milestones}</ul>` : ""}
           <div class="tour-list">${seasons.map(timelineTourCard).join("")}</div>
         </div>
@@ -2511,7 +2544,7 @@ function renderCareerPage() {
 }
 
 function renderTeamPage() {
-  document.getElementById("app").innerHTML = `${pageHead("Команда", "Росток-2014 · Первенство Москвы и МЛБЛ U14, сезон 2026/27")}${renderUpcomingBlock()}${renderStandingsFolds()}${renderPlayedBlock()}${renderNewsSection()}<section class="block block--quiet" id="sync">${updatedLine()}</section>`;
+  document.getElementById("app").innerHTML = `${pageHead("Команда", null, `${rostokTeamNameHtml("Росток-2014")}<span class="lede-sep"> · </span>Первенство Москвы и МЛБЛ U14, сезон 2026/27`)}${renderUpcomingBlock()}${renderStandingsFolds()}${renderPlayedBlock()}${renderNewsSection()}<section class="block block--quiet" id="sync">${updatedLine()}</section>`;
   renderNewsPanel(false);
 }
 
@@ -2803,7 +2836,8 @@ function renderProfile() {
       if (item.label === "Рост и вес") {
         return `<div class="fact${wide}"><dt>${esc(item.label)}</dt><dd class="body-line"><span>${esc(item.value)}</span><button type="button" class="icon-button" data-edit-body aria-label="Изменить рост и вес">${ICON_PENCIL}</button></dd></div>`;
       }
-      return `<div class="fact${wide}"><dt>${esc(item.label)}</dt><dd>${factValue(item)}</dd></div>`;
+      const value = item.label === "Команда" ? rostokTeamNameInText(item.value) : factValue(item);
+      return `<div class="fact${wide}"><dt>${esc(item.label)}</dt><dd>${value}</dd></div>`;
     })
     .join("");
   return `<section class="block" id="profile">
@@ -2830,7 +2864,7 @@ function renderSeason() {
         const venueExtra = upcoming && when.arena ? upcomingVenueAddressHtml(when.arena) : "";
         return `<article class="match-row">
         <div>
-          <h3>${esc(match.title)}</h3>
+          <h3>${matchTitleHtml(match.title, "МЛБЛ U14")}</h3>
           <p>${esc(match.detail)}</p>
           ${venueExtra}
         </div>
@@ -4680,7 +4714,7 @@ function renderOppCompare(compare, oppName) {
   const usLabel = ours.label || "Росток-2014";
   return `<section class="opp-compare" aria-label="Сравнение с Ростком">
     <div class="opp-compare-legend">
-      <span class="opp-legend-item"><span class="opp-legend-dot" style="background:${OPP_US_BAR}"></span>${esc(usLabel)}</span>
+      <span class="opp-legend-item opp-legend-item--rostok">${rostokTeamNameHtml(usLabel)}</span>
       <span class="opp-legend-item"><span class="opp-legend-dot" style="background:${OPP_THEM_BAR}"></span>${esc(oppName || theirs.label || "Соперник")}</span>
     </div>
     ${oppMetricBlock("Забитые в среднем", "", ours.scoredAvg, theirs.scoredAvg, ours.played, theirs.played, {})}
