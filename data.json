@@ -5,6 +5,81 @@
     "weight": 45,
     "updatedAt": "2026-11-06T15:58:00Z"
   },
+  "tournamentRules": {
+    "season": "2026/27",
+    "moscow": {
+      "source": {
+        "label": "Регламент Первенства Москвы по баскетболу сезона 2026/27 гг. (ФБМ)",
+        "url": "https://www.mosbasket.ru/upload/iblock/d1e/083v66h7ys8jin2gn3jm1hcuxaduc4we.pdf"
+      },
+      "points": [
+        {
+          "text": "Ты играешь в Первенстве Москвы, возраст до 15 лет — ребята 2013 и 2014 года. «Росток-2014» играет в Первом дивизионе.",
+          "sourceUrl": "https://www.mosbasket.ru/upload/iblock/d1e/083v66h7ys8jin2gn3jm1hcuxaduc4we.pdf"
+        },
+        {
+          "text": "В Первом дивизионе три группы — А, Б и В. Команды распределяют по жребию.",
+          "sourceUrl": "https://www.mosbasket.ru/upload/iblock/d1e/083v66h7ys8jin2gn3jm1hcuxaduc4we.pdf"
+        },
+        {
+          "text": "В группе каждый встречается с каждым дважды: один раз дома, один раз в гостях.",
+          "sourceUrl": "https://www.mosbasket.ru/upload/iblock/d1e/083v66h7ys8jin2gn3jm1hcuxaduc4we.pdf"
+        },
+        {
+          "text": "Очки с квалификационного этапа в таблицу регулярного этапа не переносят.",
+          "sourceUrl": "https://www.mosbasket.ru/upload/iblock/d1e/083v66h7ys8jin2gn3jm1hcuxaduc4we.pdf"
+        },
+        {
+          "text": "За победу в таблицу идёт 2 очка, за поражение — 1. Если поровну — по правилам ФИБА.",
+          "sourceUrl": "https://www.mosbasket.ru/upload/iblock/d1e/083v66h7ys8jin2gn3jm1hcuxaduc4we.pdf"
+        },
+        {
+          "text": "В плей-офф проходят 1–2-е места в каждой группе и ещё две команды с 3-го места по дополнительным показателям.",
+          "sourceUrl": "https://www.mosbasket.ru/upload/iblock/d1e/083v66h7ys8jin2gn3jm1hcuxaduc4we.pdf"
+        },
+        {
+          "text": "Сейчас «Росток-2014» — 6-й в группе А: 1 победа и 0 поражений, сыграли пока одну игру (у лидеров уже по три).",
+          "sourceUrl": "https://reg.infobasket.su/Widget/CompTeamResults/153217?format=json"
+        }
+      ]
+    },
+    "u14": {
+      "source": {
+        "label": "Регламент МЛБЛ-Дети, сезон 2026/2027",
+        "url": "https://moscow.ilovebasket.ru/documents/get/291"
+      },
+      "points": [
+        {
+          "text": "МЛБЛ U14 — для игроков 2013 года рождения и младше.",
+          "sourceUrl": "https://moscow.ilovebasket.ru/documents/get/291"
+        },
+        {
+          "text": "Сначала круговой этап: 11 команд, каждая один раз играет с каждой.",
+          "sourceUrl": "https://moscow.ilovebasket.ru/documents/get/291"
+        },
+        {
+          "text": "За победу 2 турнирных очка, за поражение 1.",
+          "sourceUrl": "https://reg.infobasket.su/Widget/CompTeamResults/144801?format=json"
+        },
+        {
+          "text": "В плей-офф выходят 8 лучших. Дальше серии из двух игр — побеждает тот, кто в сумме забил больше.",
+          "sourceUrl": "https://moscow.ilovebasket.ru/documents/get/291"
+        },
+        {
+          "text": "Проигравшие в четвертьфинале разыгрывают места 5–8 (финал четырёх по той же схеме).",
+          "sourceUrl": "https://moscow.ilovebasket.ru/documents/get/291"
+        },
+        {
+          "text": "В плей-офф пустят, если ты выходил на площадку в 30% и более матчей группового этапа.",
+          "sourceUrl": "https://moscow.ilovebasket.ru/documents/get/291"
+        },
+        {
+          "text": "Сейчас «Росток-2014» — 6-й в МЛБЛ U14: 2 победы и 4 поражения.",
+          "sourceUrl": "https://reg.infobasket.su/Widget/CompTeamResults/144801?format=json"
+        }
+      ]
+    }
+  },
   "player": {
     "name": "Костя Д.",
     "number": "7",
