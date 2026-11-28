@@ -1298,6 +1298,25 @@ def _chart_opponent_label(name: str, *, u14: bool) -> str:
     return _moscow_chart_opponent(name)
 
 
+def _chart_date_short(when: str) -> str:
+    match = re.match(r"^(\d{2})\.(\d{2})\.", str(when or "").strip())
+    return f"{match.group(1)}.{match.group(2)}" if match else str(when or "")
+
+
+def _place_history_context(last_place: int, official: int, *, single: bool) -> str:
+    if official == last_place:
+        return ""
+    if single:
+        return (
+            f"После первой игры место было {last_place}-е, но другие команды сыграли больше матчей — "
+            f"сейчас в таблице {official}-е."
+        )
+    return (
+        f"После последней игры было {last_place}-е, а пока соперники доиграли свои матчи — "
+        f"сейчас в таблице {official}-е."
+    )
+
+
 def build_place_history(payload: list, our_team_id: int, playoff_line: int, *, u14: bool = False) -> dict:
     team_ids, names, start_place, games = _extract_group_games(payload)
     if our_team_id not in team_ids:
@@ -1326,7 +1345,9 @@ def build_place_history(payload: list, our_team_id: int, playoff_line: int, *, u
         when = short_date(marker["date"])
         points.append(
             {
+                "kind": "game",
                 "date": when,
+                "dateShort": _chart_date_short(when),
                 "opponent": opponent,
                 "score": f"{team_score}:{opp_score}",
                 "place": ranks[our_team_id],
@@ -1334,14 +1355,40 @@ def build_place_history(payload: list, our_team_id: int, playoff_line: int, *, u
                 "label": when,
             }
         )
+    for game in games:
+        if game["id"] in processed:
+            continue
+        _apply_game_to_stats(stats, game)
+        processed.add(game["id"])
+        played.append(game)
     official = next(int(item["Place"]) for item in payload if item.get("TeamID") == our_team_id)
-    single = len(points) == 1
+    game_points = [row for row in points if row.get("kind") != "now"]
+    single = len(game_points) == 1
+    last_place = game_points[-1]["place"] if game_points else official
+    context_note = ""
+    if official != last_place:
+        now_label = f"{today().day:02d}.{today().month:02d}"
+        points.append(
+            {
+                "kind": "now",
+                "date": short_date(today()),
+                "dateShort": "сейчас",
+                "opponent": "",
+                "score": "",
+                "place": official,
+                "result": "now",
+                "label": now_label,
+            }
+        )
+        context_note = _place_history_context(last_place, official, single=single)
     caption = (
-        "Так менялось наше место после каждой игры. Зелёная точка — победа, красная — поражение. Чем выше, тем лучше."
+        "Так менялось место твоей команды после каждой игры. Зелёная точка — победа, "
+        "красная — поражение. Чем выше, тем лучше. Нажми на точку или строку ниже — увидишь соперника и счёт."
     )
-    if single:
+    if single and not context_note:
         caption = (
-            "Пока одна игра — график появится после следующих. Зелёная точка — победа, красная — поражение."
+            "Пока одна игра — график появится после следующих. Зелёная точка — победа, "
+            "красная — поражение. Нажми на точку, чтобы увидеть соперника и счёт."
         )
     elif playoff_line:
         caption += f" Пунктир — зона плей-офф (топ-{playoff_line})."
@@ -1352,6 +1399,7 @@ def build_place_history(payload: list, our_team_id: int, playoff_line: int, *, u
         "totalTeams": len(team_ids),
         "singleGame": single,
         "caption": caption,
+        "contextNote": context_note,
         "officialPlace": official,
         "points": points,
     }
@@ -1363,20 +1411,12 @@ def refresh_place_history(data: dict, notes: list) -> None:
     comp_id = (data.get("sync") or {}).get("compId") or 153217
     try:
         moscow_payload = api(f"/Widget/CompTeamResults/{comp_id}?format=json")
-        moscow = build_place_history(moscow_payload, TEAM_ID, 2, u14=False)
-        last = moscow["points"][-1]["place"] if moscow["points"] else None
-        if not moscow.get("singleGame") and last != moscow.get("officialPlace"):
-            notes.append(f"график места ПМ: расчётное {last} ≠ таблица {moscow.get('officialPlace')}")
-        block["moscow"] = moscow
+        block["moscow"] = build_place_history(moscow_payload, TEAM_ID, 2, u14=False)
     except Exception as exc:
         notes.append(f"график места ПМ: не обновил ({type(exc).__name__})")
     try:
         u14_payload = api(f"/Widget/CompTeamResults/{U14_COMP_ID}?format=json")
-        u14 = build_place_history(u14_payload, U14_TEAM_ID, 8, u14=True)
-        last = u14["points"][-1]["place"] if u14["points"] else None
-        if not u14.get("singleGame") and last != u14.get("officialPlace"):
-            notes.append(f"график места U14: расчётное {last} ≠ таблица {u14.get('officialPlace')}")
-        block["u14"] = u14
+        block["u14"] = build_place_history(u14_payload, U14_TEAM_ID, 8, u14=True)
     except Exception as exc:
         notes.append(f"график места U14: не обновил ({type(exc).__name__})")
     if data.get("placeHistory") != before:

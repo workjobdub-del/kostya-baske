@@ -881,7 +881,7 @@ function heroSeasonHeadlineStats() {
   return `${scope}<div class="hero-stats hero-stats--headline" aria-label="Ключевые средние за сезон">${cells}</div>`;
 }
 
-const ASSET_V = "2026-11-28-25";
+const ASSET_V = "2026-11-28-26";
 const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
 const ICON_REFRESH = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>`;
 const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
@@ -1521,32 +1521,96 @@ function renderTournamentRulesFold(rulesId) {
   return `<details class="fold fold-rules fold-rules--nested"><summary>Как устроен турнир</summary><ul class="rules-list">${items}</ul>${rosterHtml}${source}</details>`;
 }
 
+function placeChartXs(count, padLeft, plotW) {
+  if (count <= 1) return [padLeft + plotW / 2];
+  return Array.from({ length: count }, (_, index) => padLeft + (plotW * index) / (count - 1));
+}
+
+function placeChartReadout(point) {
+  if (!point) return "";
+  if (point.kind === "now" || point.result === "now") {
+    return `Сейчас в таблице — ${point.place}-е место.`;
+  }
+  const extra = point.score ? ` · ${point.score}` : "";
+  return `${point.date || ""} · ${point.opponent || "соперник"}${extra} · ${point.place}-е место`;
+}
+
+function bindPlaceCharts() {
+  document.querySelectorAll(".place-chart").forEach((chart) => {
+    const readout = chart.querySelector(".place-chart-readout");
+    const buttons = Array.from(chart.querySelectorAll("[data-place-ix]"));
+    if (!buttons.length) return;
+    const pick = (index) => {
+      buttons.forEach((btn, i) => {
+        const on = i === index;
+        btn.classList.toggle("is-on", on);
+        btn.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+      chart.querySelectorAll(".place-chart-node").forEach((node) => {
+        node.classList.toggle("is-on", Number(node.getAttribute("data-place-ix")) === index);
+      });
+      if (readout) readout.textContent = buttons[index].getAttribute("aria-label") || buttons[index].textContent;
+    };
+    buttons.forEach((btn, index) => {
+      btn.addEventListener("click", () => pick(index));
+    });
+    chart.querySelectorAll(".place-chart-node").forEach((node) => {
+      node.addEventListener("click", () => pick(Number(node.getAttribute("data-place-ix"))));
+    });
+    pick(buttons.length - 1);
+  });
+}
+
 function renderPlaceHistoryChart(block) {
   if (!block || !block.points || !block.points.length) return "";
   const pts = block.points;
-  const teams = Math.max(2, Number(block.totalTeams) || pts.length);
+  const teams = Math.max(2, Number(block.totalTeams) || 8);
   const playoff = Math.max(1, Number(block.playoffLine) || 2);
   const width = 360;
-  const height = 196;
-  const pad = { top: 12, right: 10, bottom: 40, left: 26 };
+  const height = 188;
+  const pad = { top: 14, right: 8, bottom: 32, left: 26 };
   const plotW = width - pad.left - pad.right;
   const plotH = height - pad.top - pad.bottom;
   const yStep = plotH / Math.max(teams - 1, 1);
   const yFor = (place) => pad.top + (Number(place) - 1) * yStep;
-  const playoffY = yFor(playoff) + yStep * 0.5;
-  const xs = pts.map((_, index) => (pts.length === 1 ? pad.left + plotW / 2 : pad.left + (plotW * index) / (pts.length - 1)));
+  const playoffY = playoff < teams ? yFor(playoff) + yStep * 0.5 : pad.top + plotH;
+  const xs = placeChartXs(pts.length, pad.left, plotW);
   const linePts = pts.map((point, index) => `${xs[index].toFixed(1)},${yFor(point.place).toFixed(1)}`).join(" ");
+  const gameCount = pts.filter((point) => point.kind !== "now" && point.result !== "now").length;
+  const lastGameIndex = pts.findIndex((point) => point.kind === "now" || point.result === "now") - 1;
+  const solidLine =
+    lastGameIndex >= 1
+      ? pts
+          .slice(0, lastGameIndex + 1)
+          .map((point, index) => `${xs[index].toFixed(1)},${yFor(point.place).toFixed(1)}`)
+          .join(" ")
+      : linePts;
+  const dashLine =
+    lastGameIndex >= 0 && lastGameIndex < pts.length - 1
+      ? pts
+          .slice(lastGameIndex)
+          .map((point, offset) => {
+            const index = lastGameIndex + offset;
+            return `${xs[index].toFixed(1)},${yFor(point.place).toFixed(1)}`;
+          })
+          .join(" ")
+      : "";
   const dots = pts
     .map((point, index) => {
       const cx = xs[index];
       const cy = yFor(point.place);
-      const color = point.result === "win" ? "var(--good)" : "#c45c4a";
-      const sub = esc(point.opponent || point.label || point.date);
-      return `<g class="place-chart-node">
-        <circle cx="${cx}" cy="${cy}" r="5" fill="${color}" stroke="var(--card)" stroke-width="1.5"></circle>
-        <text class="place-chart-x" x="${cx}" y="${height - 22}" text-anchor="middle">${esc(point.label || point.date)}</text>
-        <text class="place-chart-opp" x="${cx}" y="${height - 8}" text-anchor="middle">${sub}</text>
-        <title>${esc(`${point.date} · ${point.opponent} · ${point.score} · ${point.place}-е место`)}</title>
+      const isNow = point.kind === "now" || point.result === "now";
+      const color = isNow ? "none" : point.result === "win" ? "var(--good)" : "#c45c4a";
+      const stroke = isNow ? "var(--good)" : "var(--card)";
+      const dateShort = esc(point.dateShort || point.label || point.date || "");
+      const detail = esc(placeChartReadout(point));
+      const hitR = 16;
+      return `<g class="place-chart-node" data-place-ix="${index}">
+        <circle class="place-chart-hit" cx="${cx}" cy="${cy}" r="${hitR}" fill="transparent" pointer-events="all"></circle>
+        <circle class="place-chart-dot" cx="${cx}" cy="${cy}" r="5" fill="${color}" stroke="${stroke}" stroke-width="${isNow ? 2 : 1.5}"></circle>
+        <text class="place-chart-place" x="${cx}" y="${cy - 10}" text-anchor="middle">${esc(String(point.place))}</text>
+        <text class="place-chart-x" x="${cx}" y="${height - 10}" text-anchor="middle">${dateShort}</text>
+        <title>${detail}</title>
       </g>`;
     })
     .join("");
@@ -1554,15 +1618,32 @@ function renderPlaceHistoryChart(block) {
     const y = yFor(place);
     return `<text class="place-chart-y" x="${pad.left - 6}" y="${y + 3}" text-anchor="end">${place}</text>`;
   }).join("");
+  const list = pts
+    .map((point, index) => {
+      const dateShort = point.dateShort || point.label || point.date || "";
+      const label =
+        point.kind === "now" || point.result === "now"
+          ? `Сейчас · ${point.place}-е место в таблице`
+          : `${dateShort} · ${point.opponent} · ${point.score} · ${point.place}-е`;
+      return `<li><button type="button" class="place-chart-row" data-place-ix="${index}" aria-label="${esc(placeChartReadout(point))}">${esc(label)}</button></li>`;
+    })
+    .join("");
+  const context = block.contextNote ? `<p class="place-chart-context">${esc(block.contextNote)}</p>` : "";
   const caption = esc(block.caption || "");
+  const readout = esc(placeChartReadout(pts[pts.length - 1]));
   return `<figure class="place-chart" aria-label="График места в таблице">
     <p class="place-chart-cap">${caption}</p>
+    ${context}
     <svg class="place-chart-svg" viewBox="0 0 ${width} ${height}" role="img" aria-hidden="true">
+      <rect class="place-chart-zone" x="${pad.left}" y="${pad.top}" width="${plotW}" height="${Math.max(0, playoffY - pad.top).toFixed(1)}"></rect>
       <line class="place-chart-playoff" x1="${pad.left}" y1="${playoffY}" x2="${width - pad.right}" y2="${playoffY}"></line>
       ${yLabels}
-      <polyline class="place-chart-line" points="${linePts}" fill="none"></polyline>
+      <polyline class="place-chart-line" points="${solidLine}" fill="none"></polyline>
+      ${dashLine ? `<polyline class="place-chart-line place-chart-line--dash" points="${dashLine}" fill="none"></polyline>` : ""}
       ${dots}
     </svg>
+    <p class="place-chart-readout" aria-live="polite">${readout}</p>
+    <ul class="place-chart-list">${list}</ul>
   </figure>`;
 }
 
@@ -3197,6 +3278,7 @@ function render() {
     renderMamaPage();
   } else if (page === "team") {
     renderTeamPage();
+    bindPlaceCharts();
   } else {
     document.getElementById("app").innerHTML = [
       renderHero(),

@@ -3119,12 +3119,29 @@ html, body { overflow-x: clip; }
   overflow: visible;
 }
 
+.place-chart-context {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.place-chart-zone {
+  fill: color-mix(in srgb, var(--good) 14%, transparent);
+  stroke: none;
+}
+
 .place-chart-line {
   stroke: var(--good);
   stroke-width: 2;
   stroke-linejoin: round;
   stroke-linecap: round;
   opacity: 0.85;
+}
+
+.place-chart-line--dash {
+  stroke-dasharray: 4 4;
+  opacity: 0.55;
 }
 
 .place-chart-playoff {
@@ -3134,14 +3151,70 @@ html, body { overflow-x: clip; }
 }
 
 .place-chart-y,
-.place-chart-x,
-.place-chart-opp {
+.place-chart-x {
   fill: var(--muted);
   font-size: 9px;
 }
 
-.place-chart-opp {
-  font-size: 8px;
+.place-chart-place {
+  fill: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.place-chart-node {
+  cursor: pointer;
+}
+
+.place-chart-node.is-on .place-chart-dot {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.place-chart-node.is-on .place-chart-place {
+  fill: var(--good);
+}
+
+.place-chart-readout {
+  margin: 0.45rem 0 0.35rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--ink);
+  min-height: 1.15em;
+}
+
+.place-chart-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.place-chart-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  padding: 0.35rem 0.4rem;
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.place-chart-row.is-on {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--good) 12%, var(--card));
+}
+
+.place-chart-row:focus-visible {
+  outline: 2px solid var(--good);
+  outline-offset: 2px;
 }
 
 .rules-roster {
