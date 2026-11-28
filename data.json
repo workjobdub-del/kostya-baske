@@ -2009,6 +2009,7 @@
     "teams": [
       {
         "name": "Тимирязевская-2014",
+        "teamId": 38879,
         "tournament": "Первенство Москвы",
         "place": 1,
         "played": 3,
@@ -2020,27 +2021,113 @@
             "date": "21.11.26",
             "opponent": "Айбаскет-2014-2",
             "score": "84:21",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           },
           {
             "date": "15.11.26",
             "opponent": "Гольяново-2014-2",
             "score": "63:26",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           },
           {
             "date": "31.10.26",
             "opponent": "Глория-2014-3",
             "score": "42:16",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           }
         ],
         "city": "Москва",
         "scoredAvg": 63.0,
-        "concededAvg": 21.0
+        "concededAvg": 21.0,
+        "compare": {
+          "ours": {
+            "scoredAvg": 62.0,
+            "concededAvg": 37.0,
+            "place": 6,
+            "winPct": 100,
+            "played": 1,
+            "wins": 1,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 63.0,
+            "concededAvg": 21.0,
+            "place": 1,
+            "winPct": 100,
+            "played": 3,
+            "wins": 3,
+            "label": "Тимирязевская-2014"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "Гольяново-2014-2",
+            "label": "Гольяново-2014-2 — мы 62:37, они 63:26",
+            "ourScore": "62:37",
+            "theirScore": "63:26"
+          }
+        ],
+        "h2h": {
+          "record": "",
+          "games": [],
+          "wins": 0,
+          "losses": 0
+        },
+        "form": [
+          {
+            "result": "win",
+            "score": "42:16",
+            "date": "31.10.26"
+          },
+          {
+            "result": "win",
+            "score": "63:26",
+            "date": "15.11.26"
+          },
+          {
+            "result": "win",
+            "score": "84:21",
+            "date": "21.11.26"
+          }
+        ],
+        "topPlayers": [
+          {
+            "label": "№34 Егор Л.",
+            "number": 34,
+            "ppg": 8.5,
+            "rpg": 4.0
+          },
+          {
+            "label": "№13 Иван Л.",
+            "number": 13,
+            "ppg": 8.5,
+            "rpg": 3.0
+          },
+          {
+            "label": "№8 Глеб П.",
+            "number": 8,
+            "ppg": 6.7,
+            "rpg": 4.3
+          },
+          {
+            "label": "№1 Виктор К.",
+            "number": 1,
+            "rpg": 10.0,
+            "ppg": 5.5,
+            "tag": "rebounds"
+          }
+        ],
+        "tips": [
+          "У них защита крепкая — ищи открытого, не лезь в толпу под кольцо.",
+          "Следи за №34 Егор Л. — у него больше всего очков в их составе."
+        ]
       },
       {
         "name": "Тринта-2014-2",
+        "teamId": 38877,
         "tournament": "Первенство Москвы",
         "place": 2,
         "played": 3,
@@ -2052,27 +2139,106 @@
             "date": "07.11.26",
             "opponent": "Гольяново-2014-2",
             "score": "51:19",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           },
           {
             "date": "31.10.26",
             "opponent": "Айбаскет-2014-2",
             "score": "42:37",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           },
           {
             "date": "25.10.26",
             "opponent": "Глория-2014-3",
             "score": "57:17",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           }
         ],
         "city": "Москва",
         "scoredAvg": 50.0,
-        "concededAvg": 24.3
+        "concededAvg": 24.3,
+        "compare": {
+          "ours": {
+            "scoredAvg": 62.0,
+            "concededAvg": 37.0,
+            "place": 6,
+            "winPct": 100,
+            "played": 1,
+            "wins": 1,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 50.0,
+            "concededAvg": 24.3,
+            "place": 2,
+            "winPct": 100,
+            "played": 3,
+            "wins": 3,
+            "label": "Тринта-2014-2"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "Гольяново-2014-2",
+            "label": "Гольяново-2014-2 — мы 62:37, они 51:19",
+            "ourScore": "62:37",
+            "theirScore": "51:19"
+          }
+        ],
+        "h2h": {
+          "record": "",
+          "games": [],
+          "wins": 0,
+          "losses": 0
+        },
+        "form": [
+          {
+            "result": "win",
+            "score": "57:17",
+            "date": "25.10.26"
+          },
+          {
+            "result": "win",
+            "score": "42:37",
+            "date": "31.10.26"
+          },
+          {
+            "result": "win",
+            "score": "51:19",
+            "date": "07.11.26"
+          }
+        ],
+        "topPlayers": [
+          {
+            "label": "№17 Владимир Е.",
+            "number": 17,
+            "ppg": 13.5,
+            "rpg": 8.0
+          },
+          {
+            "label": "№35 Никита К.",
+            "number": 35,
+            "ppg": 9.7,
+            "rpg": 10.3
+          },
+          {
+            "label": "№54 Андрей Л.",
+            "number": 54,
+            "ppg": 8.0,
+            "rpg": 4.0
+          }
+        ],
+        "tips": [
+          "У них защита крепкая — ищи открытого, не лезь в толпу под кольцо.",
+          "Мы в среднем сильнее — спокойно, береги мяч, делай простые передачи."
+        ]
       },
       {
         "name": "Айбаскет-2014-2",
+        "teamId": 78917,
         "tournament": "Первенство Москвы",
         "place": 3,
         "played": 3,
@@ -2084,27 +2250,99 @@
             "date": "21.11.26",
             "opponent": "Тимирязевская-2014",
             "score": "21:84",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           },
           {
             "date": "31.10.26",
             "opponent": "Тринта-2014-2",
             "score": "37:42",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           },
           {
             "date": "24.10.26",
             "opponent": "К Пахра-2014-2",
             "score": "47:42",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           }
         ],
         "city": "Москва",
         "scoredAvg": 35.0,
-        "concededAvg": 56.0
+        "concededAvg": 56.0,
+        "compare": {
+          "ours": {
+            "scoredAvg": 62.0,
+            "concededAvg": 37.0,
+            "place": 6,
+            "winPct": 100,
+            "played": 1,
+            "wins": 1,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 35.0,
+            "concededAvg": 56.0,
+            "place": 3,
+            "winPct": 33,
+            "played": 3,
+            "wins": 1,
+            "label": "Айбаскет-2014-2"
+          }
+        },
+        "commonOpponents": [],
+        "h2h": {
+          "record": "",
+          "games": [],
+          "wins": 0,
+          "losses": 0
+        },
+        "form": [
+          {
+            "result": "win",
+            "score": "47:42",
+            "date": "24.10.26"
+          },
+          {
+            "result": "loss",
+            "score": "37:42",
+            "date": "31.10.26"
+          },
+          {
+            "result": "loss",
+            "score": "21:84",
+            "date": "21.11.26"
+          }
+        ],
+        "topPlayers": [
+          {
+            "label": "№11 Федор Ш.",
+            "number": 11,
+            "ppg": 12.3,
+            "rpg": 11.3
+          },
+          {
+            "label": "Степан В.",
+            "number": 0,
+            "ppg": 12.0,
+            "rpg": 16.0
+          },
+          {
+            "label": "№3 Степан В.",
+            "number": 3,
+            "ppg": 10.0,
+            "rpg": 7.0
+          }
+        ],
+        "tips": [
+          "Мы в среднем сильнее — спокойно, береги мяч, делай простые передачи.",
+          "Следи за №11 Федор Ш. — у него больше всего очков в их составе."
+        ]
       },
       {
         "name": "Гольяново-2014-2",
+        "teamId": 37363,
         "tournament": "Первенство Москвы",
         "place": 4,
         "played": 4,
@@ -2116,27 +2354,118 @@
             "date": "15.11.26",
             "opponent": "Тимирязевская-2014",
             "score": "26:63",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           },
           {
             "date": "07.11.26",
             "opponent": "Тринта-2014-2",
             "score": "19:51",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           },
           {
             "date": "01.11.26",
             "opponent": "К Пахра-2014-2",
             "score": "34:48",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           }
         ],
         "city": "Москва",
         "scoredAvg": 29.0,
-        "concededAvg": 56.0
+        "concededAvg": 56.0,
+        "compare": {
+          "ours": {
+            "scoredAvg": 62.0,
+            "concededAvg": 37.0,
+            "place": 6,
+            "winPct": 100,
+            "played": 1,
+            "wins": 1,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 29.0,
+            "concededAvg": 56.0,
+            "place": 4,
+            "winPct": 0,
+            "played": 4,
+            "wins": 0,
+            "label": "Гольяново-2014-2"
+          }
+        },
+        "commonOpponents": [],
+        "h2h": {
+          "record": "1–0",
+          "games": [
+            {
+              "date": "24.10.26",
+              "tournament": "Первенство Москвы",
+              "score": "62:37",
+              "weWon": true
+            }
+          ],
+          "wins": 1,
+          "losses": 0
+        },
+        "form": [
+          {
+            "result": "loss",
+            "score": "37:62",
+            "date": "24.10.26"
+          },
+          {
+            "result": "loss",
+            "score": "34:48",
+            "date": "01.11.26"
+          },
+          {
+            "result": "loss",
+            "score": "19:51",
+            "date": "07.11.26"
+          },
+          {
+            "result": "loss",
+            "score": "26:63",
+            "date": "15.11.26"
+          }
+        ],
+        "topPlayers": [
+          {
+            "label": "№22 Тимофей К.",
+            "number": 22,
+            "ppg": 7.8,
+            "rpg": 4.3
+          },
+          {
+            "label": "№10 Алексей С.",
+            "number": 10,
+            "ppg": 5.8,
+            "rpg": 2.8
+          },
+          {
+            "label": "№16 Тимофей М.",
+            "number": 16,
+            "ppg": 4.0,
+            "rpg": 4.0
+          },
+          {
+            "label": "№34 Борис К.",
+            "number": 34,
+            "rpg": 6.3,
+            "ppg": 2.8,
+            "tag": "rebounds"
+          }
+        ],
+        "tips": [
+          "Мы в среднем сильнее — спокойно, береги мяч, делай простые передачи.",
+          "Следи за №22 Тимофей К. — у него больше всего очков в их составе."
+        ]
       },
       {
         "name": "К Пахра-2014-2",
+        "teamId": 52896,
         "tournament": "Первенство Москвы",
         "place": 5,
         "played": 2,
@@ -2148,21 +2477,101 @@
             "date": "01.11.26",
             "opponent": "Гольяново-2014-2",
             "score": "48:34",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           },
           {
             "date": "24.10.26",
             "opponent": "Айбаскет-2014-2",
             "score": "42:47",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           }
         ],
         "city": "Москва",
         "scoredAvg": 45.0,
-        "concededAvg": 40.5
+        "concededAvg": 40.5,
+        "compare": {
+          "ours": {
+            "scoredAvg": 62.0,
+            "concededAvg": 37.0,
+            "place": 6,
+            "winPct": 100,
+            "played": 1,
+            "wins": 1,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 45.0,
+            "concededAvg": 40.5,
+            "place": 5,
+            "winPct": 50,
+            "played": 2,
+            "wins": 1,
+            "label": "К Пахра-2014-2"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "Гольяново-2014-2",
+            "label": "Гольяново-2014-2 — мы 62:37, они 48:34",
+            "ourScore": "62:37",
+            "theirScore": "48:34"
+          }
+        ],
+        "h2h": {
+          "record": "",
+          "games": [],
+          "wins": 0,
+          "losses": 0
+        },
+        "form": [
+          {
+            "result": "loss",
+            "score": "42:47",
+            "date": "24.10.26"
+          },
+          {
+            "result": "win",
+            "score": "48:34",
+            "date": "01.11.26"
+          }
+        ],
+        "topPlayers": [
+          {
+            "label": "№6 Александр Н.",
+            "number": 6,
+            "ppg": 13.5,
+            "rpg": 7.0
+          },
+          {
+            "label": "№11 Артур Ч.",
+            "number": 11,
+            "ppg": 11.0,
+            "rpg": 7.5
+          },
+          {
+            "label": "№29 Платон Т.",
+            "number": 29,
+            "ppg": 8.0,
+            "rpg": 4.0
+          },
+          {
+            "label": "№35 Григорий Г.",
+            "number": 35,
+            "rpg": 9.5,
+            "ppg": 6.0,
+            "tag": "rebounds"
+          }
+        ],
+        "tips": [
+          "Мы в среднем сильнее — спокойно, береги мяч, делай простые передачи.",
+          "Следи за №6 Александр Н. — у него больше всего очков в их составе."
+        ]
       },
       {
         "name": "Глория-2014-3",
+        "teamId": 78910,
         "tournament": "Первенство Москвы",
         "place": 7,
         "played": 2,
@@ -2174,21 +2583,87 @@
             "date": "31.10.26",
             "opponent": "Тимирязевская-2014",
             "score": "16:42",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           },
           {
             "date": "25.10.26",
             "opponent": "Тринта-2014-2",
             "score": "17:57",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           }
         ],
         "city": "Москва",
         "scoredAvg": 16.5,
-        "concededAvg": 49.5
+        "concededAvg": 49.5,
+        "compare": {
+          "ours": {
+            "scoredAvg": 62.0,
+            "concededAvg": 37.0,
+            "place": 6,
+            "winPct": 100,
+            "played": 1,
+            "wins": 1,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 16.5,
+            "concededAvg": 49.5,
+            "place": 7,
+            "winPct": 0,
+            "played": 2,
+            "wins": 0,
+            "label": "Глория-2014-3"
+          }
+        },
+        "commonOpponents": [],
+        "h2h": {
+          "record": "",
+          "games": [],
+          "wins": 0,
+          "losses": 0
+        },
+        "form": [
+          {
+            "result": "loss",
+            "score": "17:57",
+            "date": "25.10.26"
+          },
+          {
+            "result": "loss",
+            "score": "16:42",
+            "date": "31.10.26"
+          }
+        ],
+        "topPlayers": [
+          {
+            "label": "№10 Степан М.",
+            "number": 10,
+            "ppg": 7.0,
+            "rpg": 4.5
+          },
+          {
+            "label": "№19 Егор З.",
+            "number": 19,
+            "ppg": 3.0,
+            "rpg": 8.0
+          },
+          {
+            "label": "№23 Марк С.",
+            "number": 23,
+            "ppg": 3.0,
+            "rpg": 3.0
+          }
+        ],
+        "tips": [
+          "Мы в среднем сильнее — спокойно, береги мяч, делай простые передачи.",
+          "Следи за №10 Степан М. — у него больше всего очков в их составе."
+        ]
       },
       {
         "name": "SP Basket",
+        "teamId": 31789,
         "tournament": "МЛБЛ U14",
         "place": 1,
         "played": 5,
@@ -2200,27 +2675,136 @@
             "date": "22.11.26",
             "opponent": "Росток-2014",
             "score": "113:52",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           },
           {
             "date": "08.11.26",
             "opponent": "Красная Пахра",
             "score": "60:72",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           },
           {
             "date": "31.10.26",
             "opponent": "MO.BASKET",
             "score": "73:56",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           }
         ],
         "city": "Москва",
         "scoredAvg": 101.8,
-        "concededAvg": 42.6
+        "concededAvg": 42.6,
+        "compare": {
+          "ours": {
+            "scoredAvg": 49.8,
+            "concededAvg": 74.3,
+            "place": 6,
+            "winPct": 33,
+            "played": 6,
+            "wins": 2,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 101.8,
+            "concededAvg": 42.6,
+            "place": 1,
+            "winPct": 80,
+            "played": 5,
+            "wins": 4,
+            "label": "SP Basket"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "MO.BASKET",
+            "label": "MO.BASKET — мы 43:71, они 73:56",
+            "ourScore": "43:71",
+            "theirScore": "73:56"
+          },
+          {
+            "name": "Takeshot Academy",
+            "label": "Takeshot Academy — мы 63:84, они 141:11",
+            "ourScore": "63:84",
+            "theirScore": "141:11"
+          }
+        ],
+        "h2h": {
+          "record": "0–1",
+          "games": [
+            {
+              "date": "22.11.26",
+              "tournament": "МЛБЛ U14",
+              "score": "52:113",
+              "weWon": false
+            }
+          ],
+          "wins": 0,
+          "losses": 1
+        },
+        "form": [
+          {
+            "result": "win",
+            "score": "141:11",
+            "date": "04.10.26"
+          },
+          {
+            "result": "win",
+            "score": "122:22",
+            "date": "10.10.26"
+          },
+          {
+            "result": "win",
+            "score": "73:56",
+            "date": "31.10.26"
+          },
+          {
+            "result": "loss",
+            "score": "60:72",
+            "date": "08.11.26"
+          },
+          {
+            "result": "win",
+            "score": "113:52",
+            "date": "22.11.26"
+          }
+        ],
+        "topPlayers": [
+          {
+            "label": "№5 Егор М.",
+            "number": 5,
+            "ppg": 19.8,
+            "rpg": 7.5
+          },
+          {
+            "label": "№12 Руслан З.",
+            "number": 12,
+            "ppg": 19.0,
+            "rpg": 4.0
+          },
+          {
+            "label": "№77 Михаил В.",
+            "number": 77,
+            "ppg": 12.5,
+            "rpg": 2.0
+          },
+          {
+            "label": "№10 Роман Р.",
+            "number": 10,
+            "rpg": 11.3,
+            "ppg": 8.3,
+            "tag": "rebounds"
+          }
+        ],
+        "tips": [
+          "У них защита крепкая — ищи открытого, не лезь в толпу под кольцо.",
+          "Они много забивают — сразу назад в защиту, когда теряем мяч."
+        ]
       },
       {
         "name": "MO.BASKET",
+        "teamId": 79205,
         "tournament": "МЛБЛ U14",
         "place": 2,
         "played": 5,
@@ -2232,27 +2816,148 @@
             "date": "08.11.26",
             "opponent": "Росток-2014",
             "score": "71:43",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           },
           {
             "date": "31.10.26",
             "opponent": "SP Basket",
             "score": "56:73",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           },
           {
             "date": "11.10.26",
             "opponent": "Takeshot Academy",
             "score": "92:52",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           }
         ],
         "city": "Москва",
         "scoredAvg": 77.0,
-        "concededAvg": 48.6
+        "concededAvg": 48.6,
+        "compare": {
+          "ours": {
+            "scoredAvg": 49.8,
+            "concededAvg": 74.3,
+            "place": 6,
+            "winPct": 33,
+            "played": 6,
+            "wins": 2,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 77.0,
+            "concededAvg": 48.6,
+            "place": 2,
+            "winPct": 80,
+            "played": 5,
+            "wins": 4,
+            "label": "MO.BASKET"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "SP Basket",
+            "label": "SP Basket — мы 52:113, они 56:73",
+            "ourScore": "52:113",
+            "theirScore": "56:73"
+          },
+          {
+            "name": "Takeshot Academy",
+            "label": "Takeshot Academy — мы 63:84, они 92:52",
+            "ourScore": "63:84",
+            "theirScore": "92:52"
+          },
+          {
+            "name": "Багратион",
+            "label": "Багратион — мы 50:46, они 77:36",
+            "ourScore": "50:46",
+            "theirScore": "77:36"
+          },
+          {
+            "name": "Первомайская",
+            "label": "Первомайская — мы 61:57, они 89:39",
+            "ourScore": "61:57",
+            "theirScore": "89:39"
+          }
+        ],
+        "h2h": {
+          "record": "0–1",
+          "games": [
+            {
+              "date": "08.11.26",
+              "tournament": "МЛБЛ U14",
+              "score": "43:71",
+              "weWon": false
+            }
+          ],
+          "wins": 0,
+          "losses": 1
+        },
+        "form": [
+          {
+            "result": "win",
+            "score": "89:39",
+            "date": "20.09.26"
+          },
+          {
+            "result": "win",
+            "score": "77:36",
+            "date": "03.10.26"
+          },
+          {
+            "result": "win",
+            "score": "92:52",
+            "date": "11.10.26"
+          },
+          {
+            "result": "loss",
+            "score": "56:73",
+            "date": "31.10.26"
+          },
+          {
+            "result": "win",
+            "score": "71:43",
+            "date": "08.11.26"
+          }
+        ],
+        "topPlayers": [
+          {
+            "label": "№1 Артем Т.",
+            "number": 1,
+            "ppg": 26.3,
+            "rpg": 7.7
+          },
+          {
+            "label": "№18 Лев П.",
+            "number": 18,
+            "ppg": 8.8,
+            "rpg": 7.3
+          },
+          {
+            "label": "№3 Иван Г.",
+            "number": 3,
+            "ppg": 8.5,
+            "rpg": 5.3
+          },
+          {
+            "label": "№11 Иван Д.",
+            "number": 11,
+            "rpg": 11.3,
+            "ppg": 7.0,
+            "tag": "rebounds"
+          }
+        ],
+        "tips": [
+          "У них защита крепкая — ищи открытого, не лезь в толпу под кольцо.",
+          "Они много забивают — сразу назад в защиту, когда теряем мяч."
+        ]
       },
       {
         "name": "Росток-2013",
+        "teamId": 79168,
         "tournament": "МЛБЛ U14",
         "place": 3,
         "played": 4,
@@ -2264,27 +2969,111 @@
             "date": "21.11.26",
             "opponent": "Метеоры",
             "score": "89:27",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           },
           {
             "date": "11.10.26",
             "opponent": "БА Прогресс",
             "score": "73:41",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           },
           {
             "date": "04.10.26",
             "opponent": "FS Bulldogs",
             "score": "127:19",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           }
         ],
         "city": "Москва",
         "scoredAvg": 91.0,
-        "concededAvg": 29.3
+        "concededAvg": 29.3,
+        "compare": {
+          "ours": {
+            "scoredAvg": 49.8,
+            "concededAvg": 74.3,
+            "place": 6,
+            "winPct": 33,
+            "played": 6,
+            "wins": 2,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 91.0,
+            "concededAvg": 29.3,
+            "place": 3,
+            "winPct": 100,
+            "played": 4,
+            "wins": 4,
+            "label": "Росток-2013"
+          }
+        },
+        "commonOpponents": [],
+        "h2h": {
+          "record": "0–1",
+          "games": [
+            {
+              "date": "19.09.26",
+              "tournament": "МЛБЛ U14",
+              "score": "30:75",
+              "weWon": false
+            }
+          ],
+          "wins": 0,
+          "losses": 1
+        },
+        "form": [
+          {
+            "result": "win",
+            "score": "75:30",
+            "date": "19.09.26"
+          },
+          {
+            "result": "win",
+            "score": "127:19",
+            "date": "04.10.26"
+          },
+          {
+            "result": "win",
+            "score": "73:41",
+            "date": "11.10.26"
+          },
+          {
+            "result": "win",
+            "score": "89:27",
+            "date": "21.11.26"
+          }
+        ],
+        "topPlayers": [
+          {
+            "label": "№45 Дмитрий С.",
+            "number": 45,
+            "ppg": 26.3,
+            "rpg": 20.0
+          },
+          {
+            "label": "№73 Александр А.",
+            "number": 73,
+            "ppg": 11.8,
+            "rpg": 5.3
+          },
+          {
+            "label": "№4 Давид З.",
+            "number": 4,
+            "ppg": 11.3,
+            "rpg": 4.3
+          }
+        ],
+        "tips": [
+          "У них защита крепкая — ищи открытого, не лезь в толпу под кольцо.",
+          "Они много забивают — сразу назад в защиту, когда теряем мяч."
+        ]
       },
       {
         "name": "Красная Пахра",
+        "teamId": 79203,
         "tournament": "МЛБЛ U14",
         "place": 4,
         "played": 4,
@@ -2296,27 +3085,118 @@
             "date": "08.11.26",
             "opponent": "SP Basket",
             "score": "72:60",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           },
           {
             "date": "01.11.26",
             "opponent": "Метеоры",
             "score": "103:20",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           },
           {
             "date": "04.10.26",
             "opponent": "БА Прогресс",
             "score": "63:37",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           }
         ],
         "city": "Москва",
         "scoredAvg": 92.5,
-        "concededAvg": 32.5
+        "concededAvg": 32.5,
+        "compare": {
+          "ours": {
+            "scoredAvg": 49.8,
+            "concededAvg": 74.3,
+            "place": 6,
+            "winPct": 33,
+            "played": 6,
+            "wins": 2,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 92.5,
+            "concededAvg": 32.5,
+            "place": 4,
+            "winPct": 100,
+            "played": 4,
+            "wins": 4,
+            "label": "Красная Пахра"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "SP Basket",
+            "label": "SP Basket — мы 52:113, они 72:60",
+            "ourScore": "52:113",
+            "theirScore": "72:60"
+          }
+        ],
+        "h2h": {
+          "record": "",
+          "games": [],
+          "wins": 0,
+          "losses": 0
+        },
+        "form": [
+          {
+            "result": "win",
+            "score": "132:13",
+            "date": "19.09.26"
+          },
+          {
+            "result": "win",
+            "score": "63:37",
+            "date": "04.10.26"
+          },
+          {
+            "result": "win",
+            "score": "103:20",
+            "date": "01.11.26"
+          },
+          {
+            "result": "win",
+            "score": "72:60",
+            "date": "08.11.26"
+          }
+        ],
+        "topPlayers": [
+          {
+            "label": "№91 Артур П.",
+            "number": 91,
+            "ppg": 16.0,
+            "rpg": 7.3
+          },
+          {
+            "label": "№8 Кирилл К.",
+            "number": 8,
+            "ppg": 16.0,
+            "rpg": 9.0
+          },
+          {
+            "label": "№3 Антон К.",
+            "number": 3,
+            "ppg": 16.0,
+            "rpg": 3.5
+          },
+          {
+            "label": "№24 Илья Е.",
+            "number": 24,
+            "rpg": 14.8,
+            "ppg": 13.5,
+            "tag": "rebounds"
+          }
+        ],
+        "tips": [
+          "У них защита крепкая — ищи открытого, не лезь в толпу под кольцо.",
+          "Они много забивают — сразу назад в защиту, когда теряем мяч."
+        ]
       },
       {
         "name": "БА Прогресс",
+        "teamId": 79110,
         "tournament": "МЛБЛ U14",
         "place": 5,
         "played": 5,
@@ -2328,27 +3208,122 @@
             "date": "14.11.26",
             "opponent": "Багратион",
             "score": "70:45",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           },
           {
             "date": "01.11.26",
             "opponent": "Первомайская",
             "score": "60:27",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           },
           {
             "date": "11.10.26",
             "opponent": "Росток-2013",
             "score": "41:73",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           }
         ],
         "city": "Москва",
         "scoredAvg": 64.4,
-        "concededAvg": 46.4
+        "concededAvg": 46.4,
+        "compare": {
+          "ours": {
+            "scoredAvg": 49.8,
+            "concededAvg": 74.3,
+            "place": 6,
+            "winPct": 33,
+            "played": 6,
+            "wins": 2,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 64.4,
+            "concededAvg": 46.4,
+            "place": 5,
+            "winPct": 60,
+            "played": 5,
+            "wins": 3,
+            "label": "БА Прогресс"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "Багратион",
+            "label": "Багратион — мы 50:46, они 70:45",
+            "ourScore": "50:46",
+            "theirScore": "70:45"
+          },
+          {
+            "name": "Первомайская",
+            "label": "Первомайская — мы 61:57, они 60:27",
+            "ourScore": "61:57",
+            "theirScore": "60:27"
+          }
+        ],
+        "h2h": {
+          "record": "",
+          "games": [],
+          "wins": 0,
+          "losses": 0
+        },
+        "form": [
+          {
+            "result": "win",
+            "score": "114:24",
+            "date": "19.09.26"
+          },
+          {
+            "result": "loss",
+            "score": "37:63",
+            "date": "04.10.26"
+          },
+          {
+            "result": "loss",
+            "score": "41:73",
+            "date": "11.10.26"
+          },
+          {
+            "result": "win",
+            "score": "60:27",
+            "date": "01.11.26"
+          },
+          {
+            "result": "win",
+            "score": "70:45",
+            "date": "14.11.26"
+          }
+        ],
+        "topPlayers": [
+          {
+            "label": "№63 Семен Л.",
+            "number": 63,
+            "ppg": 12.5,
+            "rpg": 10.3
+          },
+          {
+            "label": "№52 Ярослав С.",
+            "number": 52,
+            "ppg": 8.0,
+            "rpg": 1.8
+          },
+          {
+            "label": "№36 Артём С.",
+            "number": 36,
+            "ppg": 7.0,
+            "rpg": 2.8
+          }
+        ],
+        "tips": [
+          "У них защита крепкая — ищи открытого, не лезь в толпу под кольцо.",
+          "Они много забивают — сразу назад в защиту, когда теряем мяч."
+        ]
       },
       {
         "name": "Багратион",
+        "teamId": 79111,
         "tournament": "МЛБЛ U14",
         "place": 7,
         "played": 5,
@@ -2360,27 +3335,129 @@
             "date": "14.11.26",
             "opponent": "БА Прогресс",
             "score": "45:70",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           },
           {
             "date": "07.11.26",
             "opponent": "Росток-2014",
             "score": "46:50",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           },
           {
             "date": "31.10.26",
             "opponent": "FS Bulldogs",
             "score": "90:33",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           }
         ],
         "city": "Можайск",
         "scoredAvg": 59.8,
-        "concededAvg": 58.0
+        "concededAvg": 58.0,
+        "compare": {
+          "ours": {
+            "scoredAvg": 49.8,
+            "concededAvg": 74.3,
+            "place": 6,
+            "winPct": 33,
+            "played": 6,
+            "wins": 2,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 59.8,
+            "concededAvg": 58.0,
+            "place": 7,
+            "winPct": 40,
+            "played": 5,
+            "wins": 2,
+            "label": "Багратион"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "MO.BASKET",
+            "label": "MO.BASKET — мы 43:71, они 36:77",
+            "ourScore": "43:71",
+            "theirScore": "36:77"
+          },
+          {
+            "name": "Takeshot Academy",
+            "label": "Takeshot Academy — мы 63:84, они 82:60",
+            "ourScore": "63:84",
+            "theirScore": "82:60"
+          }
+        ],
+        "h2h": {
+          "record": "1–0",
+          "games": [
+            {
+              "date": "07.11.26",
+              "tournament": "МЛБЛ U14",
+              "score": "50:46",
+              "weWon": true
+            }
+          ],
+          "wins": 1,
+          "losses": 0
+        },
+        "form": [
+          {
+            "result": "win",
+            "score": "82:60",
+            "date": "26.09.26"
+          },
+          {
+            "result": "loss",
+            "score": "36:77",
+            "date": "03.10.26"
+          },
+          {
+            "result": "win",
+            "score": "90:33",
+            "date": "31.10.26"
+          },
+          {
+            "result": "loss",
+            "score": "46:50",
+            "date": "07.11.26"
+          },
+          {
+            "result": "loss",
+            "score": "45:70",
+            "date": "14.11.26"
+          }
+        ],
+        "topPlayers": [
+          {
+            "label": "№5 Дмитрий А.",
+            "number": 5,
+            "ppg": 27.7,
+            "rpg": 12.3
+          },
+          {
+            "label": "№7 Святослав Г.",
+            "number": 7,
+            "ppg": 7.3,
+            "rpg": 7.0
+          },
+          {
+            "label": "№13 Гордей Д.",
+            "number": 13,
+            "ppg": 5.8,
+            "rpg": 10.3
+          }
+        ],
+        "tips": [
+          "У них защита крепкая — ищи открытого, не лезь в толпу под кольцо.",
+          "Они много забивают — сразу назад в защиту, когда теряем мяч."
+        ]
       },
       {
         "name": "Takeshot Academy",
+        "teamId": 79207,
         "tournament": "МЛБЛ U14",
         "place": 8,
         "played": 5,
@@ -2392,27 +3469,135 @@
             "date": "15.11.26",
             "opponent": "FS Bulldogs",
             "score": "101:43",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           },
           {
             "date": "31.10.26",
             "opponent": "Росток-2014",
             "score": "84:63",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           },
           {
             "date": "11.10.26",
             "opponent": "MO.BASKET",
             "score": "52:92",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           }
         ],
         "city": "Москва",
         "scoredAvg": 61.6,
-        "concededAvg": 84.2
+        "concededAvg": 84.2,
+        "compare": {
+          "ours": {
+            "scoredAvg": 49.8,
+            "concededAvg": 74.3,
+            "place": 6,
+            "winPct": 33,
+            "played": 6,
+            "wins": 2,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 61.6,
+            "concededAvg": 84.2,
+            "place": 8,
+            "winPct": 40,
+            "played": 5,
+            "wins": 2,
+            "label": "Takeshot Academy"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "MO.BASKET",
+            "label": "MO.BASKET — мы 43:71, они 52:92",
+            "ourScore": "43:71",
+            "theirScore": "52:92"
+          },
+          {
+            "name": "SP Basket",
+            "label": "SP Basket — мы 52:113, они 11:141",
+            "ourScore": "52:113",
+            "theirScore": "11:141"
+          },
+          {
+            "name": "Багратион",
+            "label": "Багратион — мы 50:46, они 60:82",
+            "ourScore": "50:46",
+            "theirScore": "60:82"
+          }
+        ],
+        "h2h": {
+          "record": "0–1",
+          "games": [
+            {
+              "date": "31.10.26",
+              "tournament": "МЛБЛ U14",
+              "score": "63:84",
+              "weWon": false
+            }
+          ],
+          "wins": 0,
+          "losses": 1
+        },
+        "form": [
+          {
+            "result": "loss",
+            "score": "60:82",
+            "date": "26.09.26"
+          },
+          {
+            "result": "loss",
+            "score": "11:141",
+            "date": "04.10.26"
+          },
+          {
+            "result": "loss",
+            "score": "52:92",
+            "date": "11.10.26"
+          },
+          {
+            "result": "win",
+            "score": "84:63",
+            "date": "31.10.26"
+          },
+          {
+            "result": "win",
+            "score": "101:43",
+            "date": "15.11.26"
+          }
+        ],
+        "topPlayers": [
+          {
+            "label": "№77 Елисей М.",
+            "number": 77,
+            "ppg": 27.0,
+            "rpg": 15.0
+          },
+          {
+            "label": "№55 Демид К.",
+            "number": 55,
+            "ppg": 17.3,
+            "rpg": 4.7
+          },
+          {
+            "label": "№7 Евгений П.",
+            "number": 7,
+            "ppg": 13.7,
+            "rpg": 3.0
+          }
+        ],
+        "tips": [
+          "Они много забивают — сразу назад в защиту, когда теряем мяч.",
+          "Следи за №77 Елисей М. — у него больше всего очков в их составе."
+        ]
       },
       {
         "name": "Первомайская",
+        "teamId": 53311,
         "tournament": "МЛБЛ U14",
         "place": 9,
         "played": 4,
@@ -2424,27 +3609,118 @@
             "date": "01.11.26",
             "opponent": "БА Прогресс",
             "score": "27:60",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           },
           {
             "date": "11.10.26",
             "opponent": "FS Bulldogs",
             "score": "66:35",
-            "result": "победа"
+            "result": "победа",
+            "form": "win"
           },
           {
             "date": "04.10.26",
             "opponent": "Росток-2014",
             "score": "57:61",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           }
         ],
         "city": "Москва",
         "scoredAvg": 47.3,
-        "concededAvg": 61.3
+        "concededAvg": 61.3,
+        "compare": {
+          "ours": {
+            "scoredAvg": 49.8,
+            "concededAvg": 74.3,
+            "place": 6,
+            "winPct": 33,
+            "played": 6,
+            "wins": 2,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 47.3,
+            "concededAvg": 61.3,
+            "place": 9,
+            "winPct": 25,
+            "played": 4,
+            "wins": 1,
+            "label": "Первомайская"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "MO.BASKET",
+            "label": "MO.BASKET — мы 43:71, они 39:89",
+            "ourScore": "43:71",
+            "theirScore": "39:89"
+          }
+        ],
+        "h2h": {
+          "record": "1–0",
+          "games": [
+            {
+              "date": "04.10.26",
+              "tournament": "МЛБЛ U14",
+              "score": "61:57",
+              "weWon": true
+            }
+          ],
+          "wins": 1,
+          "losses": 0
+        },
+        "form": [
+          {
+            "result": "loss",
+            "score": "39:89",
+            "date": "20.09.26"
+          },
+          {
+            "result": "loss",
+            "score": "57:61",
+            "date": "04.10.26"
+          },
+          {
+            "result": "win",
+            "score": "66:35",
+            "date": "11.10.26"
+          },
+          {
+            "result": "loss",
+            "score": "27:60",
+            "date": "01.11.26"
+          }
+        ],
+        "topPlayers": [
+          {
+            "label": "№24 Тимофей М.",
+            "number": 24,
+            "ppg": 12.0,
+            "rpg": 3.3
+          },
+          {
+            "label": "№55 Арсений И.",
+            "number": 55,
+            "ppg": 9.0,
+            "rpg": 6.3
+          },
+          {
+            "label": "№34 Георгий Б.",
+            "number": 34,
+            "ppg": 7.0,
+            "rpg": 11.3
+          }
+        ],
+        "tips": [
+          "У них защита крепкая — ищи открытого, не лезь в толпу под кольцо.",
+          "Следи за №24 Тимофей М. — у него больше всего очков в их составе."
+        ]
       },
       {
         "name": "FS Bulldogs",
+        "teamId": 79109,
         "tournament": "МЛБЛ U14",
         "place": 10,
         "played": 5,
@@ -2456,27 +3732,135 @@
             "date": "15.11.26",
             "opponent": "Takeshot Academy",
             "score": "43:101",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           },
           {
             "date": "31.10.26",
             "opponent": "Багратион",
             "score": "33:90",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           },
           {
             "date": "11.10.26",
             "opponent": "Первомайская",
             "score": "35:66",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           }
         ],
         "city": "Москва",
         "scoredAvg": 28.6,
-        "concededAvg": 103.2
+        "concededAvg": 103.2,
+        "compare": {
+          "ours": {
+            "scoredAvg": 49.8,
+            "concededAvg": 74.3,
+            "place": 6,
+            "winPct": 33,
+            "played": 6,
+            "wins": 2,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 28.6,
+            "concededAvg": 103.2,
+            "place": 10,
+            "winPct": 0,
+            "played": 5,
+            "wins": 0,
+            "label": "FS Bulldogs"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "Takeshot Academy",
+            "label": "Takeshot Academy — мы 63:84, они 43:101",
+            "ourScore": "63:84",
+            "theirScore": "43:101"
+          },
+          {
+            "name": "Багратион",
+            "label": "Багратион — мы 50:46, они 33:90",
+            "ourScore": "50:46",
+            "theirScore": "33:90"
+          },
+          {
+            "name": "Первомайская",
+            "label": "Первомайская — мы 61:57, они 35:66",
+            "ourScore": "61:57",
+            "theirScore": "35:66"
+          }
+        ],
+        "h2h": {
+          "record": "",
+          "games": [],
+          "wins": 0,
+          "losses": 0
+        },
+        "form": [
+          {
+            "result": "loss",
+            "score": "13:132",
+            "date": "19.09.26"
+          },
+          {
+            "result": "loss",
+            "score": "19:127",
+            "date": "04.10.26"
+          },
+          {
+            "result": "loss",
+            "score": "35:66",
+            "date": "11.10.26"
+          },
+          {
+            "result": "loss",
+            "score": "33:90",
+            "date": "31.10.26"
+          },
+          {
+            "result": "loss",
+            "score": "43:101",
+            "date": "15.11.26"
+          }
+        ],
+        "topPlayers": [
+          {
+            "label": "№3 Макар Д.",
+            "number": 3,
+            "ppg": 21.0,
+            "rpg": 4.0
+          },
+          {
+            "label": "№23 Иван Е.",
+            "number": 23,
+            "ppg": 7.3,
+            "rpg": 7.3
+          },
+          {
+            "label": "№18 Никита Н.",
+            "number": 18,
+            "ppg": 6.0,
+            "rpg": 4.3
+          },
+          {
+            "label": "№9 Тимофей Ч.",
+            "number": 9,
+            "rpg": 8.5,
+            "ppg": 3.8,
+            "tag": "rebounds"
+          }
+        ],
+        "tips": [
+          "Мы в среднем сильнее — спокойно, береги мяч, делай простые передачи.",
+          "Следи за №3 Макар Д. — у него больше всего очков в их составе."
+        ]
       },
       {
         "name": "Метеоры",
+        "teamId": 79206,
         "tournament": "МЛБЛ U14",
         "place": 11,
         "played": 4,
@@ -2488,24 +3872,114 @@
             "date": "21.11.26",
             "opponent": "Росток-2013",
             "score": "27:89",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           },
           {
             "date": "01.11.26",
             "opponent": "Красная Пахра",
             "score": "20:103",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           },
           {
             "date": "10.10.26",
             "opponent": "SP Basket",
             "score": "22:122",
-            "result": "поражение"
+            "result": "поражение",
+            "form": "loss"
           }
         ],
         "city": "Королёв",
         "scoredAvg": 23.3,
-        "concededAvg": 107.0
+        "concededAvg": 107.0,
+        "compare": {
+          "ours": {
+            "scoredAvg": 49.8,
+            "concededAvg": 74.3,
+            "place": 6,
+            "winPct": 33,
+            "played": 6,
+            "wins": 2,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 23.3,
+            "concededAvg": 107.0,
+            "place": 11,
+            "winPct": 0,
+            "played": 4,
+            "wins": 0,
+            "label": "Метеоры"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "SP Basket",
+            "label": "SP Basket — мы 52:113, они 22:122",
+            "ourScore": "52:113",
+            "theirScore": "22:122"
+          }
+        ],
+        "h2h": {
+          "record": "",
+          "games": [],
+          "wins": 0,
+          "losses": 0
+        },
+        "form": [
+          {
+            "result": "loss",
+            "score": "24:114",
+            "date": "19.09.26"
+          },
+          {
+            "result": "loss",
+            "score": "22:122",
+            "date": "10.10.26"
+          },
+          {
+            "result": "loss",
+            "score": "20:103",
+            "date": "01.11.26"
+          },
+          {
+            "result": "loss",
+            "score": "27:89",
+            "date": "21.11.26"
+          }
+        ],
+        "topPlayers": [
+          {
+            "label": "№15 Адриан К.",
+            "number": 15,
+            "ppg": 10.0,
+            "rpg": 4.0
+          },
+          {
+            "label": "№34 Максим И.",
+            "number": 34,
+            "ppg": 7.3,
+            "rpg": 2.0
+          },
+          {
+            "label": "№18 Адриан К.",
+            "number": 18,
+            "ppg": 5.7,
+            "rpg": 5.3
+          },
+          {
+            "label": "№7 Арсений И.",
+            "number": 7,
+            "rpg": 6.0,
+            "ppg": 3.0,
+            "tag": "rebounds"
+          }
+        ],
+        "tips": [
+          "Мы в среднем сильнее — спокойно, береги мяч, делай простые передачи.",
+          "Следи за №15 Адриан К. — у него больше всего очков в их составе."
+        ]
       }
     ]
   },

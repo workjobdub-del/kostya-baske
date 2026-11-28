@@ -844,7 +844,7 @@ function heroSeasonHeadlineStats() {
   return `${scope}<div class="hero-stats hero-stats--headline" aria-label="Ключевые средние за сезон">${cells}</div>`;
 }
 
-const ASSET_V = "2026-11-28-16";
+const ASSET_V = "2026-11-28-19";
 const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
 const ICON_REFRESH = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>`;
 const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
@@ -4563,15 +4563,15 @@ function ensureSheets() {
   opp.className = "sheet";
   opp.hidden = true;
   opp.setAttribute("data-noswipe", "");
-  opp.innerHTML = `<div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="opp-sheet-title">
+  opp.innerHTML = `<div class="sheet-card sheet-card--opp" role="dialog" aria-modal="true" aria-labelledby="opp-sheet-title">
       <h2 id="opp-sheet-title">Соперник</h2>
       <p class="caption" data-opp-meta></p>
       <p data-opp-summary></p>
-      <p class="opp-strip" data-opp-strip hidden></p>
-      <h3 class="sheet-sub" data-opp-recent-title hidden>Последние игры</h3>
-      <ul class="opp-list" data-opp-recent hidden></ul>
-      <h3 class="sheet-sub">Встречи с «Ростоком-2014»</h3>
-      <div data-opp-h2h></div>
+      <div class="opp-head" data-opp-head hidden></div>
+      <div class="opp-block" data-opp-tips hidden></div>
+      <div class="opp-block" data-opp-players hidden></div>
+      <div class="opp-block" data-opp-h2h-wrap hidden></div>
+      <div class="opp-block" data-opp-common hidden></div>
       <div class="sheet-actions">
         <button type="button" class="is-off" data-sheet-close>Закрыть</button>
       </div>
@@ -4626,6 +4626,174 @@ function kostyaLine(row) {
   if (row.assists != null) bits.push(ruCount(row.assists, "передача", "передачи", "передач"));
   if (!bits.length) return "";
   return `Костя: ${bits.join(", ")}`;
+}
+
+const OPP_US_BAR = "#2f9f58";
+const OPP_THEM_BAR = "#c45a1a";
+
+function oppCompareMax(a, b) {
+  const x = Number(a);
+  const y = Number(b);
+  if (!Number.isFinite(x) && !Number.isFinite(y)) return 1;
+  if (!Number.isFinite(x)) return y || 1;
+  if (!Number.isFinite(y)) return x || 1;
+  return Math.max(x, y, 1);
+}
+
+function oppMetricValue(value, played, { percent = false } = {}) {
+  if (value == null || !Number.isFinite(Number(value))) return "—";
+  if (percent) {
+    const base = `${Math.round(Number(value))}%`;
+    if (!played) return base;
+    return `${base} · ${ruCount(played, "игра", "игры", "игр")}`;
+  }
+  const base = formatAvg(value);
+  if (!played) return base;
+  return `${base} · за ${ruCount(played, "игру", "игры", "игр")}`;
+}
+
+function oppMetricBar(value, color, played, options) {
+  const num = Number(value);
+  const max = options.max || 1;
+  const width = Number.isFinite(num) ? Math.max(4, Math.round((100 * num) / max)) : 0;
+  const label = oppMetricValue(value, played, options);
+  return `<div class="opp-metric-bar">
+    <div class="opp-metric-track"><span class="opp-metric-fill" style="width:${width}%;background:${color}"></span></div>
+    <span class="opp-metric-num" style="color:${color}">${esc(label)}</span>
+  </div>`;
+}
+
+function oppMetricBlock(title, hint, ours, theirs, ourPlayed, theirPlayed, options) {
+  if (ours == null && theirs == null) return "";
+  const max = oppCompareMax(ours, theirs);
+  return `<div class="opp-metric">
+    <div class="opp-metric-title">${esc(title)}${hint ? `<span class="opp-metric-hint">${esc(hint)}</span>` : ""}</div>
+    ${oppMetricBar(ours, OPP_US_BAR, ourPlayed, { ...options, max })}
+    ${oppMetricBar(theirs, OPP_THEM_BAR, theirPlayed, { ...options, max })}
+  </div>`;
+}
+
+function renderOppCompare(compare, oppName) {
+  if (!compare || !compare.ours || !compare.theirs) return "";
+  const ours = compare.ours;
+  const theirs = compare.theirs;
+  const usLabel = ours.label || "Росток-2014";
+  return `<section class="opp-compare" aria-label="Сравнение с Ростком">
+    <div class="opp-compare-legend">
+      <span class="opp-legend-item"><span class="opp-legend-dot" style="background:${OPP_US_BAR}"></span>${esc(usLabel)}</span>
+      <span class="opp-legend-item"><span class="opp-legend-dot" style="background:${OPP_THEM_BAR}"></span>${esc(oppName || theirs.label || "Соперник")}</span>
+    </div>
+    ${oppMetricBlock("Забитые в среднем", "", ours.scoredAvg, theirs.scoredAvg, ours.played, theirs.played, {})}
+    ${oppMetricBlock("Пропущенные в среднем", "меньше — лучше", ours.concededAvg, theirs.concededAvg, ours.played, theirs.played, {})}
+    ${oppMetricBlock("% побед", "", ours.winPct, theirs.winPct, ours.played, theirs.played, { percent: true })}
+  </section>`;
+}
+
+function renderOppForm(form) {
+  const rows = (form || []).filter((row) => row && (row.result === "win" || row.result === "loss"));
+  if (!rows.length) return "";
+  const dots = rows
+    .map((row) => {
+      const title = [row.date, row.score].filter(Boolean).join(" · ");
+      const cls = row.result === "win" ? "is-win" : "is-loss";
+      return `<span class="opp-form-dot ${cls}" title="${esc(title)}" aria-label="${esc(title)}"></span>`;
+    })
+    .join("");
+  return `<section class="opp-form-block" aria-label="Последние игры">
+    <div class="opp-form-head">
+      <span class="opp-form-label">Последние игры</span>
+      <span class="opp-form-hint">← раньше · свежая →</span>
+    </div>
+    <div class="opp-form-dots">${dots}</div>
+  </section>`;
+}
+
+function renderOppChips(team) {
+  if (!team || !team.played) return "";
+  const chips = [
+    `${team.place}-е место`,
+    `${ruCount(team.wins, "победа", "победы", "побед")} · ${ruCount(team.losses, "поражение", "поражения", "поражений")}`,
+  ];
+  if (team.scoredAvg != null) chips.push(`${formatAvg(team.scoredAvg)} забитых`);
+  if (team.concededAvg != null) chips.push(`${formatAvg(team.concededAvg)} пропущенных`);
+  return `<div class="opp-chips">${chips.map((chip) => `<span class="opp-chip-stat">${esc(chip)}</span>`).join("")}</div>`;
+}
+
+function renderOppHead(team) {
+  const form = renderOppForm(team && team.form);
+  const compare = renderOppCompare(team && team.compare, team && team.name);
+  if (!form && !compare) return "";
+  const chips = renderOppChips(team);
+  return `${chips}<div class="opp-head-grid">${form}${compare}</div>`;
+}
+
+function renderOppTips(tips) {
+  const rows = (tips || []).filter(Boolean);
+  if (!rows.length) return "";
+  return `<section class="opp-tips"><h3 class="sheet-sub">Подсказка Косте</h3><ul class="opp-tips-list">${rows.map((line) => `<li>${esc(line)}</li>`).join("")}</ul></section>`;
+}
+
+function formatOppStatNumber(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "—";
+  return Number.isInteger(num) ? String(num) : formatAvg(num);
+}
+
+function oppPlayerRate(value, one, few, many) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "—";
+  const n = Math.abs(num);
+  let word = many;
+  if (!Number.isInteger(n)) word = few;
+  else {
+    const n10 = n % 10;
+    const n100 = n % 100;
+    word = n10 === 1 && n100 !== 11 ? one : n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14) ? few : many;
+  }
+  return `${formatOppStatNumber(num)} ${word}`;
+}
+
+function renderOppPlayers(players) {
+  const rows = (players || []).filter((row) => row && row.label);
+  if (!rows.length) return "";
+  const items = rows.map((row) => {
+    const stat =
+      row.tag === "rebounds"
+        ? oppPlayerRate(row.rpg, "подбор за игру", "подбора за игру", "подборов за игру")
+        : oppPlayerRate(row.ppg, "очко за игру", "очка за игру", "очков за игру");
+    return `<li><span class="opp-player-name">${esc(row.label)}</span> · ${esc(stat)}</li>`;
+  });
+  return `<section class="opp-players"><h3 class="sheet-sub">Лучшие у соперника</h3><ul class="opp-list">${items.join("")}</ul></section>`;
+}
+
+function renderOppH2h(h2h, fallbackName) {
+  if (h2h && Array.isArray(h2h.games) && h2h.games.length) {
+    const record = h2h.record ? `${h2h.record} в личных встречах` : "";
+    const list = h2h.games
+      .map((game) => {
+        const tag = game.weWon ? "победа" : "поражение";
+        return `<li><b>${esc(fullDate(game.date))}</b>${game.tournament ? ` · ${esc(game.tournament)}` : ""} · ${esc(game.score)} · ${esc(tag)}</li>`;
+      })
+      .join("");
+    return `<section class="opp-h2h"><h3 class="sheet-sub">Встречи с «Ростком»</h3>${record ? `<p class="caption">${esc(record)}</p>` : ""}<ul class="opp-list">${list}</ul></section>`;
+  }
+  if (h2h && h2h.games && h2h.games.length === 0) {
+    return `<section class="opp-h2h"><h3 class="sheet-sub">Встречи с «Ростком»</h3><p class="caption">Раньше не встречались.</p></section>`;
+  }
+  const meetings = headToHead(fallbackName);
+  if (!meetings.length) {
+    return `<section class="opp-h2h"><h3 class="sheet-sub">Встречи с «Ростком»</h3><p class="caption">Раньше не встречались.</p></section>`;
+  }
+  const list = meetings
+    .map((item) => `<li><b>${esc(item.date)}</b>${item.tour ? ` · ${esc(item.tour)}` : ""}${item.score ? ` · ${esc(item.score)}` : ""}${item.note ? `<br>${esc(item.note)}` : ""}</li>`)
+    .join("");
+  return `<section class="opp-h2h"><h3 class="sheet-sub">Встречи с «Ростком»</h3><ul class="opp-list">${list}</ul></section>`;
+}
+
+function renderOppCommon(rows) {
+  const list = (rows || []).filter((row) => row && row.label);
+  if (!list.length) return "";
+  return `<section class="opp-common"><h3 class="sheet-sub">Общие соперники</h3><ul class="opp-list opp-list--plain">${list.map((row) => `<li>${esc(row.label)}</li>`).join("")}</ul></section>`;
 }
 
 function headToHead(name) {
@@ -4687,10 +4855,11 @@ function openOpponent(name, tour) {
   const title = document.getElementById("opp-sheet-title");
   const meta = sheet.querySelector("[data-opp-meta]");
   const summary = sheet.querySelector("[data-opp-summary]");
-  const strip = sheet.querySelector("[data-opp-strip]");
-  const recentTitle = sheet.querySelector("[data-opp-recent-title]");
-  const recent = sheet.querySelector("[data-opp-recent]");
-  const h2h = sheet.querySelector("[data-opp-h2h]");
+  const head = sheet.querySelector("[data-opp-head]");
+  const tips = sheet.querySelector("[data-opp-tips]");
+  const players = sheet.querySelector("[data-opp-players]");
+  const h2hWrap = sheet.querySelector("[data-opp-h2h-wrap]");
+  const common = sheet.querySelector("[data-opp-common]");
   title.textContent = team ? team.name : name;
   const metaBits = [];
   if (team && team.city) metaBits.push(team.city);
@@ -4698,27 +4867,21 @@ function openOpponent(name, tour) {
   meta.textContent = metaBits.filter(Boolean).join(" · ");
   if (team && team.summary) summary.textContent = team.summary;
   else summary.textContent = "В таблицах сезона 2026/27 этой команды нет.";
-  if (team && team.played) {
-    const scored = team.scoredAvg == null ? "" : `${formatAvg(team.scoredAvg)} забитых`;
-    const conceded = team.concededAvg == null ? "" : `${formatAvg(team.concededAvg)} пропущенных`;
-    strip.hidden = false;
-    strip.textContent = [`${team.place}-е место`, `${team.wins}В–${team.losses}П`, scored, conceded].filter(Boolean).join(" · ");
-  } else {
-    strip.hidden = true;
-    strip.textContent = "";
-  }
-  const games = (team && team.recent) || [];
-  recentTitle.hidden = !games.length;
-  recent.hidden = !games.length;
-  recent.innerHTML = games
-    .map((game) => `<li><b>${esc(fullDate(game.date))}</b> · ${esc(game.opponent)} · ${esc(game.score)}, ${esc(game.result)}</li>`)
-    .join("");
-  const meetings = headToHead(team ? team.name : name);
-  h2h.innerHTML = meetings.length
-    ? `<ul class="opp-list">${meetings
-        .map((item) => `<li><b>${esc(item.date)}</b>${item.tour ? ` · ${esc(item.tour)}` : ""}${item.score ? ` · ${esc(item.score)}` : ""}${item.note ? `<br>${esc(item.note)}` : ""}</li>`)
-        .join("")}</ul>`
-    : `<p class="caption">Очных игр с «Ростоком-2014» в базе пока нет.</p>`;
+  const headHtml = renderOppHead(team);
+  head.hidden = !headHtml;
+  head.innerHTML = headHtml;
+  const tipsHtml = renderOppTips(team && team.tips);
+  tips.hidden = !tipsHtml;
+  tips.innerHTML = tipsHtml;
+  const playersHtml = renderOppPlayers(team && team.topPlayers);
+  players.hidden = !playersHtml;
+  players.innerHTML = playersHtml;
+  const h2hHtml = renderOppH2h(team && team.h2h, team ? team.name : name);
+  h2hWrap.hidden = !h2hHtml;
+  h2hWrap.innerHTML = h2hHtml;
+  const commonHtml = renderOppCommon(team && team.commonOpponents);
+  common.hidden = !commonHtml;
+  common.innerHTML = commonHtml;
   sheet.hidden = false;
   const close = sheet.querySelector("[data-sheet-close]");
   if (close) close.focus();
