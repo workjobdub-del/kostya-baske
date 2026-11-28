@@ -697,6 +697,75 @@ function renderNav() {
   nav.innerHTML = "";
 }
 
+function seasonProtocolGames(season) {
+  if (!season) return 0;
+  const games = String(season.games || "").match(/(\d+)\s*\((\d+)\)/);
+  if (games) return Number(games[1]);
+  const n = Number(season.protocolGames);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function seasonYearPrefixFromName(name) {
+  const match = String(name || "").match(/^(\d{4}\/\d{2})/);
+  return match ? match[1] : "";
+}
+
+function currentSeasonYearPrefix() {
+  const active = data.kpi && data.kpi.activeLabel;
+  if (active) return String(active);
+  const seasons = data.tournamentStats.seasons || [];
+  let best = "";
+  seasons.forEach((season) => {
+    const prefix = seasonYearPrefixFromName(season.name);
+    if (!prefix || seasonProtocolGames(season) <= 0) return;
+    if (!best || prefix > best) best = prefix;
+  });
+  if (best) return best;
+  const highlighted = seasons.find((season) => season.highlight);
+  if (highlighted) return seasonYearPrefixFromName(highlighted.name);
+  const last = seasons[seasons.length - 1];
+  return last ? seasonYearPrefixFromName(last.name) : "";
+}
+
+function seasonsInCurrentYear() {
+  const prefix = currentSeasonYearPrefix();
+  if (!prefix) return [];
+  return (data.tournamentStats.seasons || []).filter((season) => String(season.name || "").startsWith(prefix));
+}
+
+function weightedSeasonStat(seasons, key) {
+  let weight = 0;
+  let sum = 0;
+  seasons.forEach((season) => {
+    const games = seasonProtocolGames(season);
+    if (games <= 0) return;
+    const value = Number(season[key]);
+    if (!Number.isFinite(value)) return;
+    sum += value * games;
+    weight += games;
+  });
+  return weight > 0 ? sum / weight : null;
+}
+
+/** Сводка за весь текущий сезон (все турниры с тем же годом в name) для шапки Профиля */
+function heroAggregatedSeason() {
+  const prefix = currentSeasonYearPrefix();
+  const seasons = seasonsInCurrentYear().filter((season) => seasonProtocolGames(season) > 0);
+  if (!prefix || !seasons.length) return null;
+  const totalGames = seasons.reduce((count, season) => count + seasonProtocolGames(season), 0);
+  if (totalGames <= 0) return null;
+  return {
+    prefix,
+    totalGames,
+    name: `Сезон ${prefix} · в среднем за игру · ${ruCount(totalGames, "игра", "игры", "игр")}`,
+    points: weightedSeasonStat(seasons, "points"),
+    rebounds: weightedSeasonStat(seasons, "rebounds"),
+    assists: weightedSeasonStat(seasons, "assists"),
+    steals: weightedSeasonStat(seasons, "steals"),
+  };
+}
+
+/** Одна строка tournamentStats — турнир; для шапки не использовать (см. heroAggregatedSeason) */
 function currentSeason() {
   const seasons = data.tournamentStats.seasons;
   const live = seasons.find((season) => {
@@ -736,7 +805,7 @@ function updatedLine(compact) {
 }
 
 function heroStats() {
-  const season = currentSeason();
+  const season = heroAggregatedSeason();
   if (!season) return updatedLine();
   const cells = [
     ["Очки", season.points],
@@ -759,7 +828,7 @@ function heroStats() {
 }
 
 function heroSeasonHeadlineStats() {
-  const season = currentSeason();
+  const season = heroAggregatedSeason();
   if (!season) return "";
   const cells = [
     ["Очки", season.points],
@@ -775,7 +844,7 @@ function heroSeasonHeadlineStats() {
   return `${scope}<div class="hero-stats hero-stats--headline" aria-label="Ключевые средние за сезон">${cells}</div>`;
 }
 
-const ASSET_V = "2026-11-28-13";
+const ASSET_V = "2026-11-28-14";
 const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
 const ICON_REFRESH = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>`;
 const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
