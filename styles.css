@@ -3870,7 +3870,119 @@ body[data-page="mama"] .wrap::before {
   z-index: 1;
   display: flex;
   justify-content: center;
+  align-items: flex-end;
+  min-height: clamp(8.5rem, 46vw, 11.5rem);
   padding: 0.15rem 0 0.45rem;
+}
+
+.hero-athlete {
+  position: absolute;
+  left: 50%;
+  bottom: 0.15rem;
+  width: clamp(10rem, 58vw, 14.5rem);
+  height: auto;
+  transform: translateX(-58%);
+  z-index: 1;
+  pointer-events: none;
+  filter: drop-shadow(0 14px 28px rgba(30, 30, 28, 0.16));
+}
+
+.player-card--light .player-logo {
+  position: relative;
+  z-index: 3;
+}
+
+.hero-display-bg--number {
+  left: 50%;
+  top: 0.35rem;
+  right: auto;
+  transform: translateX(-50%);
+  writing-mode: horizontal-tb;
+  font-size: clamp(7.5rem, 52vw, 11rem);
+  letter-spacing: -0.04em;
+  color: rgba(20, 20, 20, 0.065);
+  -webkit-text-stroke: 0.5px rgba(20, 20, 20, 0.05);
+  z-index: 0;
+}
+
+.opp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.opp-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 999px;
+  background: var(--opp-badge, var(--teal));
+  color: #fff;
+  font-family: var(--display);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  box-shadow: 0 6px 16px rgba(30, 30, 28, 0.12);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
+}
+
+.opp-chip .opp-name {
+  min-width: 0;
+}
+
+.opp-chip .opp-link {
+  text-align: left;
+}
+
+.dev-goal-ring {
+  position: relative;
+  flex: 0 0 auto;
+  width: 5.75rem;
+  height: 5.75rem;
+}
+
+.dev-goal-ring svg {
+  display: block;
+}
+
+.dev-ring-track {
+  stroke: rgba(20, 20, 20, 0.1);
+}
+
+.dev-ring-fill {
+  stroke: var(--teal);
+}
+
+.dev-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  padding: 0 0.35rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+.dev-ring-center b {
+  font-family: var(--display);
+  font-size: 1.05rem;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.dev-ring-center small {
+  font-size: 0.62rem;
+  color: var(--muted);
+  line-height: 1.2;
 }
 
 .player-card--light .player-card-copy {
@@ -3895,10 +4007,7 @@ body[data-page="mama"] .wrap::before {
 }
 
 .hero-display-bg--vert {
-  right: -0.05em;
-  top: 0.2rem;
-  font-size: clamp(5.5rem, 32vw, 8.5rem);
-  color: rgba(20, 20, 20, 0.06);
+  display: none;
 }
 
 .hero-display-bg--ghost {

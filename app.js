@@ -775,13 +775,17 @@ function heroSeasonHeadlineStats() {
   return `${scope}<div class="hero-stats hero-stats--headline" aria-label="Ключевые средние за сезон">${cells}</div>`;
 }
 
-const ASSET_V = "2026-11-28-08";
+const ASSET_V = "2026-11-28-09";
 const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
 const ICON_REFRESH = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>`;
 const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
 
 function siteLogoMark() {
   return `<div class="player-logo"><img src="logo.png?v=${ASSET_V}" width="384" height="377" alt="Костя Д. №7"></div>`;
+}
+
+function heroPlayerArt() {
+  return `<img class="hero-athlete" src="assets/hero-player.svg?v=${ASSET_V}" width="280" height="334" alt="" decoding="async">`;
 }
 
 function kpiFormatMetric(metric) {
@@ -923,8 +927,9 @@ function renderHero() {
   const body = heightLabel();
   return `<section class="player-card player-card--compact player-card--athlete player-card--light" id="top" data-number="${esc(player.number)}">
     <span class="hero-display-bg hero-display-bg--word" aria-hidden="true">Костя</span>
-    <span class="hero-display-bg hero-display-bg--vert" aria-hidden="true">7</span>
+    <span class="hero-display-bg hero-display-bg--number" aria-hidden="true">7</span>
     <div class="hero-visual">
+      ${heroPlayerArt()}
       ${siteLogoMark()}
     </div>
     <div class="player-card-copy">
@@ -1115,11 +1120,52 @@ function findOpponent(name, tour) {
   return exact.length === 1 ? exact[0] : null;
 }
 
-function oppButton(name, tour) {
+const OPP_BADGE_STOP = new Set(["2012", "2013", "2014", "2015", "2016", "2017", "2018", "1", "2", "3", "u14", "u12"]);
+
+function oppInitials(name) {
+  const raw = String(name || "").trim();
+  if (!raw) return "?";
+  if (/росток/i.test(raw)) return "Р";
+  const tokens = oppKey(raw)
+    .split(" ")
+    .filter((token) => token && !OPP_BADGE_STOP.has(token) && !/^20\d\d$/.test(token));
+  if (!tokens.length) {
+    const letters = raw.replace(/[^a-zA-Zа-яА-ЯёЁ]/g, "");
+    return (letters.slice(0, 2) || raw.slice(0, 2)).toUpperCase();
+  }
+  if (tokens.length === 1) return tokens[0].slice(0, 2).toUpperCase();
+  return (tokens[0][0] + tokens[1][0]).toUpperCase();
+}
+
+function oppBadgeColor(name) {
+  const raw = String(name || "");
+  if (/росток/i.test(raw)) return "#f07a2a";
+  let hash = 0;
+  for (let i = 0; i < raw.length; i += 1) hash = (hash * 33 + raw.charCodeAt(i)) >>> 0;
+  const hue = hash % 360;
+  return `hsl(${hue}, 46%, 46%)`;
+}
+
+function oppBadgeHtml(name) {
   const clean = String(name || "").trim();
-  if (!clean || /^росток-2014$/i.test(clean) || !findOpponent(clean, tour)) return esc(clean);
+  if (!clean) return "";
+  const initials = oppInitials(clean);
+  const color = oppBadgeColor(clean);
+  return `<span class="opp-badge" style="--opp-badge:${esc(color)}" aria-hidden="true">${esc(initials)}</span>`;
+}
+
+function oppNameHtml(name, tour) {
+  const clean = String(name || "").trim();
+  if (!clean) return "";
+  if (/^росток-2014$/i.test(clean) || !findOpponent(clean, tour)) return `<span class="opp-name">${esc(clean)}</span>`;
   const label = `Кратко о сопернике ${clean}`;
   return `<button type="button" class="opp-link" data-opp="${esc(clean)}" data-tour="${esc(tour || "")}" aria-label="${esc(label)}">${esc(clean)}</button>`;
+}
+
+function oppButton(name, tour) {
+  const clean = String(name || "").trim();
+  if (!clean) return "";
+  return `<span class="opp-chip">${oppBadgeHtml(clean)}${oppNameHtml(clean, tour)}</span>`;
 }
 
 function fixtureDayEqual(a, b) {
@@ -1238,7 +1284,7 @@ function renderSeasonMatchCard(match) {
   const scored = /победа|поражение|\d+\s*:\s*\d+/i.test(String(match.detail || ""));
   const upcoming = isUpcomingFixture({ ...match, ...when, scored });
   const opponent = opponentFromTitle(match.title);
-  const title = upcoming ? oppButton(opponent, tour) : esc(match.title);
+  const title = oppButton(opponent, tour);
   const manual = match.manualAnnouncement || /анонсу клуба/i.test(String(match.status || ""));
   const status = manual
     ? `<span class="status status--note">${esc(match.sourceNote || "по анонсу клуба")}</span>`
@@ -1994,6 +2040,64 @@ function devKidTrend(metric, current, goal) {
   return { mark: "→", label: "так же" };
 }
 
+function devGoalTargetLabel(metric, goal) {
+  if (goal == null) return "—";
+  if (metric === "fg2PctU14") return `${formatPlain(Math.round(goal * 10) / 10)}%`;
+  if (metric === "minutesU14") return formatRowClock(goal * 60);
+  return String(formatPlain(goal)).replace(".", ",");
+}
+
+function devGoalCurrentShort(metric, current) {
+  if (current == null) return "—";
+  if (metric === "turnoversU14") return String(formatPlain(current)).replace(".", ",");
+  if (metric === "fg2PctU14") return `${Math.round(current * 10) / 10}%`.replace(".", ",");
+  if (metric === "astToU14") return String(formatPlain(current)).replace(".", ",");
+  if (metric === "minutesU14") return formatRowClock(current * 60);
+  return formatPlain(current);
+}
+
+function devGoalProgressPct(metric, current, goal) {
+  if (goal == null || goal <= 0) return null;
+  if (current == null) return null;
+  if (metric === "turnoversU14") {
+    if (current <= goal) return 100;
+    return Math.max(8, Math.min(100, Math.round((goal / current) * 100)));
+  }
+  if (metric === "fg2PctU14") {
+    return Math.max(0, Math.min(100, Math.round((current / goal) * 100)));
+  }
+  if (metric === "astToU14" || metric === "minutesU14") {
+    return Math.max(0, Math.min(100, Math.round((current / goal) * 100)));
+  }
+  return null;
+}
+
+function devGoalRingSvg(metric, current, goal) {
+  const pct = devGoalProgressPct(metric, current, goal);
+  const r = 38;
+  const stroke = 9;
+  const c = 2 * Math.PI * r;
+  const track = c.toFixed(2);
+  const filled = pct == null ? 0 : (pct / 100) * c;
+  const dash = `${filled.toFixed(2)} ${track}`;
+  const center = devGoalCurrentShort(metric, current);
+  const target = devGoalTargetLabel(metric, goal);
+  const aria =
+    pct == null
+      ? `Пока нет данных. Цель ${target}.`
+      : `Сейчас ${center}, цель ${target}, прогресс около ${pct} процентов.`;
+  return `<div class="dev-goal-ring" role="img" aria-label="${esc(aria)}">
+    <svg viewBox="0 0 100 100" width="92" height="92" aria-hidden="true">
+      <circle class="dev-ring-track" cx="50" cy="50" r="${r}" stroke-width="${stroke}" fill="none"></circle>
+      <circle class="dev-ring-fill" cx="50" cy="50" r="${r}" stroke-width="${stroke}" fill="none" stroke-dasharray="${dash}" stroke-linecap="round" transform="rotate(-90 50 50)"></circle>
+    </svg>
+    <div class="dev-ring-center">
+      <b>${esc(center)}</b>
+      <small>цель ${esc(target)}</small>
+    </div>
+  </div>`;
+}
+
 function devKidGoalText(item, current) {
   if (item.goalMetric === "turnoversU14") {
     if (current == null) return "Держим мяч спокойнее — столько потерь за игру, сколько сможешь.";
@@ -2020,7 +2124,7 @@ function renderDevKidGoals(priorities, pack) {
       const current = devMetricValue(item.goalMetric, pack);
       const trend = devKidTrend(item.goalMetric, current, item.goalTo);
       return `<article class="dev-kid-goal">
-        <div class="dev-kid-badge" aria-hidden="true">${trend.mark}</div>
+        ${devGoalRingSvg(item.goalMetric, current, item.goalTo)}
         <div class="dev-kid-body">
           <h3>${esc(item.title)}</h3>
           <p class="dev-kid-line">${esc(devKidGoalText(item, current))}</p>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 380" fill="none" role="img" aria-hidden="true">
+  <ellipse cx="160" cy="348" rx="118" ry="22" fill="#141414" opacity="0.08"/>
+  <path d="M48 292 88 168l52-18 34 42-28 108z" fill="#5fa8a0"/>
+  <path d="M88 168 142 98l58 12-18 72-94 54z" fill="#4a9690"/>
+  <path d="M142 98 178 42l44 28-26 58z" fill="#f07a2a"/>
+  <path d="M164 38 208 52l-12 36-56-22z" fill="#f5924a"/>
+  <path d="M196 52 248 78l-34 28-44-12z" fill="#e8a07a"/>
+  <circle cx="248" cy="92" r="26" fill="#f07a2a"/>
+  <path d="M236 78c8-6 18-4 24 4s2 18-6 24" stroke="#141414" stroke-width="3" stroke-linecap="round" opacity="0.35"/>
+  <path d="M118 118 96 152l-22 48" stroke="#141414" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M200 118 228 88l42 8" stroke="#141414" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M152 88 168 72l28 6-6 22z" fill="#e8a07a"/>
+  <path d="M128 112 158 102l34 38-52 22z" fill="#f07a2a"/>
+  <path d="M146 122h36l-8 48h-20z" fill="#fff" opacity="0.92"/>
+  <text x="164" y="158" text-anchor="middle" font-family="system-ui,sans-serif" font-size="34" font-weight="800" fill="#141414">7</text>
+  <path d="M98 152 72 198l18 34 52-8 28-56z" fill="#5fa8a0"/>
+  <path d="M72 198 62 268 118 292l36-34-28-68z" fill="#4a9690"/>
+  <path d="M118 292 168 310l62-24-14-52-88 58z" fill="#3d8882"/>
+  <path d="M168 310 224 302l28-68-68-20z" fill="#f07a2a"/>
+  <path d="M224 302 252 258l-48-18-30 62z" fill="#e86a1a"/>
+  <path d="M230 88c14 8 22 24 18 40" stroke="#141414" stroke-width="2.5" stroke-linecap="round" opacity="0.2"/>
+</svg>

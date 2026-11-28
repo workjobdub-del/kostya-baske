@@ -2,7 +2,7 @@ importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 
 "use strict";
 
-const VERSION = "2026-11-28-08";
+const VERSION = "2026-11-28-09";
 const STATIC = `kostya-static-${VERSION}`;
 const DATA = `kostya-data-${VERSION}`;
 
@@ -15,19 +15,20 @@ const PRECACHE = [
   "./development.html",
   "./data.json",
   "./news.json",
-  "./fonts/fonts.css?v=2026-11-28-08",
+  "./fonts/fonts.css?v=2026-11-28-09",
   "./fonts/xn7gYHE41ni1AdIRggOxSuXd.woff2",
   "./fonts/xn7gYHE41ni1AdIRggexSg.woff2",
   "./fonts/Yq6W-LOTXCb04q32xlpwv8ZfrxE.woff2",
   "./fonts/Yq6W-LOTXCb04q32xlpwu8Zf.woff2",
-  "./styles.css?v=2026-11-28-08",
-  "./app.js?v=2026-11-28-08",
-  "./manifest.json?v=2026-11-28-08",
+  "./styles.css?v=2026-11-28-09",
+  "./app.js?v=2026-11-28-09",
+  "./manifest.json?v=2026-11-28-09",
   "./favicon.svg",
   "./logo.svg",
   "./logo.png",
   "./logo-mark.svg",
   "./logo-mark.png",
+  "./assets/hero-player.svg?v=2026-11-28-09",
   "./apple-touch-icon-v3-180.png",
   "./icon-v3-192.png",
   "./icon-v3-512.png",
