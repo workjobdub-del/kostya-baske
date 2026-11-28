@@ -3172,6 +3172,130 @@ html, body { overflow-x: clip; }
 
 .opp-list li + li { margin-top: 0.35rem; }
 
+.opp-list--plain {
+  list-style: none;
+  padding-left: 0;
+}
+
+.sheet-card--opp .opp-block + .opp-block,
+.sheet-card--opp .opp-head + .opp-block {
+  margin-top: 0.85rem;
+}
+
+.opp-head-grid {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.55rem;
+}
+
+.opp-form-block {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.opp-form-label {
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--ink-muted, rgba(28, 32, 36, 0.62));
+}
+
+.opp-form-dots {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.opp-form-dot {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.opp-form-dot.is-win {
+  background: linear-gradient(145deg, #3db86b, #2a9d55);
+}
+
+.opp-form-dot.is-loss {
+  background: linear-gradient(145deg, #e8784a, #d14b32);
+}
+
+.opp-compare {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.opp-compare-head,
+.opp-compare-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 0.35rem;
+  align-items: center;
+  font-size: 0.78rem;
+}
+
+.opp-compare-head {
+  color: var(--ink-muted, rgba(28, 32, 36, 0.62));
+  font-weight: 650;
+  margin-bottom: 0.1rem;
+}
+
+.opp-compare-label {
+  font-size: 0.76rem;
+  line-height: 1.25;
+}
+
+.opp-compare-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.opp-compare-bar {
+  display: block;
+  height: 0.35rem;
+  border-radius: 999px;
+  min-width: 0.15rem;
+  max-width: 100%;
+}
+
+.opp-compare-bar--us {
+  background: linear-gradient(90deg, #2f9f58, #3ec46e);
+}
+
+.opp-compare-bar--them {
+  background: var(--opp-bar, var(--teal));
+  opacity: 0.92;
+}
+
+.opp-compare-vals {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.35rem;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.76rem;
+}
+
+.opp-compare-us { color: #1f7a41; font-weight: 650; }
+.opp-compare-them { color: var(--ink); font-weight: 600; text-align: right; }
+
+.opp-compare-row--place .opp-compare-bars { display: none; }
+
+.opp-tips-list {
+  margin: 0.2rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.opp-tips-list li + li { margin-top: 0.35rem; }
+
+.opp-player-name { font-weight: 650; }
+
 body[data-page="profile"] .player-card.player-card--compact {
   padding: 0.75rem 0.8rem 0.55rem;
 }

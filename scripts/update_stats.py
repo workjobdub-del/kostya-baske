@@ -29,7 +29,9 @@ ROOT = Path(__file__).resolve().parents[1]
 API = "https://reg.infobasket.su"
 PARENT_COMP = 142760
 TEAM_ID = 38872
+ROSTOK_SECOND_TEAM_ID = 78912
 U14_TEAM_ID = 79167
+ROSTOK_FIRST_TEAM_IDS = frozenset({TEAM_ID, U14_TEAM_ID})
 U14_COMP_ID = 144801
 U14_LOG_ID = "u14circ2627"
 MOS_LOG_ID = "mos2627"
@@ -1309,6 +1311,395 @@ def _place_sentence(place, total, wins, losses, played) -> str:
     return f"В середине таблицы, {place}-е место из {total}: {balance}."
 
 
+def _team_games_from_results(item, names, *, limit: int | None = 3) -> list:
+    games = []
+    team_id = item.get("TeamID")
+    for result in item.get("Results") or []:
+        if not isinstance(result, dict):
+            continue
+        when = parse_ru_date(str(result.get("GameDate") or ""))
+        score_a, score_b = result.get("ScoreA"), result.get("ScoreB")
+        if not when or not isinstance(score_a, int) or not isinstance(score_b, int):
+            continue
+        if result.get("TeamAid") == team_id:
+            opp_id = result.get("TeamBid")
+            team_score, opp_score = score_a, score_b
+        elif result.get("TeamBid") == team_id:
+            opp_id = result.get("TeamAid")
+            team_score, opp_score = score_b, score_a
+        else:
+            continue
+        opponent = names.get(opp_id) or ""
+        if not opponent:
+            continue
+        if result.get("IsWon"):
+            word = "победа"
+            form = "win"
+        elif result.get("IsLost"):
+            word = "поражение"
+            form = "loss"
+        else:
+            word = result_word(team_score, opp_score)
+            form = "win" if team_score > opp_score else "loss" if team_score < opp_score else "even"
+        games.append(
+            {
+                "date": short_date(when),
+                "opponent": opponent,
+                "score": f"{team_score}:{opp_score}",
+                "result": word,
+                "form": form,
+                "gameId": result.get("GameID"),
+                "_when": when,
+            }
+        )
+    games.sort(key=lambda row: row["_when"], reverse=True)
+    for row in games:
+        del row["_when"]
+    if limit is not None:
+        return games[:limit]
+    return games
+
+
+def _margins_by_opponent(item, names) -> dict[str, int]:
+    margins: dict[str, int] = {}
+    team_id = item.get("TeamID")
+    for result in item.get("Results") or []:
+        if not isinstance(result, dict):
+            continue
+        score_a, score_b = result.get("ScoreA"), result.get("ScoreB")
+        if not isinstance(score_a, int) or not isinstance(score_b, int):
+            continue
+        if result.get("TeamAid") == team_id:
+            opp_id = result.get("TeamBid")
+            team_score, opp_score = score_a, score_b
+        elif result.get("TeamBid") == team_id:
+            opp_id = result.get("TeamAid")
+            team_score, opp_score = score_b, score_a
+        else:
+            continue
+        opponent = names.get(opp_id) or ""
+        if not opponent or opponent == U14_OUR_NAME:
+            continue
+        margins[opponent] = team_score - opp_score
+    return margins
+
+
+def _common_opponents(our_item, their_item, names, *, limit: int = 4) -> list:
+    if not our_item or not their_item:
+        return []
+    ours = _margins_by_opponent(our_item, names)
+    theirs = _margins_by_opponent(their_item, names)
+    rows = []
+    for opponent in sorted(set(ours) & set(theirs), key=lambda name: name.casefold()):
+        our_margin = ours[opponent]
+        their_margin = theirs[opponent]
+        rows.append(
+            {
+                "name": opponent,
+                "ourMargin": our_margin,
+                "theirMargin": their_margin,
+                "label": f"{opponent}: мы {_fmt_margin(our_margin)}, они {_fmt_margin(their_margin)}",
+            }
+        )
+    return rows[:limit]
+
+
+def _fmt_margin(value: int) -> str:
+    if value > 0:
+        return f"+{value}"
+    return str(value)
+
+
+def _h2h_games_from_results(item, tournament: str, names) -> list:
+    team_id = item.get("TeamID")
+    games = []
+    for result in item.get("Results") or []:
+        if not isinstance(result, dict):
+            continue
+        when = parse_ru_date(str(result.get("GameDate") or ""))
+        score_a, score_b = result.get("ScoreA"), result.get("ScoreB")
+        if not when or not isinstance(score_a, int) or not isinstance(score_b, int):
+            continue
+        if result.get("TeamAid") == team_id:
+            opp_id = result.get("TeamBid")
+            team_score, opp_score = score_a, score_b
+        elif result.get("TeamBid") == team_id:
+            opp_id = result.get("TeamAid")
+            team_score, opp_score = score_b, score_a
+        else:
+            continue
+        if opp_id == ROSTOK_SECOND_TEAM_ID or opp_id not in ROSTOK_FIRST_TEAM_IDS:
+            continue
+        rostok_score = opp_score
+        opp_team_score = team_score
+        if result.get("IsWon") is True:
+            we_won = False
+        elif result.get("IsLost") is True:
+            we_won = True
+        else:
+            we_won = rostok_score > opp_team_score
+        games.append(
+            {
+                "date": short_date(when),
+                "tournament": tournament,
+                "score": f"{rostok_score}:{opp_team_score}",
+                "weWon": we_won,
+                "_when": when,
+            }
+        )
+    games.sort(key=lambda row: row["_when"], reverse=True)
+    for row in games:
+        del row["_when"]
+    return games
+
+
+def _h2h_games_from_data(data: dict, opponent_name: str) -> list:
+    games = []
+    seen: set[str] = set()
+
+    def push(date_s: str, tour: str, score: str, we_won: bool) -> None:
+        key = f"{date_s}|{score}|{tour}"
+        if key in seen or not score:
+            return
+        seen.add(key)
+        games.append({"date": date_s, "tournament": tour, "score": score, "weWon": we_won})
+
+    for tournament in (data.get("gameLogs") or {}).get("tournaments") or []:
+        if not isinstance(tournament, dict):
+            continue
+        tour = str(tournament.get("label") or "")
+        for row in tournament.get("rows") or []:
+            if not isinstance(row, dict):
+                continue
+            if not tokens_compatible_fixture(opponent_name, str(row.get("opponent") or "")):
+                continue
+            score = str(row.get("score") or "").split(",")[0].strip()
+            match = re.search(r"(\d+)\s*:\s*(\d+)", score)
+            if not match:
+                continue
+            our_s, opp_s = int(match.group(1)), int(match.group(2))
+            push(str(row.get("date") or row.get("stage") or ""), tour, f"{our_s}:{opp_s}", our_s > opp_s)
+
+    for matches, tour in (
+        ((data.get("season") or {}).get("matches") or [], "Первенство Москвы"),
+        ((data.get("u14Schedule") or {}).get("matches") or [], "МЛБЛ U14"),
+    ):
+        for match in matches:
+            if not isinstance(match, dict) or match.get("status") == "Ещё не сыгран":
+                continue
+            title = str(match.get("title") or "")
+            if not tokens_compatible_fixture(opponent_name, opponent_from_fixture_title(title)):
+                continue
+            detail = str(match.get("detail") or "")
+            pair = extract_score(detail)
+            if not pair:
+                continue
+            our_s, opp_s = pair
+            scored = bool(re.search(r"победа", detail, re.I))
+            we_won = scored if re.search(r"победа|поражение", detail, re.I) else our_s > opp_s
+            day = (detail.split(",")[0] or "").strip()
+            push(day, tour, f"{our_s}:{opp_s}", we_won)
+
+    games.sort(key=lambda row: short_date_sort(row.get("date") or ""), reverse=True)
+    return games
+
+
+def short_date_sort(text: str) -> tuple:
+    match = re.match(r"(\d{2})\.(\d{2})\.(\d{2})", str(text or ""))
+    if not match:
+        return (0, 0, 0)
+    return (2000 + int(match.group(3)), int(match.group(2)), int(match.group(1)))
+
+
+def _merge_h2h_games(*groups: list) -> dict:
+    merged: list[dict] = []
+    seen: set[str] = set()
+    for group in groups:
+        for row in group:
+            if not isinstance(row, dict):
+                continue
+            key = f"{row.get('date')}|{row.get('score')}"
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append({k: v for k, v in row.items() if not k.startswith("_")})
+    merged.sort(key=lambda row: short_date_sort(row.get("date") or ""), reverse=True)
+    wins = sum(1 for row in merged if row.get("weWon"))
+    losses = len(merged) - wins
+    record = f"{wins}–{losses}" if merged else ""
+    return {"record": record, "games": merged, "wins": wins, "losses": losses}
+
+
+def _mask_opponent_player(number, name_ru: str) -> str | None:
+    raw = re.sub(r"\s+", " ", str(name_ru or "").strip())
+    if not raw:
+        return None
+    parts = raw.split(" ", 1)
+    if len(parts) == 2:
+        last, first = parts[0], parts[1]
+        label = f"{first} {last[:1]}."
+    else:
+        label = parts[0]
+    num = int(number) if isinstance(number, int) or str(number).isdigit() else ""
+    return f"№{num} {label}" if num else label
+
+
+def _top_players_for_team(team_id: int, games: list, notes: list, *, max_games: int = 4) -> list:
+    totals: dict[int, dict] = {}
+    checked = 0
+    for row in games:
+        game_id = row.get("gameId")
+        if not isinstance(game_id, int):
+            continue
+        checked += 1
+        if checked > max_games:
+            break
+        try:
+            online = api(f"/Widget/GetOnline/{game_id}?format=json")
+        except Exception:
+            continue
+        for team in (online or {}).get("GameTeams") or []:
+            if team.get("TeamID") != team_id:
+                continue
+            for person in team.get("Players") or []:
+                if not isinstance(person, dict):
+                    continue
+                label = _mask_opponent_player(person.get("PlayerNumber"), person.get("PersonNameRu"))
+                if not label:
+                    continue
+                num = int(person.get("PlayerNumber") or 0)
+                bucket = totals.setdefault(
+                    num,
+                    {"number": num, "label": label, "points": 0, "rebounds": 0, "games": 0},
+                )
+                bucket["points"] += int(person.get("Points") or 0)
+                bucket["rebounds"] += int(person.get("Rebound") or 0)
+                bucket["games"] += 1
+        time.sleep(0.15)
+    if not totals:
+        return []
+    ranked = sorted(totals.values(), key=lambda row: (-row["points"] / max(row["games"], 1), -row["rebounds"]))
+    top_scorers = []
+    for row in ranked[:3]:
+        games_n = max(row["games"], 1)
+        top_scorers.append(
+            {
+                "label": row["label"],
+                "number": row["number"],
+                "ppg": round(row["points"] / games_n + 1e-9, 1),
+                "rpg": round(row["rebounds"] / games_n + 1e-9, 1),
+            }
+        )
+    best_reb = max(totals.values(), key=lambda row: row["rebounds"] / max(row["games"], 1))
+    reb_g = max(best_reb["games"], 1)
+    rebounder = {
+        "label": best_reb["label"],
+        "number": best_reb["number"],
+        "rpg": round(best_reb["rebounds"] / reb_g + 1e-9, 1),
+    }
+    if rebounder["label"] not in {item["label"] for item in top_scorers}:
+        top_scorers.append({**rebounder, "ppg": round(best_reb["points"] / reb_g + 1e-9, 1), "tag": "rebounds"})
+    blob = json.dumps(top_scorers, ensure_ascii=False)
+    if any(x in blob for x in ("PersonID", "PersonBirth", "http://", "https://", "424578")):
+        notes.append("соперники: топ-игроки не записаны из-за приватности")
+        return []
+    return top_scorers
+
+
+def _compare_with_rostok(our_item, card: dict) -> dict | None:
+    if not our_item:
+        return None
+    our_scored, our_conceded = _avg(our_item)
+    table = our_item.get("Standings") or {}
+    played = table.get("StandingGame") or 0
+    wins = table.get("StandingWin") or 0
+    if not isinstance(played, int) or played <= 0:
+        return None
+    win_pct = round(100 * wins / played)
+    ours = {
+        "scoredAvg": our_scored,
+        "concededAvg": our_conceded,
+        "place": our_item.get("Place"),
+        "winPct": win_pct,
+        "label": "Росток-2014",
+    }
+    theirs = {
+        "scoredAvg": card.get("scoredAvg"),
+        "concededAvg": card.get("concededAvg"),
+        "place": card.get("place"),
+        "winPct": round(100 * card["wins"] / card["played"])
+        if isinstance(card.get("played"), int) and card["played"] > 0
+        else None,
+        "label": card.get("name"),
+    }
+    return {"ours": ours, "theirs": theirs}
+
+
+def _kostya_tips(card: dict, top_players: list) -> list:
+    tips: list[str] = []
+    compare = card.get("compare") or {}
+    our = compare.get("ours") or {}
+    scored = card.get("scoredAvg")
+    conceded = card.get("concededAvg")
+    our_scored = our.get("scoredAvg")
+    our_conceded = our.get("concededAvg")
+    if isinstance(conceded, (int, float)) and isinstance(our_conceded, (int, float)) and conceded <= our_conceded - 4:
+        tips.append("У них защита крепкая — ищи открытого, не лезь в толпу под кольцо.")
+    if isinstance(scored, (int, float)) and isinstance(our_scored, (int, float)) and scored >= our_scored + 7:
+        tips.append("Они много забивают — сразу назад в защиту, когда теряем мяч.")
+    if isinstance(scored, (int, float)) and isinstance(our_scored, (int, float)) and scored <= our_scored - 6:
+        tips.append("Мы в среднем сильнее — спокойно, береги мяч, делай простые передачи.")
+    leader = next((row for row in top_players if row.get("number")), None)
+    if leader:
+        tips.append(f"Следи за {leader['label']} — у него больше всего очков в их составе.")
+    if len(tips) < 2:
+        tips.append("Ты хорошо возвращаешься после травмы — не торопись, играй своей игрой.")
+    return tips[:2]
+
+
+def enrich_opponent_cards(cards: list, data: dict, moscow, u14, notes: list) -> None:
+    if not cards:
+        return
+    our_pm = next((item for item in moscow or [] if isinstance(item, dict) and item.get("TeamID") == TEAM_ID), None)
+    our_u14 = next((item for item in u14 or [] if isinstance(item, dict) and item.get("TeamID") == U14_TEAM_ID), None)
+    names_pm = {item.get("TeamID"): _team_name(item, u14=False) for item in moscow or [] if isinstance(item, dict)}
+    names_u14 = {item.get("TeamID"): _team_name(item, u14=True) for item in u14 or [] if isinstance(item, dict)}
+    items_by_id: dict[tuple[int, bool], dict] = {}
+    for item in moscow or []:
+        if isinstance(item, dict) and item.get("TeamID") is not None:
+            items_by_id[(int(item["TeamID"]), False)] = item
+    for item in u14 or []:
+        if isinstance(item, dict) and item.get("TeamID") is not None:
+            items_by_id[(int(item["TeamID"]), True)] = item
+    for card in cards:
+        team_id = card.get("teamId")
+        is_u14 = card.get("tournament") == "МЛБЛ U14"
+        item = items_by_id.get((int(team_id), is_u14)) if team_id is not None else None
+        names = names_u14 if is_u14 else names_pm
+        our_item = our_u14 if is_u14 else our_pm
+        if not item:
+            continue
+        recent = _team_games_from_results(item, names, limit=3)
+        form_src = _team_games_from_results(item, names, limit=5)
+        card["recent"] = [{k: v for k, v in row.items() if k != "gameId"} for row in recent]
+        card["form"] = [
+            {"result": row["form"], "score": row["score"], "date": row["date"]}
+            for row in reversed(form_src)
+            if row.get("form") in ("win", "loss")
+        ]
+        card["compare"] = _compare_with_rostok(our_item, card)
+        card["commonOpponents"] = _common_opponents(our_item, item, names)
+        card["h2h"] = _merge_h2h_games(
+            _h2h_games_from_results(item, card["tournament"], names),
+            _h2h_games_from_data(data, card["name"]),
+        )
+        try:
+            card["topPlayers"] = _top_players_for_team(int(team_id), form_src, notes)
+        except Exception:
+            card["topPlayers"] = []
+        card["tips"] = _kostya_tips(card, card.get("topPlayers") or [])
+
+
 def opponent_cards(payload, tournament: str, *, u14: bool) -> list:
     if not isinstance(payload, list) or len(payload) < 2:
         raise ValueError("opponents")
@@ -1349,6 +1740,7 @@ def opponent_cards(payload, tournament: str, *, u14: bool) -> list:
         city = str(((item.get("CompTeamName") or {}).get("CompTeamRegionNameRu")) or "").strip()
         card = {
             "name": name,
+            "teamId": team_id,
             "tournament": tournament,
             "place": place,
             "played": played,
@@ -1385,6 +1777,7 @@ def refresh_opponents(data, notes) -> None:
     if moscow is None and u14 is None:
         notes.append("соперники: справочник оставлен прежним")
         return
+    enrich_opponent_cards(blocks, data, moscow, u14, notes)
     blob = json.dumps(blocks, ensure_ascii=False)
     for forbidden in ("424578", "Кириллович", "26.03.2014", "http://", "https://"):
         if forbidden in blob:
@@ -2884,6 +3277,47 @@ def self_test():
     zero = next(card for card in sample_cards if card["name"] == "Новички")
     assert "0 игр" in zero["summary"] and "scoredAvg" not in zero
     assert "ШВСМ" not in json.dumps(sample_cards, ensure_ascii=False) and "424578" not in json.dumps(sample_cards, ensure_ascii=False)
+    assert _mask_opponent_player(7, "Кузнецов Алексей") == "№7 Алексей К."
+    payload_u14 = [
+        {
+            "Place": 1,
+            "TeamID": 5,
+            "CompTeamName": {"CompTeamShortNameRu": "Багратион U14", "CompTeamRegionNameRu": "Можайск"},
+            "Standings": {"StandingGame": 3, "StandingWin": 3, "StandingLose": 0, "StandingPoints": 6, "StandingGoalPlus": 210, "StandingGoalMinus": 120, "AvgGoalPlus": 70, "AvgGoalMinus": 40},
+            "Results": [
+                {"GameDate": "01.11.2026", "TeamAid": 5, "TeamBid": U14_TEAM_ID, "ScoreA": 80, "ScoreB": 50, "IsWon": True, "IsLost": False, "GameID": 1},
+                {"GameDate": "28.10.2026", "TeamAid": 5, "TeamBid": 6, "ScoreA": 60, "ScoreB": 55, "IsWon": True, "IsLost": False, "GameID": 2},
+            ],
+        },
+        {
+            "Place": 9,
+            "TeamID": U14_TEAM_ID,
+            "CompTeamName": {"CompTeamShortNameRu": "ШВСМ Росток U14"},
+            "Standings": {"StandingGame": 3, "StandingWin": 1, "StandingLose": 2, "StandingPoints": 4, "StandingGoalPlus": 150, "StandingGoalMinus": 180, "AvgGoalPlus": 50, "AvgGoalMinus": 60},
+            "Results": [
+                {"GameDate": "28.10.2026", "TeamAid": U14_TEAM_ID, "TeamBid": 6, "ScoreA": 45, "ScoreB": 50, "IsWon": False, "IsLost": True, "GameID": 3},
+            ],
+        },
+        {
+            "Place": 3,
+            "TeamID": 6,
+            "CompTeamName": {"CompTeamShortNameRu": "Гольяново U14"},
+            "Standings": {"StandingGame": 2, "StandingWin": 1, "StandingLose": 1, "StandingPoints": 3, "StandingGoalPlus": 100, "StandingGoalMinus": 90, "AvgGoalPlus": 50, "AvgGoalMinus": 45},
+            "Results": [
+                {"GameDate": "28.10.2026", "TeamAid": 6, "TeamBid": 5, "ScoreA": 55, "ScoreB": 60, "IsWon": False, "IsLost": True, "GameID": 2},
+                {"GameDate": "28.10.2026", "TeamAid": U14_TEAM_ID, "TeamBid": 6, "ScoreA": 45, "ScoreB": 50, "IsWon": False, "IsLost": True, "GameID": 3},
+            ],
+        },
+    ]
+    rich = opponent_cards(payload_u14, "МЛБЛ U14", u14=True)
+    enrich_opponent_cards(rich, {"gameLogs": {"tournaments": []}, "season": {"matches": []}, "u14Schedule": {"matches": []}}, None, payload_u14, [])
+    card = next(item for item in rich if item["name"] == "Багратион")
+    assert card.get("teamId") == 5
+    assert len(card.get("form") or []) >= 1
+    assert card.get("compare", {}).get("ours", {}).get("label") == "Росток-2014"
+    assert any(row["name"] == "Гольяново" for row in card.get("commonOpponents") or [])
+    merged = _merge_h2h_games([{"date": "01.11.26", "tournament": "МЛБЛ U14", "score": "50:80", "weWon": False}])
+    assert merged["record"] == "0–1" and merged["games"][0]["score"] == "50:80"
     old = [{"title": "Росток-2014 — Гольяново-2014-2", "detail": "По новости клуба команда выиграла 62:37.", "status": "Личного протокола нет"}]
     game = {
         "id": 1,
