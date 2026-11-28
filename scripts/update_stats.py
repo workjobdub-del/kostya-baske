@@ -1360,14 +1360,59 @@ def _team_games_from_results(item, names, *, limit: int | None = 3) -> list:
     return games
 
 
-def _margins_by_opponent(item, names) -> dict[str, int]:
-    margins: dict[str, int] = {}
+def _normalize_tournament_label(tour: str) -> str:
+    tour = re.sub(r"\s+", " ", str(tour or "").strip())
+    if re.search(r"МЛБЛ\s*U14", tour, re.I):
+        return "МЛБЛ U14"
+    if "Первенство" in tour or "Мосбаскет" in tour:
+        return "Первенство Москвы"
+    return tour
+
+
+def _h2h_date_key(text: str) -> str:
+    parsed = parse_ru_date(text)
+    if parsed:
+        return short_date(parsed)
+    match = re.match(r"^(\d{2})\.(\d{2})\.(\d{2}|\d{4})$", str(text or "").strip())
+    if match:
+        year = int(match.group(3))
+        if year >= 100:
+            year %= 100
+        return f"{int(match.group(1)):02d}.{int(match.group(2)):02d}.{year:02d}"
+    return str(text or "").strip().casefold()
+
+
+def _h2h_score_key(score: str) -> str:
+    match = re.search(r"(\d+)\s*:\s*(\d+)", str(score or ""))
+    if not match:
+        return str(score or "")
+    return f"{int(match.group(1))}:{int(match.group(2))}"
+
+
+def _h2h_dedupe_key(row: dict) -> str:
+    return f"{_h2h_date_key(row.get('date') or '')}|{_h2h_score_key(row.get('score') or '')}"
+
+
+def _ru_games_word(count: int, *, after_za: bool = False) -> str:
+    n = abs(int(count))
+    n10, n100 = n % 10, n % 100
+    if n10 == 1 and n100 != 11:
+        return "игру" if after_za else "игра"
+    if 2 <= n10 <= 4 and (n100 < 12 or n100 > 14):
+        return "игры"
+    return "игр"
+
+
+def _games_by_opponent(item, names) -> dict[str, list[dict]]:
+    games: dict[str, list[dict]] = {}
     team_id = item.get("TeamID")
+    seen: set[str] = set()
     for result in item.get("Results") or []:
         if not isinstance(result, dict):
             continue
+        when = parse_ru_date(str(result.get("GameDate") or ""))
         score_a, score_b = result.get("ScoreA"), result.get("ScoreB")
-        if not isinstance(score_a, int) or not isinstance(score_b, int):
+        if not when or not isinstance(score_a, int) or not isinstance(score_b, int):
             continue
         if result.get("TeamAid") == team_id:
             opp_id = result.get("TeamBid")
@@ -1380,34 +1425,53 @@ def _margins_by_opponent(item, names) -> dict[str, int]:
         opponent = names.get(opp_id) or ""
         if not opponent or opponent == U14_OUR_NAME:
             continue
-        margins[opponent] = team_score - opp_score
-    return margins
+        game_id = result.get("GameID")
+        dedupe = f"id:{game_id}" if isinstance(game_id, int) else f"{short_date(when)}|{team_score}:{opp_score}"
+        if dedupe in seen:
+            continue
+        seen.add(dedupe)
+        bucket = games.setdefault(opponent, [])
+        bucket.append({"score": f"{team_score}:{opp_score}", "date": short_date(when)})
+    return games
+
+
+def _format_team_scores(games: list[dict]) -> tuple[str, int]:
+    if not games:
+        return "", 0
+    if len(games) == 1:
+        return games[0]["score"], 1
+    scored: list[int] = []
+    conceded: list[int] = []
+    for row in games:
+        match = re.match(r"(\d+):(\d+)", str(row.get("score") or ""))
+        if not match:
+            continue
+        scored.append(int(match.group(1)))
+        conceded.append(int(match.group(2)))
+    if not scored:
+        return games[-1]["score"], len(games)
+    avg_s = round(sum(scored) / len(scored) + 1e-9, 1)
+    avg_c = round(sum(conceded) / len(conceded) + 1e-9, 1)
+    text = f"{str(avg_s).replace('.', ',')}:{str(avg_c).replace('.', ',')}"
+    return text, len(games)
 
 
 def _common_opponents(our_item, their_item, names, *, limit: int = 4) -> list:
     if not our_item or not their_item:
         return []
-    ours = _margins_by_opponent(our_item, names)
-    theirs = _margins_by_opponent(their_item, names)
+    ours = _games_by_opponent(our_item, names)
+    theirs = _games_by_opponent(their_item, names)
     rows = []
     for opponent in sorted(set(ours) & set(theirs), key=lambda name: name.casefold()):
-        our_margin = ours[opponent]
-        their_margin = theirs[opponent]
-        rows.append(
-            {
-                "name": opponent,
-                "ourMargin": our_margin,
-                "theirMargin": their_margin,
-                "label": f"{opponent}: мы {_fmt_margin(our_margin)}, они {_fmt_margin(their_margin)}",
-            }
-        )
+        our_scores, our_n = _format_team_scores(ours[opponent])
+        their_scores, their_n = _format_team_scores(theirs[opponent])
+        games_n = max(our_n, their_n)
+        suffix = ""
+        if our_n > 1 or their_n > 1:
+            suffix = f" (в среднем за {games_n} {_ru_games_word(games_n, after_za=True)})"
+        label = f"{opponent} — мы {our_scores}, они {their_scores}{suffix}"
+        rows.append({"name": opponent, "label": label, "ourScore": our_scores, "theirScore": their_scores})
     return rows[:limit]
-
-
-def _fmt_margin(value: int) -> str:
-    if value > 0:
-        return f"+{value}"
-    return str(value)
 
 
 def _h2h_games_from_results(item, tournament: str, names) -> list:
@@ -1441,7 +1505,7 @@ def _h2h_games_from_results(item, tournament: str, names) -> list:
         games.append(
             {
                 "date": short_date(when),
-                "tournament": tournament,
+                "tournament": _normalize_tournament_label(tournament),
                 "score": f"{rostok_score}:{opp_team_score}",
                 "weWon": we_won,
                 "_when": when,
@@ -1453,16 +1517,19 @@ def _h2h_games_from_results(item, tournament: str, names) -> list:
     return games
 
 
-def _h2h_games_from_data(data: dict, opponent_name: str) -> list:
+def _h2h_games_from_data(data: dict, opponent_name: str, *, skip_keys: set[str] | None = None) -> list:
     games = []
     seen: set[str] = set()
 
     def push(date_s: str, tour: str, score: str, we_won: bool) -> None:
-        key = f"{date_s}|{score}|{tour}"
-        if key in seen or not score:
+        row = {"date": date_s, "tournament": _normalize_tournament_label(tour), "score": score, "weWon": we_won}
+        key = _h2h_dedupe_key(row)
+        if not score or key in seen:
+            return
+        if skip_keys and key in skip_keys:
             return
         seen.add(key)
-        games.append({"date": date_s, "tournament": tour, "score": score, "weWon": we_won})
+        games.append(row)
 
     for tournament in (data.get("gameLogs") or {}).get("tournaments") or []:
         if not isinstance(tournament, dict):
@@ -1512,17 +1579,24 @@ def short_date_sort(text: str) -> tuple:
 
 
 def _merge_h2h_games(*groups: list) -> dict:
-    merged: list[dict] = []
-    seen: set[str] = set()
+    best: dict[str, dict] = {}
     for group in groups:
         for row in group:
             if not isinstance(row, dict):
                 continue
-            key = f"{row.get('date')}|{row.get('score')}"
-            if key in seen:
+            clean = {k: v for k, v in row.items() if not k.startswith("_")}
+            clean["tournament"] = _normalize_tournament_label(clean.get("tournament"))
+            key = _h2h_dedupe_key(clean)
+            if not clean.get("score") or not key.split("|")[0]:
                 continue
-            seen.add(key)
-            merged.append({k: v for k, v in row.items() if not k.startswith("_")})
+            cur = best.get(key)
+            if not cur:
+                best[key] = clean
+                continue
+            if len(str(clean.get("tournament") or "")) < len(str(cur.get("tournament") or "")):
+                clean["weWon"] = cur.get("weWon", clean.get("weWon"))
+                best[key] = clean
+    merged = list(best.values())
     merged.sort(key=lambda row: short_date_sort(row.get("date") or ""), reverse=True)
     wins = sum(1 for row in merged if row.get("weWon"))
     losses = len(merged) - wins
@@ -1621,6 +1695,8 @@ def _compare_with_rostok(our_item, card: dict) -> dict | None:
         "concededAvg": our_conceded,
         "place": our_item.get("Place"),
         "winPct": win_pct,
+        "played": played,
+        "wins": wins,
         "label": "Росток-2014",
     }
     theirs = {
@@ -1630,6 +1706,8 @@ def _compare_with_rostok(our_item, card: dict) -> dict | None:
         "winPct": round(100 * card["wins"] / card["played"])
         if isinstance(card.get("played"), int) and card["played"] > 0
         else None,
+        "played": card.get("played"),
+        "wins": card.get("wins"),
         "label": card.get("name"),
     }
     return {"ours": ours, "theirs": theirs}
@@ -1682,17 +1760,22 @@ def enrich_opponent_cards(cards: list, data: dict, moscow, u14, notes: list) -> 
         recent = _team_games_from_results(item, names, limit=3)
         form_src = _team_games_from_results(item, names, limit=5)
         card["recent"] = [{k: v for k, v in row.items() if k != "gameId"} for row in recent]
-        card["form"] = [
-            {"result": row["form"], "score": row["score"], "date": row["date"]}
-            for row in reversed(form_src)
-            if row.get("form") in ("win", "loss")
-        ]
         card["compare"] = _compare_with_rostok(our_item, card)
         card["commonOpponents"] = _common_opponents(our_item, item, names)
-        card["h2h"] = _merge_h2h_games(
-            _h2h_games_from_results(item, card["tournament"], names),
-            _h2h_games_from_data(data, card["name"]),
-        )
+        h2h_api = _h2h_games_from_results(item, card["tournament"], names)
+        h2h_keys = {_h2h_dedupe_key(row) for row in h2h_api}
+        card["h2h"] = _merge_h2h_games(h2h_api, _h2h_games_from_data(data, card["name"], skip_keys=h2h_keys))
+        form_rows = []
+        form_seen: set[str] = set()
+        for row in reversed(form_src):
+            if row.get("form") not in ("win", "loss"):
+                continue
+            key = f"{row.get('date')}|{row.get('score')}"
+            if key in form_seen:
+                continue
+            form_seen.add(key)
+            form_rows.append({"result": row["form"], "score": row["score"], "date": row["date"]})
+        card["form"] = form_rows
         try:
             card["topPlayers"] = _top_players_for_team(int(team_id), form_src, notes)
         except Exception:
@@ -1757,6 +1840,41 @@ def opponent_cards(payload, tournament: str, *, u14: bool) -> list:
         cards.append(card)
     cards.sort(key=lambda card: (card["tournament"], card["place"], card["name"]))
     return cards
+
+
+def opponent_cards_audit_report(blocks: list) -> str:
+    lines = [
+        "# Проверка карточек соперников",
+        "",
+        "| Команда | Турнир | H2H | Общие соперники | Лучшие игроки |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    h2h_dupes: list[str] = []
+    form_dupes: list[str] = []
+    for card in blocks:
+        if not isinstance(card, dict):
+            continue
+        h2h = card.get("h2h") or {}
+        games = h2h.get("games") or []
+        keys = [_h2h_dedupe_key(game) for game in games if isinstance(game, dict)]
+        if len(keys) != len(set(keys)):
+            h2h_dupes.append(str(card.get("name") or ""))
+        form = card.get("form") or []
+        form_keys = [f"{row.get('date')}|{row.get('score')}" for row in form if isinstance(row, dict)]
+        if len(form_keys) != len(set(form_keys)):
+            form_dupes.append(str(card.get("name") or ""))
+        h2h_cell = h2h.get("record") or "—"
+        if games:
+            h2h_cell = f"{h2h_cell} ({len(games)} {_ru_games_word(len(games))})"
+        common = "; ".join(str(row.get("label") or "") for row in (card.get("commonOpponents") or [])[:3])
+        tops = ", ".join(str(row.get("label") or "") for row in (card.get("topPlayers") or [])[:4])
+        lines.append(
+            f"| {card.get('name', '')} | {card.get('tournament', '')} | {h2h_cell} | {common or '—'} | {tops or '—'} |"
+        )
+    lines.append("")
+    lines.append(f"**Дубли H2H:** {', '.join(h2h_dupes) if h2h_dupes else 'нет'}")
+    lines.append(f"**Дубли формы:** {', '.join(form_dupes) if form_dupes else 'нет'}")
+    return "\n".join(lines)
 
 
 def refresh_opponents(data, notes) -> None:
@@ -3318,6 +3436,12 @@ def self_test():
     assert any(row["name"] == "Гольяново" for row in card.get("commonOpponents") or [])
     merged = _merge_h2h_games([{"date": "01.11.26", "tournament": "МЛБЛ U14", "score": "50:80", "weWon": False}])
     assert merged["record"] == "0–1" and merged["games"][0]["score"] == "50:80"
+    merged_dup = _merge_h2h_games(
+        [{"date": "31.10.26", "tournament": "МЛБЛ U14", "score": "63:84", "weWon": False}],
+        [{"date": "31.10.26", "tournament": "МЛБЛ U14, 26/27", "score": "63:84", "weWon": False}],
+    )
+    assert merged_dup["record"] == "0–1" and len(merged_dup["games"]) == 1
+    assert merged_dup["games"][0]["tournament"] == "МЛБЛ U14"
     old = [{"title": "Росток-2014 — Гольяново-2014-2", "detail": "По новости клуба команда выиграла 62:37.", "status": "Личного протокола нет"}]
     game = {
         "id": 1,
@@ -3923,6 +4047,21 @@ def main():
     self_test()
     if "--self-test" in sys.argv:
         print("self-test ok")
+        return
+    if "--opponent-audit" in sys.argv:
+        data = load("data.json")
+        blocks = (data.get("opponents") or {}).get("teams") or []
+        report = opponent_cards_audit_report(blocks)
+        out = ROOT / "opponent-audit.md"
+        try:
+            artifact = Path("/opt/cursor/artifacts/opponent-audit.md")
+            artifact.parent.mkdir(parents=True, exist_ok=True)
+            artifact.write_text(report, encoding="utf-8")
+            out = artifact
+        except OSError:
+            out.write_text(report, encoding="utf-8")
+        print(report)
+        print(f"\nЗаписано {out}")
         return
     dry = "--dry-run" in sys.argv
     data = load("data.json")

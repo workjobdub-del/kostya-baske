@@ -844,7 +844,7 @@ function heroSeasonHeadlineStats() {
   return `${scope}<div class="hero-stats hero-stats--headline" aria-label="Ключевые средние за сезон">${cells}</div>`;
 }
 
-const ASSET_V = "2026-11-28-17";
+const ASSET_V = "2026-11-28-18";
 const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
 const ICON_REFRESH = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>`;
 const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
@@ -4628,6 +4628,9 @@ function kostyaLine(row) {
   return `Костя: ${bits.join(", ")}`;
 }
 
+const OPP_US_BAR = "#2f9f58";
+const OPP_THEM_BAR = "#c45a1a";
+
 function oppCompareMax(a, b) {
   const x = Number(a);
   const y = Number(b);
@@ -4637,18 +4640,36 @@ function oppCompareMax(a, b) {
   return Math.max(x, y, 1);
 }
 
-function oppCompareBar(label, ours, theirs, oppColor) {
+function oppMetricValue(value, played, { percent = false } = {}) {
+  if (value == null || !Number.isFinite(Number(value))) return "—";
+  if (percent) {
+    const base = `${Math.round(Number(value))}%`;
+    if (!played) return base;
+    return `${base} · ${ruCount(played, "игра", "игры", "игр")}`;
+  }
+  const base = formatAvg(value);
+  if (!played) return base;
+  return `${base} · за ${ruCount(played, "игру", "игры", "игр")}`;
+}
+
+function oppMetricBar(value, color, played, options) {
+  const num = Number(value);
+  const max = options.max || 1;
+  const width = Number.isFinite(num) ? Math.max(4, Math.round((100 * num) / max)) : 0;
+  const label = oppMetricValue(value, played, options);
+  return `<div class="opp-metric-bar">
+    <div class="opp-metric-track"><span class="opp-metric-fill" style="width:${width}%;background:${color}"></span></div>
+    <span class="opp-metric-num" style="color:${color}">${esc(label)}</span>
+  </div>`;
+}
+
+function oppMetricBlock(title, hint, ours, theirs, ourPlayed, theirPlayed, options) {
   if (ours == null && theirs == null) return "";
   const max = oppCompareMax(ours, theirs);
-  const ourPct = ours == null ? 0 : Math.round((100 * ours) / max);
-  const theirPct = theirs == null ? 0 : Math.round((100 * theirs) / max);
-  return `<div class="opp-compare-row">
-    <span class="opp-compare-label">${esc(label)}</span>
-    <div class="opp-compare-bars" aria-hidden="true">
-      <span class="opp-compare-bar opp-compare-bar--us" style="width:${ourPct}%"></span>
-      <span class="opp-compare-bar opp-compare-bar--them" style="width:${theirPct}%;--opp-bar:${esc(oppColor)}"></span>
-    </div>
-    <span class="opp-compare-vals"><span class="opp-compare-us">${ours == null ? "—" : esc(String(ours))}</span><span class="opp-compare-them">${theirs == null ? "—" : esc(String(theirs))}</span></span>
+  return `<div class="opp-metric">
+    <div class="opp-metric-title">${esc(title)}${hint ? `<span class="opp-metric-hint">${esc(hint)}</span>` : ""}</div>
+    ${oppMetricBar(ours, OPP_US_BAR, ourPlayed, { ...options, max })}
+    ${oppMetricBar(theirs, OPP_THEM_BAR, theirPlayed, { ...options, max })}
   </div>`;
 }
 
@@ -4656,19 +4677,15 @@ function renderOppCompare(compare, oppName) {
   if (!compare || !compare.ours || !compare.theirs) return "";
   const ours = compare.ours;
   const theirs = compare.theirs;
-  const color = oppBadgeColor(oppName);
-  const placeRow = `<div class="opp-compare-row opp-compare-row--place">
-    <span class="opp-compare-label">Место в таблице</span>
-    <span aria-hidden="true"></span>
-    <span class="opp-compare-vals"><span class="opp-compare-us">${ours.place != null ? `${ours.place}-е` : "—"}</span><span class="opp-compare-them">${theirs.place != null ? `${theirs.place}-е` : "—"}</span></span>
-  </div>`;
-  const winRow = oppCompareBar("% побед", ours.winPct, theirs.winPct, color);
+  const usLabel = ours.label || "Росток-2014";
   return `<section class="opp-compare" aria-label="Сравнение с Ростком">
-    <div class="opp-compare-head"><span class="opp-compare-us">Росток</span><span class="opp-compare-them">Соперник</span></div>
-    ${oppCompareBar("Забитые в среднем", ours.scoredAvg, theirs.scoredAvg, color)}
-    ${oppCompareBar("Пропущенные в среднем", ours.concededAvg, theirs.concededAvg, color)}
-    ${placeRow}
-    ${winRow}
+    <div class="opp-compare-legend">
+      <span class="opp-legend-item"><span class="opp-legend-dot" style="background:${OPP_US_BAR}"></span>${esc(usLabel)}</span>
+      <span class="opp-legend-item"><span class="opp-legend-dot" style="background:${OPP_THEM_BAR}"></span>${esc(oppName || theirs.label || "Соперник")}</span>
+    </div>
+    ${oppMetricBlock("Забитые в среднем", "", ours.scoredAvg, theirs.scoredAvg, ours.played, theirs.played, {})}
+    ${oppMetricBlock("Пропущенные в среднем", "меньше — лучше", ours.concededAvg, theirs.concededAvg, ours.played, theirs.played, {})}
+    ${oppMetricBlock("% побед", "", ours.winPct, theirs.winPct, ours.played, theirs.played, { percent: true })}
   </section>`;
 }
 
@@ -4682,20 +4699,32 @@ function renderOppForm(form) {
       return `<span class="opp-form-dot ${cls}" title="${esc(title)}" aria-label="${esc(title)}"></span>`;
     })
     .join("");
-  return `<section class="opp-form-block" aria-label="Форма">
-    <span class="opp-form-label">Форма</span>
+  return `<section class="opp-form-block" aria-label="Последние игры">
+    <div class="opp-form-head">
+      <span class="opp-form-label">Последние игры</span>
+      <span class="opp-form-hint">← раньше · свежая →</span>
+    </div>
     <div class="opp-form-dots">${dots}</div>
   </section>`;
+}
+
+function renderOppChips(team) {
+  if (!team || !team.played) return "";
+  const chips = [
+    `${team.place}-е место`,
+    `${ruCount(team.wins, "победа", "победы", "побед")} · ${ruCount(team.losses, "поражение", "поражения", "поражений")}`,
+  ];
+  if (team.scoredAvg != null) chips.push(`${formatAvg(team.scoredAvg)} забитых`);
+  if (team.concededAvg != null) chips.push(`${formatAvg(team.concededAvg)} пропущенных`);
+  return `<div class="opp-chips">${chips.map((chip) => `<span class="opp-chip-stat">${esc(chip)}</span>`).join("")}</div>`;
 }
 
 function renderOppHead(team) {
   const form = renderOppForm(team && team.form);
   const compare = renderOppCompare(team && team.compare, team && team.name);
   if (!form && !compare) return "";
-  const strip = team && team.played
-    ? `<p class="opp-strip">${[`${team.place}-е место`, `${team.wins}В–${team.losses}П`, team.scoredAvg == null ? "" : `${formatAvg(team.scoredAvg)} забитых`, team.concededAvg == null ? "" : `${formatAvg(team.concededAvg)} пропущенных`].filter(Boolean).join(" · ")}</p>`
-    : "";
-  return `${strip}<div class="opp-head-grid">${form}${compare}</div>`;
+  const chips = renderOppChips(team);
+  return `${chips}<div class="opp-head-grid">${form}${compare}</div>`;
 }
 
 function renderOppTips(tips) {
@@ -4708,7 +4737,12 @@ function renderOppPlayers(players) {
   const rows = (players || []).filter((row) => row && row.label);
   if (!rows.length) return "";
   const items = rows.map((row) => {
-    const stat = row.tag === "rebounds" ? `${row.rpg} подб./игра` : `${row.ppg} очк./игра`;
+    const ppg = formatAvg(row.ppg);
+    const rpg = formatAvg(row.rpg);
+    const stat =
+      row.tag === "rebounds"
+        ? `${rpg} ${ruCount(rpg, "подбор за игру", "подбора за игру", "подборов за игру")}`
+        : `${ppg} ${ruCount(ppg, "очко за игру", "очка за игру", "очков за игру")}`;
     return `<li><span class="opp-player-name">${esc(row.label)}</span> · ${esc(stat)}</li>`;
   });
   return `<section class="opp-players"><h3 class="sheet-sub">Лучшие у соперника</h3><ul class="opp-list">${items.join("")}</ul></section>`;

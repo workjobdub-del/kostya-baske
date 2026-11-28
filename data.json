@@ -2042,6 +2042,40 @@
         "city": "Москва",
         "scoredAvg": 63.0,
         "concededAvg": 21.0,
+        "compare": {
+          "ours": {
+            "scoredAvg": 62.0,
+            "concededAvg": 37.0,
+            "place": 6,
+            "winPct": 100,
+            "played": 1,
+            "wins": 1,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 63.0,
+            "concededAvg": 21.0,
+            "place": 1,
+            "winPct": 100,
+            "played": 3,
+            "wins": 3,
+            "label": "Тимирязевская-2014"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "Гольяново-2014-2",
+            "label": "Гольяново-2014-2 — мы 62:37, они 63:26",
+            "ourScore": "62:37",
+            "theirScore": "63:26"
+          }
+        ],
+        "h2h": {
+          "record": "",
+          "games": [],
+          "wins": 0,
+          "losses": 0
+        },
         "form": [
           {
             "result": "win",
@@ -2059,36 +2093,6 @@
             "date": "21.11.26"
           }
         ],
-        "compare": {
-          "ours": {
-            "scoredAvg": 62.0,
-            "concededAvg": 37.0,
-            "place": 6,
-            "winPct": 100,
-            "label": "Росток-2014"
-          },
-          "theirs": {
-            "scoredAvg": 63.0,
-            "concededAvg": 21.0,
-            "place": 1,
-            "winPct": 100,
-            "label": "Тимирязевская-2014"
-          }
-        },
-        "commonOpponents": [
-          {
-            "name": "Гольяново-2014-2",
-            "ourMargin": 25,
-            "theirMargin": 37,
-            "label": "Гольяново-2014-2: мы +25, они +37"
-          }
-        ],
-        "h2h": {
-          "record": "",
-          "games": [],
-          "wins": 0,
-          "losses": 0
-        },
         "topPlayers": [
           {
             "label": "№34 Егор Л.",
@@ -2156,6 +2160,40 @@
         "city": "Москва",
         "scoredAvg": 50.0,
         "concededAvg": 24.3,
+        "compare": {
+          "ours": {
+            "scoredAvg": 62.0,
+            "concededAvg": 37.0,
+            "place": 6,
+            "winPct": 100,
+            "played": 1,
+            "wins": 1,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 50.0,
+            "concededAvg": 24.3,
+            "place": 2,
+            "winPct": 100,
+            "played": 3,
+            "wins": 3,
+            "label": "Тринта-2014-2"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "Гольяново-2014-2",
+            "label": "Гольяново-2014-2 — мы 62:37, они 51:19",
+            "ourScore": "62:37",
+            "theirScore": "51:19"
+          }
+        ],
+        "h2h": {
+          "record": "",
+          "games": [],
+          "wins": 0,
+          "losses": 0
+        },
         "form": [
           {
             "result": "win",
@@ -2173,36 +2211,6 @@
             "date": "07.11.26"
           }
         ],
-        "compare": {
-          "ours": {
-            "scoredAvg": 62.0,
-            "concededAvg": 37.0,
-            "place": 6,
-            "winPct": 100,
-            "label": "Росток-2014"
-          },
-          "theirs": {
-            "scoredAvg": 50.0,
-            "concededAvg": 24.3,
-            "place": 2,
-            "winPct": 100,
-            "label": "Тринта-2014-2"
-          }
-        },
-        "commonOpponents": [
-          {
-            "name": "Гольяново-2014-2",
-            "ourMargin": 25,
-            "theirMargin": 32,
-            "label": "Гольяново-2014-2: мы +25, они +32"
-          }
-        ],
-        "h2h": {
-          "record": "",
-          "games": [],
-          "wins": 0,
-          "losses": 0
-        },
         "topPlayers": [
           {
             "label": "№17 Владимир Е.",
@@ -2263,6 +2271,33 @@
         "city": "Москва",
         "scoredAvg": 35.0,
         "concededAvg": 56.0,
+        "compare": {
+          "ours": {
+            "scoredAvg": 62.0,
+            "concededAvg": 37.0,
+            "place": 6,
+            "winPct": 100,
+            "played": 1,
+            "wins": 1,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 35.0,
+            "concededAvg": 56.0,
+            "place": 3,
+            "winPct": 33,
+            "played": 3,
+            "wins": 1,
+            "label": "Айбаскет-2014-2"
+          }
+        },
+        "commonOpponents": [],
+        "h2h": {
+          "record": "",
+          "games": [],
+          "wins": 0,
+          "losses": 0
+        },
         "form": [
           {
             "result": "win",
@@ -2280,29 +2315,6 @@
             "date": "21.11.26"
           }
         ],
-        "compare": {
-          "ours": {
-            "scoredAvg": 62.0,
-            "concededAvg": 37.0,
-            "place": 6,
-            "winPct": 100,
-            "label": "Росток-2014"
-          },
-          "theirs": {
-            "scoredAvg": 35.0,
-            "concededAvg": 56.0,
-            "place": 3,
-            "winPct": 33,
-            "label": "Айбаскет-2014-2"
-          }
-        },
-        "commonOpponents": [],
-        "h2h": {
-          "record": "",
-          "games": [],
-          "wins": 0,
-          "losses": 0
-        },
         "topPlayers": [
           {
             "label": "№11 Федор Ш.",
@@ -2363,6 +2375,40 @@
         "city": "Москва",
         "scoredAvg": 29.0,
         "concededAvg": 56.0,
+        "compare": {
+          "ours": {
+            "scoredAvg": 62.0,
+            "concededAvg": 37.0,
+            "place": 6,
+            "winPct": 100,
+            "played": 1,
+            "wins": 1,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 29.0,
+            "concededAvg": 56.0,
+            "place": 4,
+            "winPct": 0,
+            "played": 4,
+            "wins": 0,
+            "label": "Гольяново-2014-2"
+          }
+        },
+        "commonOpponents": [],
+        "h2h": {
+          "record": "1–0",
+          "games": [
+            {
+              "date": "24.10.26",
+              "tournament": "Первенство Москвы",
+              "score": "62:37",
+              "weWon": true
+            }
+          ],
+          "wins": 1,
+          "losses": 0
+        },
         "form": [
           {
             "result": "loss",
@@ -2385,42 +2431,6 @@
             "date": "15.11.26"
           }
         ],
-        "compare": {
-          "ours": {
-            "scoredAvg": 62.0,
-            "concededAvg": 37.0,
-            "place": 6,
-            "winPct": 100,
-            "label": "Росток-2014"
-          },
-          "theirs": {
-            "scoredAvg": 29.0,
-            "concededAvg": 56.0,
-            "place": 4,
-            "winPct": 0,
-            "label": "Гольяново-2014-2"
-          }
-        },
-        "commonOpponents": [],
-        "h2h": {
-          "record": "2–0",
-          "games": [
-            {
-              "date": "24.10.26",
-              "tournament": "Первенство Москвы",
-              "score": "62:37",
-              "weWon": true
-            },
-            {
-              "date": "24.10.26",
-              "tournament": "Росток-2014, 26/27",
-              "score": "62:37",
-              "weWon": true
-            }
-          ],
-          "wins": 2,
-          "losses": 0
-        },
         "topPlayers": [
           {
             "label": "№22 Тимофей К.",
@@ -2481,6 +2491,40 @@
         "city": "Москва",
         "scoredAvg": 45.0,
         "concededAvg": 40.5,
+        "compare": {
+          "ours": {
+            "scoredAvg": 62.0,
+            "concededAvg": 37.0,
+            "place": 6,
+            "winPct": 100,
+            "played": 1,
+            "wins": 1,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 45.0,
+            "concededAvg": 40.5,
+            "place": 5,
+            "winPct": 50,
+            "played": 2,
+            "wins": 1,
+            "label": "К Пахра-2014-2"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "Гольяново-2014-2",
+            "label": "Гольяново-2014-2 — мы 62:37, они 48:34",
+            "ourScore": "62:37",
+            "theirScore": "48:34"
+          }
+        ],
+        "h2h": {
+          "record": "",
+          "games": [],
+          "wins": 0,
+          "losses": 0
+        },
         "form": [
           {
             "result": "loss",
@@ -2493,36 +2537,6 @@
             "date": "01.11.26"
           }
         ],
-        "compare": {
-          "ours": {
-            "scoredAvg": 62.0,
-            "concededAvg": 37.0,
-            "place": 6,
-            "winPct": 100,
-            "label": "Росток-2014"
-          },
-          "theirs": {
-            "scoredAvg": 45.0,
-            "concededAvg": 40.5,
-            "place": 5,
-            "winPct": 50,
-            "label": "К Пахра-2014-2"
-          }
-        },
-        "commonOpponents": [
-          {
-            "name": "Гольяново-2014-2",
-            "ourMargin": 25,
-            "theirMargin": 14,
-            "label": "Гольяново-2014-2: мы +25, они +14"
-          }
-        ],
-        "h2h": {
-          "record": "",
-          "games": [],
-          "wins": 0,
-          "losses": 0
-        },
         "topPlayers": [
           {
             "label": "№6 Александр Н.",
@@ -2583,6 +2597,33 @@
         "city": "Москва",
         "scoredAvg": 16.5,
         "concededAvg": 49.5,
+        "compare": {
+          "ours": {
+            "scoredAvg": 62.0,
+            "concededAvg": 37.0,
+            "place": 6,
+            "winPct": 100,
+            "played": 1,
+            "wins": 1,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 16.5,
+            "concededAvg": 49.5,
+            "place": 7,
+            "winPct": 0,
+            "played": 2,
+            "wins": 0,
+            "label": "Глория-2014-3"
+          }
+        },
+        "commonOpponents": [],
+        "h2h": {
+          "record": "",
+          "games": [],
+          "wins": 0,
+          "losses": 0
+        },
         "form": [
           {
             "result": "loss",
@@ -2595,29 +2636,6 @@
             "date": "31.10.26"
           }
         ],
-        "compare": {
-          "ours": {
-            "scoredAvg": 62.0,
-            "concededAvg": 37.0,
-            "place": 6,
-            "winPct": 100,
-            "label": "Росток-2014"
-          },
-          "theirs": {
-            "scoredAvg": 16.5,
-            "concededAvg": 49.5,
-            "place": 7,
-            "winPct": 0,
-            "label": "Глория-2014-3"
-          }
-        },
-        "commonOpponents": [],
-        "h2h": {
-          "record": "",
-          "games": [],
-          "wins": 0,
-          "losses": 0
-        },
         "topPlayers": [
           {
             "label": "№10 Степан М.",
@@ -2678,6 +2696,53 @@
         "city": "Москва",
         "scoredAvg": 101.8,
         "concededAvg": 42.6,
+        "compare": {
+          "ours": {
+            "scoredAvg": 49.8,
+            "concededAvg": 74.3,
+            "place": 6,
+            "winPct": 33,
+            "played": 6,
+            "wins": 2,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 101.8,
+            "concededAvg": 42.6,
+            "place": 1,
+            "winPct": 80,
+            "played": 5,
+            "wins": 4,
+            "label": "SP Basket"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "MO.BASKET",
+            "label": "MO.BASKET — мы 43:71, они 73:56",
+            "ourScore": "43:71",
+            "theirScore": "73:56"
+          },
+          {
+            "name": "Takeshot Academy",
+            "label": "Takeshot Academy — мы 63:84, они 141:11",
+            "ourScore": "63:84",
+            "theirScore": "141:11"
+          }
+        ],
+        "h2h": {
+          "record": "0–1",
+          "games": [
+            {
+              "date": "22.11.26",
+              "tournament": "МЛБЛ U14",
+              "score": "52:113",
+              "weWon": false
+            }
+          ],
+          "wins": 0,
+          "losses": 1
+        },
         "form": [
           {
             "result": "win",
@@ -2705,55 +2770,6 @@
             "date": "22.11.26"
           }
         ],
-        "compare": {
-          "ours": {
-            "scoredAvg": 49.8,
-            "concededAvg": 74.3,
-            "place": 6,
-            "winPct": 33,
-            "label": "Росток-2014"
-          },
-          "theirs": {
-            "scoredAvg": 101.8,
-            "concededAvg": 42.6,
-            "place": 1,
-            "winPct": 80,
-            "label": "SP Basket"
-          }
-        },
-        "commonOpponents": [
-          {
-            "name": "MO.BASKET",
-            "ourMargin": -28,
-            "theirMargin": 17,
-            "label": "MO.BASKET: мы -28, они +17"
-          },
-          {
-            "name": "Takeshot Academy",
-            "ourMargin": -21,
-            "theirMargin": 130,
-            "label": "Takeshot Academy: мы -21, они +130"
-          }
-        ],
-        "h2h": {
-          "record": "0–2",
-          "games": [
-            {
-              "date": "22.11.26",
-              "tournament": "МЛБЛ U14",
-              "score": "52:113",
-              "weWon": false
-            },
-            {
-              "date": "22.11.26",
-              "tournament": "МЛБЛ U14, 26/27",
-              "score": "52:113",
-              "weWon": false
-            }
-          ],
-          "wins": 0,
-          "losses": 2
-        },
         "topPlayers": [
           {
             "label": "№5 Егор М.",
@@ -2821,6 +2837,65 @@
         "city": "Москва",
         "scoredAvg": 77.0,
         "concededAvg": 48.6,
+        "compare": {
+          "ours": {
+            "scoredAvg": 49.8,
+            "concededAvg": 74.3,
+            "place": 6,
+            "winPct": 33,
+            "played": 6,
+            "wins": 2,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 77.0,
+            "concededAvg": 48.6,
+            "place": 2,
+            "winPct": 80,
+            "played": 5,
+            "wins": 4,
+            "label": "MO.BASKET"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "SP Basket",
+            "label": "SP Basket — мы 52:113, они 56:73",
+            "ourScore": "52:113",
+            "theirScore": "56:73"
+          },
+          {
+            "name": "Takeshot Academy",
+            "label": "Takeshot Academy — мы 63:84, они 92:52",
+            "ourScore": "63:84",
+            "theirScore": "92:52"
+          },
+          {
+            "name": "Багратион",
+            "label": "Багратион — мы 50:46, они 77:36",
+            "ourScore": "50:46",
+            "theirScore": "77:36"
+          },
+          {
+            "name": "Первомайская",
+            "label": "Первомайская — мы 61:57, они 89:39",
+            "ourScore": "61:57",
+            "theirScore": "89:39"
+          }
+        ],
+        "h2h": {
+          "record": "0–1",
+          "games": [
+            {
+              "date": "08.11.26",
+              "tournament": "МЛБЛ U14",
+              "score": "43:71",
+              "weWon": false
+            }
+          ],
+          "wins": 0,
+          "losses": 1
+        },
         "form": [
           {
             "result": "win",
@@ -2848,67 +2923,6 @@
             "date": "08.11.26"
           }
         ],
-        "compare": {
-          "ours": {
-            "scoredAvg": 49.8,
-            "concededAvg": 74.3,
-            "place": 6,
-            "winPct": 33,
-            "label": "Росток-2014"
-          },
-          "theirs": {
-            "scoredAvg": 77.0,
-            "concededAvg": 48.6,
-            "place": 2,
-            "winPct": 80,
-            "label": "MO.BASKET"
-          }
-        },
-        "commonOpponents": [
-          {
-            "name": "SP Basket",
-            "ourMargin": -61,
-            "theirMargin": -17,
-            "label": "SP Basket: мы -61, они -17"
-          },
-          {
-            "name": "Takeshot Academy",
-            "ourMargin": -21,
-            "theirMargin": 40,
-            "label": "Takeshot Academy: мы -21, они +40"
-          },
-          {
-            "name": "Багратион",
-            "ourMargin": 4,
-            "theirMargin": 41,
-            "label": "Багратион: мы +4, они +41"
-          },
-          {
-            "name": "Первомайская",
-            "ourMargin": 4,
-            "theirMargin": 50,
-            "label": "Первомайская: мы +4, они +50"
-          }
-        ],
-        "h2h": {
-          "record": "0–2",
-          "games": [
-            {
-              "date": "08.11.26",
-              "tournament": "МЛБЛ U14",
-              "score": "43:71",
-              "weWon": false
-            },
-            {
-              "date": "08.11.26",
-              "tournament": "МЛБЛ U14, 26/27",
-              "score": "43:71",
-              "weWon": false
-            }
-          ],
-          "wins": 0,
-          "losses": 2
-        },
         "topPlayers": [
           {
             "label": "№1 Артем Т.",
@@ -2976,6 +2990,40 @@
         "city": "Москва",
         "scoredAvg": 91.0,
         "concededAvg": 29.3,
+        "compare": {
+          "ours": {
+            "scoredAvg": 49.8,
+            "concededAvg": 74.3,
+            "place": 6,
+            "winPct": 33,
+            "played": 6,
+            "wins": 2,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 91.0,
+            "concededAvg": 29.3,
+            "place": 3,
+            "winPct": 100,
+            "played": 4,
+            "wins": 4,
+            "label": "Росток-2013"
+          }
+        },
+        "commonOpponents": [],
+        "h2h": {
+          "record": "0–1",
+          "games": [
+            {
+              "date": "19.09.26",
+              "tournament": "МЛБЛ U14",
+              "score": "30:75",
+              "weWon": false
+            }
+          ],
+          "wins": 0,
+          "losses": 1
+        },
         "form": [
           {
             "result": "win",
@@ -2998,36 +3046,6 @@
             "date": "21.11.26"
           }
         ],
-        "compare": {
-          "ours": {
-            "scoredAvg": 49.8,
-            "concededAvg": 74.3,
-            "place": 6,
-            "winPct": 33,
-            "label": "Росток-2014"
-          },
-          "theirs": {
-            "scoredAvg": 91.0,
-            "concededAvg": 29.3,
-            "place": 3,
-            "winPct": 100,
-            "label": "Росток-2013"
-          }
-        },
-        "commonOpponents": [],
-        "h2h": {
-          "record": "0–1",
-          "games": [
-            {
-              "date": "19.09.26",
-              "tournament": "МЛБЛ U14",
-              "score": "30:75",
-              "weWon": false
-            }
-          ],
-          "wins": 0,
-          "losses": 1
-        },
         "topPlayers": [
           {
             "label": "№45 Дмитрий С.",
@@ -3088,6 +3106,40 @@
         "city": "Москва",
         "scoredAvg": 92.5,
         "concededAvg": 32.5,
+        "compare": {
+          "ours": {
+            "scoredAvg": 49.8,
+            "concededAvg": 74.3,
+            "place": 6,
+            "winPct": 33,
+            "played": 6,
+            "wins": 2,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 92.5,
+            "concededAvg": 32.5,
+            "place": 4,
+            "winPct": 100,
+            "played": 4,
+            "wins": 4,
+            "label": "Красная Пахра"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "SP Basket",
+            "label": "SP Basket — мы 52:113, они 72:60",
+            "ourScore": "52:113",
+            "theirScore": "72:60"
+          }
+        ],
+        "h2h": {
+          "record": "",
+          "games": [],
+          "wins": 0,
+          "losses": 0
+        },
         "form": [
           {
             "result": "win",
@@ -3110,36 +3162,6 @@
             "date": "08.11.26"
           }
         ],
-        "compare": {
-          "ours": {
-            "scoredAvg": 49.8,
-            "concededAvg": 74.3,
-            "place": 6,
-            "winPct": 33,
-            "label": "Росток-2014"
-          },
-          "theirs": {
-            "scoredAvg": 92.5,
-            "concededAvg": 32.5,
-            "place": 4,
-            "winPct": 100,
-            "label": "Красная Пахра"
-          }
-        },
-        "commonOpponents": [
-          {
-            "name": "SP Basket",
-            "ourMargin": -61,
-            "theirMargin": 12,
-            "label": "SP Basket: мы -61, они +12"
-          }
-        ],
-        "h2h": {
-          "record": "",
-          "games": [],
-          "wins": 0,
-          "losses": 0
-        },
         "topPlayers": [
           {
             "label": "№91 Артур П.",
@@ -3207,6 +3229,46 @@
         "city": "Москва",
         "scoredAvg": 64.4,
         "concededAvg": 46.4,
+        "compare": {
+          "ours": {
+            "scoredAvg": 49.8,
+            "concededAvg": 74.3,
+            "place": 6,
+            "winPct": 33,
+            "played": 6,
+            "wins": 2,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 64.4,
+            "concededAvg": 46.4,
+            "place": 5,
+            "winPct": 60,
+            "played": 5,
+            "wins": 3,
+            "label": "БА Прогресс"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "Багратион",
+            "label": "Багратион — мы 50:46, они 70:45",
+            "ourScore": "50:46",
+            "theirScore": "70:45"
+          },
+          {
+            "name": "Первомайская",
+            "label": "Первомайская — мы 61:57, они 60:27",
+            "ourScore": "61:57",
+            "theirScore": "60:27"
+          }
+        ],
+        "h2h": {
+          "record": "",
+          "games": [],
+          "wins": 0,
+          "losses": 0
+        },
         "form": [
           {
             "result": "win",
@@ -3234,42 +3296,6 @@
             "date": "14.11.26"
           }
         ],
-        "compare": {
-          "ours": {
-            "scoredAvg": 49.8,
-            "concededAvg": 74.3,
-            "place": 6,
-            "winPct": 33,
-            "label": "Росток-2014"
-          },
-          "theirs": {
-            "scoredAvg": 64.4,
-            "concededAvg": 46.4,
-            "place": 5,
-            "winPct": 60,
-            "label": "БА Прогресс"
-          }
-        },
-        "commonOpponents": [
-          {
-            "name": "Багратион",
-            "ourMargin": 4,
-            "theirMargin": 25,
-            "label": "Багратион: мы +4, они +25"
-          },
-          {
-            "name": "Первомайская",
-            "ourMargin": 4,
-            "theirMargin": 33,
-            "label": "Первомайская: мы +4, они +33"
-          }
-        ],
-        "h2h": {
-          "record": "",
-          "games": [],
-          "wins": 0,
-          "losses": 0
-        },
         "topPlayers": [
           {
             "label": "№63 Семен Л.",
@@ -3330,6 +3356,53 @@
         "city": "Можайск",
         "scoredAvg": 59.8,
         "concededAvg": 58.0,
+        "compare": {
+          "ours": {
+            "scoredAvg": 49.8,
+            "concededAvg": 74.3,
+            "place": 6,
+            "winPct": 33,
+            "played": 6,
+            "wins": 2,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 59.8,
+            "concededAvg": 58.0,
+            "place": 7,
+            "winPct": 40,
+            "played": 5,
+            "wins": 2,
+            "label": "Багратион"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "MO.BASKET",
+            "label": "MO.BASKET — мы 43:71, они 36:77",
+            "ourScore": "43:71",
+            "theirScore": "36:77"
+          },
+          {
+            "name": "Takeshot Academy",
+            "label": "Takeshot Academy — мы 63:84, они 82:60",
+            "ourScore": "63:84",
+            "theirScore": "82:60"
+          }
+        ],
+        "h2h": {
+          "record": "1–0",
+          "games": [
+            {
+              "date": "07.11.26",
+              "tournament": "МЛБЛ U14",
+              "score": "50:46",
+              "weWon": true
+            }
+          ],
+          "wins": 1,
+          "losses": 0
+        },
         "form": [
           {
             "result": "win",
@@ -3357,55 +3430,6 @@
             "date": "14.11.26"
           }
         ],
-        "compare": {
-          "ours": {
-            "scoredAvg": 49.8,
-            "concededAvg": 74.3,
-            "place": 6,
-            "winPct": 33,
-            "label": "Росток-2014"
-          },
-          "theirs": {
-            "scoredAvg": 59.8,
-            "concededAvg": 58.0,
-            "place": 7,
-            "winPct": 40,
-            "label": "Багратион"
-          }
-        },
-        "commonOpponents": [
-          {
-            "name": "MO.BASKET",
-            "ourMargin": -28,
-            "theirMargin": -41,
-            "label": "MO.BASKET: мы -28, они -41"
-          },
-          {
-            "name": "Takeshot Academy",
-            "ourMargin": -21,
-            "theirMargin": 22,
-            "label": "Takeshot Academy: мы -21, они +22"
-          }
-        ],
-        "h2h": {
-          "record": "2–0",
-          "games": [
-            {
-              "date": "07.11.26",
-              "tournament": "МЛБЛ U14",
-              "score": "50:46",
-              "weWon": true
-            },
-            {
-              "date": "07.11.26",
-              "tournament": "МЛБЛ U14, 26/27",
-              "score": "50:46",
-              "weWon": true
-            }
-          ],
-          "wins": 2,
-          "losses": 0
-        },
         "topPlayers": [
           {
             "label": "№5 Дмитрий А.",
@@ -3466,6 +3490,59 @@
         "city": "Москва",
         "scoredAvg": 61.6,
         "concededAvg": 84.2,
+        "compare": {
+          "ours": {
+            "scoredAvg": 49.8,
+            "concededAvg": 74.3,
+            "place": 6,
+            "winPct": 33,
+            "played": 6,
+            "wins": 2,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 61.6,
+            "concededAvg": 84.2,
+            "place": 8,
+            "winPct": 40,
+            "played": 5,
+            "wins": 2,
+            "label": "Takeshot Academy"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "MO.BASKET",
+            "label": "MO.BASKET — мы 43:71, они 52:92",
+            "ourScore": "43:71",
+            "theirScore": "52:92"
+          },
+          {
+            "name": "SP Basket",
+            "label": "SP Basket — мы 52:113, они 11:141",
+            "ourScore": "52:113",
+            "theirScore": "11:141"
+          },
+          {
+            "name": "Багратион",
+            "label": "Багратион — мы 50:46, они 60:82",
+            "ourScore": "50:46",
+            "theirScore": "60:82"
+          }
+        ],
+        "h2h": {
+          "record": "0–1",
+          "games": [
+            {
+              "date": "31.10.26",
+              "tournament": "МЛБЛ U14",
+              "score": "63:84",
+              "weWon": false
+            }
+          ],
+          "wins": 0,
+          "losses": 1
+        },
         "form": [
           {
             "result": "loss",
@@ -3493,61 +3570,6 @@
             "date": "15.11.26"
           }
         ],
-        "compare": {
-          "ours": {
-            "scoredAvg": 49.8,
-            "concededAvg": 74.3,
-            "place": 6,
-            "winPct": 33,
-            "label": "Росток-2014"
-          },
-          "theirs": {
-            "scoredAvg": 61.6,
-            "concededAvg": 84.2,
-            "place": 8,
-            "winPct": 40,
-            "label": "Takeshot Academy"
-          }
-        },
-        "commonOpponents": [
-          {
-            "name": "MO.BASKET",
-            "ourMargin": -28,
-            "theirMargin": -40,
-            "label": "MO.BASKET: мы -28, они -40"
-          },
-          {
-            "name": "SP Basket",
-            "ourMargin": -61,
-            "theirMargin": -130,
-            "label": "SP Basket: мы -61, они -130"
-          },
-          {
-            "name": "Багратион",
-            "ourMargin": 4,
-            "theirMargin": -22,
-            "label": "Багратион: мы +4, они -22"
-          }
-        ],
-        "h2h": {
-          "record": "0–2",
-          "games": [
-            {
-              "date": "31.10.26",
-              "tournament": "МЛБЛ U14",
-              "score": "63:84",
-              "weWon": false
-            },
-            {
-              "date": "31.10.26",
-              "tournament": "МЛБЛ U14, 26/27",
-              "score": "63:84",
-              "weWon": false
-            }
-          ],
-          "wins": 0,
-          "losses": 2
-        },
         "topPlayers": [
           {
             "label": "№77 Елисей М.",
@@ -3608,6 +3630,47 @@
         "city": "Москва",
         "scoredAvg": 47.3,
         "concededAvg": 61.3,
+        "compare": {
+          "ours": {
+            "scoredAvg": 49.8,
+            "concededAvg": 74.3,
+            "place": 6,
+            "winPct": 33,
+            "played": 6,
+            "wins": 2,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 47.3,
+            "concededAvg": 61.3,
+            "place": 9,
+            "winPct": 25,
+            "played": 4,
+            "wins": 1,
+            "label": "Первомайская"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "MO.BASKET",
+            "label": "MO.BASKET — мы 43:71, они 39:89",
+            "ourScore": "43:71",
+            "theirScore": "39:89"
+          }
+        ],
+        "h2h": {
+          "record": "1–0",
+          "games": [
+            {
+              "date": "04.10.26",
+              "tournament": "МЛБЛ U14",
+              "score": "61:57",
+              "weWon": true
+            }
+          ],
+          "wins": 1,
+          "losses": 0
+        },
         "form": [
           {
             "result": "loss",
@@ -3630,43 +3693,6 @@
             "date": "01.11.26"
           }
         ],
-        "compare": {
-          "ours": {
-            "scoredAvg": 49.8,
-            "concededAvg": 74.3,
-            "place": 6,
-            "winPct": 33,
-            "label": "Росток-2014"
-          },
-          "theirs": {
-            "scoredAvg": 47.3,
-            "concededAvg": 61.3,
-            "place": 9,
-            "winPct": 25,
-            "label": "Первомайская"
-          }
-        },
-        "commonOpponents": [
-          {
-            "name": "MO.BASKET",
-            "ourMargin": -28,
-            "theirMargin": -50,
-            "label": "MO.BASKET: мы -28, они -50"
-          }
-        ],
-        "h2h": {
-          "record": "1–0",
-          "games": [
-            {
-              "date": "04.10.26",
-              "tournament": "МЛБЛ U14",
-              "score": "61:57",
-              "weWon": true
-            }
-          ],
-          "wins": 1,
-          "losses": 0
-        },
         "topPlayers": [
           {
             "label": "№24 Тимофей М.",
@@ -3727,6 +3753,52 @@
         "city": "Москва",
         "scoredAvg": 28.6,
         "concededAvg": 103.2,
+        "compare": {
+          "ours": {
+            "scoredAvg": 49.8,
+            "concededAvg": 74.3,
+            "place": 6,
+            "winPct": 33,
+            "played": 6,
+            "wins": 2,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 28.6,
+            "concededAvg": 103.2,
+            "place": 10,
+            "winPct": 0,
+            "played": 5,
+            "wins": 0,
+            "label": "FS Bulldogs"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "Takeshot Academy",
+            "label": "Takeshot Academy — мы 63:84, они 43:101",
+            "ourScore": "63:84",
+            "theirScore": "43:101"
+          },
+          {
+            "name": "Багратион",
+            "label": "Багратион — мы 50:46, они 33:90",
+            "ourScore": "50:46",
+            "theirScore": "33:90"
+          },
+          {
+            "name": "Первомайская",
+            "label": "Первомайская — мы 61:57, они 35:66",
+            "ourScore": "61:57",
+            "theirScore": "35:66"
+          }
+        ],
+        "h2h": {
+          "record": "",
+          "games": [],
+          "wins": 0,
+          "losses": 0
+        },
         "form": [
           {
             "result": "loss",
@@ -3754,48 +3826,6 @@
             "date": "15.11.26"
           }
         ],
-        "compare": {
-          "ours": {
-            "scoredAvg": 49.8,
-            "concededAvg": 74.3,
-            "place": 6,
-            "winPct": 33,
-            "label": "Росток-2014"
-          },
-          "theirs": {
-            "scoredAvg": 28.6,
-            "concededAvg": 103.2,
-            "place": 10,
-            "winPct": 0,
-            "label": "FS Bulldogs"
-          }
-        },
-        "commonOpponents": [
-          {
-            "name": "Takeshot Academy",
-            "ourMargin": -21,
-            "theirMargin": -58,
-            "label": "Takeshot Academy: мы -21, они -58"
-          },
-          {
-            "name": "Багратион",
-            "ourMargin": 4,
-            "theirMargin": -57,
-            "label": "Багратион: мы +4, они -57"
-          },
-          {
-            "name": "Первомайская",
-            "ourMargin": 4,
-            "theirMargin": -31,
-            "label": "Первомайская: мы +4, они -31"
-          }
-        ],
-        "h2h": {
-          "record": "",
-          "games": [],
-          "wins": 0,
-          "losses": 0
-        },
         "topPlayers": [
           {
             "label": "№3 Макар Д.",
@@ -3863,6 +3893,40 @@
         "city": "Королёв",
         "scoredAvg": 23.3,
         "concededAvg": 107.0,
+        "compare": {
+          "ours": {
+            "scoredAvg": 49.8,
+            "concededAvg": 74.3,
+            "place": 6,
+            "winPct": 33,
+            "played": 6,
+            "wins": 2,
+            "label": "Росток-2014"
+          },
+          "theirs": {
+            "scoredAvg": 23.3,
+            "concededAvg": 107.0,
+            "place": 11,
+            "winPct": 0,
+            "played": 4,
+            "wins": 0,
+            "label": "Метеоры"
+          }
+        },
+        "commonOpponents": [
+          {
+            "name": "SP Basket",
+            "label": "SP Basket — мы 52:113, они 22:122",
+            "ourScore": "52:113",
+            "theirScore": "22:122"
+          }
+        ],
+        "h2h": {
+          "record": "",
+          "games": [],
+          "wins": 0,
+          "losses": 0
+        },
         "form": [
           {
             "result": "loss",
@@ -3885,36 +3949,6 @@
             "date": "21.11.26"
           }
         ],
-        "compare": {
-          "ours": {
-            "scoredAvg": 49.8,
-            "concededAvg": 74.3,
-            "place": 6,
-            "winPct": 33,
-            "label": "Росток-2014"
-          },
-          "theirs": {
-            "scoredAvg": 23.3,
-            "concededAvg": 107.0,
-            "place": 11,
-            "winPct": 0,
-            "label": "Метеоры"
-          }
-        },
-        "commonOpponents": [
-          {
-            "name": "SP Basket",
-            "ourMargin": -61,
-            "theirMargin": -100,
-            "label": "SP Basket: мы -61, они -100"
-          }
-        ],
-        "h2h": {
-          "record": "",
-          "games": [],
-          "wins": 0,
-          "losses": 0
-        },
         "topPlayers": [
           {
             "label": "№15 Адриан К.",

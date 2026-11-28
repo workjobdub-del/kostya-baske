@@ -3188,9 +3188,33 @@ html, body { overflow-x: clip; }
   margin-top: 0.55rem;
 }
 
-.opp-form-block {
+.opp-chips {
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.55rem 0 0;
+}
+
+.opp-chip-stat {
+  display: inline-flex;
   align-items: center;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  background: rgba(20, 20, 20, 0.05);
+  border: 1px solid rgba(20, 20, 20, 0.08);
+  font-variant-numeric: tabular-nums;
+}
+
+.opp-form-block {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.opp-form-head {
+  display: flex;
+  align-items: baseline;
   justify-content: space-between;
   gap: 0.5rem;
   flex-wrap: wrap;
@@ -3202,11 +3226,17 @@ html, body { overflow-x: clip; }
   color: var(--ink-muted, rgba(28, 32, 36, 0.62));
 }
 
+.opp-form-hint {
+  font-size: 0.68rem;
+  color: var(--ink-muted, rgba(28, 32, 36, 0.52));
+  font-weight: 500;
+}
+
 .opp-form-dots {
   display: flex;
   gap: 0.35rem;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .opp-form-dot {
@@ -3227,65 +3257,99 @@ html, body { overflow-x: clip; }
 
 .opp-compare {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.65rem;
 }
 
-.opp-compare-head,
-.opp-compare-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.6fr) minmax(0, 1fr);
-  gap: 0.35rem;
-  align-items: center;
-  font-size: 0.78rem;
-}
-
-.opp-compare-head {
-  color: var(--ink-muted, rgba(28, 32, 36, 0.62));
-  font-weight: 650;
-  margin-bottom: 0.1rem;
-}
-
-.opp-compare-label {
-  font-size: 0.76rem;
-  line-height: 1.25;
-}
-
-.opp-compare-bars {
+.opp-compare-legend {
   display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  min-width: 0;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  font-size: 0.76rem;
+  font-weight: 650;
 }
 
-.opp-compare-bar {
+.opp-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.opp-legend-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.opp-metric {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.opp-metric-title {
+  font-size: 0.76rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.opp-metric-hint {
   display: block;
-  height: 0.35rem;
+  margin-top: 0.12rem;
+  font-size: 0.66rem;
+  font-weight: 500;
+  color: var(--ink-muted, rgba(28, 32, 36, 0.55));
+}
+
+.opp-metric-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.opp-metric-track {
+  min-width: 0;
+  height: 0.4rem;
+  background: rgba(20, 20, 20, 0.06);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.opp-metric-fill {
+  display: block;
+  height: 100%;
   border-radius: 999px;
   min-width: 0.15rem;
-  max-width: 100%;
 }
 
-.opp-compare-bar--us {
-  background: linear-gradient(90deg, #2f9f58, #3ec46e);
-}
-
-.opp-compare-bar--them {
-  background: var(--opp-bar, var(--teal));
-  opacity: 0.92;
-}
-
-.opp-compare-vals {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.35rem;
+.opp-metric-num {
+  font-size: 0.74rem;
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
-  font-size: 0.76rem;
+  white-space: nowrap;
 }
 
-.opp-compare-us { color: #1f7a41; font-weight: 650; }
-.opp-compare-them { color: var(--ink); font-weight: 600; text-align: right; }
+.sheet-card--opp .sheet-actions {
+  margin-top: 0.75rem;
+}
 
-.opp-compare-row--place .opp-compare-bars { display: none; }
+.sheet-card--opp .sheet-actions button.is-off {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid rgba(20, 20, 20, 0.12);
+  font-weight: 650;
+  box-shadow: none;
+  outline: none;
+}
+
+.sheet-card--opp .sheet-actions button.is-off:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
 
 .opp-tips-list {
   margin: 0.2rem 0 0;
