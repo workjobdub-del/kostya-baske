@@ -4066,6 +4066,7 @@ def main():
     dry = "--dry-run" in sys.argv
     data = load("data.json")
     news = load("news.json")
+    preserved_tournament_rules = copy.deepcopy(data.get("tournamentRules"))
     before_games = [game_key(row) for row in season_rows(data)]
     before_news = [post.get("link") for post in news.get("posts") or [] if post.get("tag") == "2014"]
     u12_before = copy.deepcopy(next(item["rows"] for item in data["gameLogs"]["tournaments"] if item["id"] == "u12"))
@@ -4112,6 +4113,8 @@ def main():
         print("dry-run: файлы не записал.")
         return
     if data_changed:
+        if preserved_tournament_rules is not None:
+            data["tournamentRules"] = preserved_tournament_rules
         (ROOT / "data.json").write_text(dump(data), encoding="utf-8")
     if news_changed:
         (ROOT / "news.json").write_text(dump(news), encoding="utf-8")

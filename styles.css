@@ -3076,6 +3076,45 @@ html, body { overflow-x: clip; }
 
 #standings .fold + .fold { margin-top: 0.55rem; }
 
+.fold-rules--nested {
+  margin: 0 0.9rem 0.75rem;
+  background: rgba(20, 20, 20, 0.03);
+  border: 1px solid rgba(20, 20, 20, 0.08);
+}
+
+.fold-rules--nested > summary {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.rules-list {
+  margin: 0 0.9rem 0.65rem;
+  padding-left: 1.15rem;
+  color: var(--ink);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.rules-list li + li { margin-top: 0.45rem; }
+
+.rules-roster {
+  margin: 0 0.9rem 0.65rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.rules-source {
+  margin: 0 0.9rem 0.85rem;
+  font-size: 0.78rem;
+}
+
+.rules-source a {
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
 .record-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

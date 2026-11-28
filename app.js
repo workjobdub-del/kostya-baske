@@ -881,7 +881,7 @@ function heroSeasonHeadlineStats() {
   return `${scope}<div class="hero-stats hero-stats--headline" aria-label="Ключевые средние за сезон">${cells}</div>`;
 }
 
-const ASSET_V = "2026-11-28-23";
+const ASSET_V = "2026-11-28-24";
 const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
 const ICON_REFRESH = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>`;
 const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
@@ -1467,10 +1467,65 @@ function standingSummary(label, standings, playedInCalendar) {
   return `${label} — ${place ? `${place[1]}-е место` : "место"} · ${balance}`;
 }
 
-function renderStandingFold(id, summary, standings) {
+function standingPlaceNumber(row) {
+  const match = String((row && row.team) || "").match(/^(\d+)\./);
+  return match ? Number(match[1]) : null;
+}
+
+function tournamentStandings(rulesId) {
+  if (rulesId === "moscow") return data.season && data.season.standings;
+  if (rulesId === "u14") return data.u14Schedule && data.u14Schedule.standings;
+  return null;
+}
+
+function tournamentTeamCountLine(rulesId) {
+  const standings = tournamentStandings(rulesId);
+  const n = standings && standings.rows ? standings.rows.length : 0;
+  if (!n) return "";
+  const teams = ruCount(n, "команда", "команды", "команд");
+  if (rulesId === "moscow") return `В твоей группе А — ${teams}.`;
+  if (rulesId === "u14") return `В дивизионе U14 играют ${teams}.`;
+  return "";
+}
+
+function tournamentRostokLine(rulesId) {
+  const standings = tournamentStandings(rulesId);
+  const ours = standings && standings.rows && standings.rows.find((row) => row.highlight);
+  if (!ours) return "";
+  const place = standingPlaceNumber(ours);
+  const placeBit = place ? `${place}-е место` : "место в таблице";
+  const bal = `${ruCount(ours.wins, "победа", "победы", "побед")}, ${ruCount(ours.losses, "поражение", "поражения", "поражений")}, ${ruCount(ours.points, "турнирное очко", "турнирных очка", "турнирных очков")}`;
+  if (rulesId === "moscow") {
+    return `Сейчас «Росток-2014» в группе А: ${placeBit}, ${bal}. В плей-офф попадают 1–2-е места в группе или лучшие команды с 3-го.`;
+  }
+  if (rulesId === "u14") {
+    return `Сейчас «Росток-2014» в МЛБЛ U14: ${placeBit}, ${bal}. Чтобы попасть в топ-8 и плей-офф, нужно подняться в таблице.`;
+  }
+  return "";
+}
+
+function tournamentRulesBulletHtml(rulesId) {
+  const block = data.tournamentRules && data.tournamentRules[rulesId];
+  if (!block || !block.points || !block.points.length) return "";
+  return block.points.map((item) => `<li>${esc(item.text)}</li>`).join("");
+}
+
+function renderTournamentRulesFold(rulesId) {
+  const block = data.tournamentRules && data.tournamentRules[rulesId];
+  if (!block || !block.points || !block.points.length) return "";
+  const items = tournamentRulesBulletHtml(rulesId);
+  const rosterHtml = "";
+  const source = block.source
+    ? `<p class="rules-source"><a href="${esc(block.source.url)}" target="_blank" rel="noopener noreferrer">Источник: ${esc(block.source.label)}</a></p>`
+    : "";
+  return `<details class="fold fold-rules fold-rules--nested"><summary>Как устроен турнир</summary><ul class="rules-list">${items}</ul>${rosterHtml}${source}</details>`;
+}
+
+function renderStandingFold(id, summary, standings, rulesId) {
   if (!standings || !standings.rows || !standings.rows.length) return "";
   const kind = id === "standings-u14" ? "standings standings-u14" : "standings standings-mos";
-  return `<details class="fold" id="${id}"><summary>${esc(summary)}</summary>${objectTable(standings.columns, standings.rows, kind)}</details>`;
+  const guide = renderTournamentRulesFold(rulesId || (id === "standings-u14" ? "u14" : "moscow"));
+  return `<details class="fold" id="${id}"><summary>${esc(summary)}</summary>${guide}${objectTable(standings.columns, standings.rows, kind)}</details>`;
 }
 
 function renderStandingsFolds() {
@@ -1479,12 +1534,14 @@ function renderStandingsFolds() {
   const moscow = renderStandingFold(
     "standings-moscow",
     standingSummary("Первенство Москвы, группа А", data.season && data.season.standings, moscowPlayed),
-    data.season && data.season.standings
+    data.season && data.season.standings,
+    "moscow"
   );
   const u14 = renderStandingFold(
     "standings-u14",
     standingSummary("МЛБЛ U14", data.u14Schedule && data.u14Schedule.standings, u14Played),
-    data.u14Schedule && data.u14Schedule.standings
+    data.u14Schedule && data.u14Schedule.standings,
+    "u14"
   );
   if (!moscow && !u14) return "";
   return `<section class="block" id="standings"><h2>Турнирные таблицы</h2>${moscow}${u14}</section>`;
