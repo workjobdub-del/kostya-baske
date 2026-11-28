@@ -844,7 +844,7 @@ function heroSeasonHeadlineStats() {
   return `${scope}<div class="hero-stats hero-stats--headline" aria-label="Ключевые средние за сезон">${cells}</div>`;
 }
 
-const ASSET_V = "2026-11-28-18";
+const ASSET_V = "2026-11-28-19";
 const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
 const ICON_REFRESH = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>`;
 const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
@@ -4733,16 +4733,34 @@ function renderOppTips(tips) {
   return `<section class="opp-tips"><h3 class="sheet-sub">Подсказка Косте</h3><ul class="opp-tips-list">${rows.map((line) => `<li>${esc(line)}</li>`).join("")}</ul></section>`;
 }
 
+function formatOppStatNumber(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "—";
+  return Number.isInteger(num) ? String(num) : formatAvg(num);
+}
+
+function oppPlayerRate(value, one, few, many) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "—";
+  const n = Math.abs(num);
+  let word = many;
+  if (!Number.isInteger(n)) word = few;
+  else {
+    const n10 = n % 10;
+    const n100 = n % 100;
+    word = n10 === 1 && n100 !== 11 ? one : n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14) ? few : many;
+  }
+  return `${formatOppStatNumber(num)} ${word}`;
+}
+
 function renderOppPlayers(players) {
   const rows = (players || []).filter((row) => row && row.label);
   if (!rows.length) return "";
   const items = rows.map((row) => {
-    const ppg = formatAvg(row.ppg);
-    const rpg = formatAvg(row.rpg);
     const stat =
       row.tag === "rebounds"
-        ? `${rpg} ${ruCount(rpg, "подбор за игру", "подбора за игру", "подборов за игру")}`
-        : `${ppg} ${ruCount(ppg, "очко за игру", "очка за игру", "очков за игру")}`;
+        ? oppPlayerRate(row.rpg, "подбор за игру", "подбора за игру", "подборов за игру")
+        : oppPlayerRate(row.ppg, "очко за игру", "очка за игру", "очков за игру");
     return `<li><span class="opp-player-name">${esc(row.label)}</span> · ${esc(stat)}</li>`;
   });
   return `<section class="opp-players"><h3 class="sheet-sub">Лучшие у соперника</h3><ul class="opp-list">${items.join("")}</ul></section>`;
