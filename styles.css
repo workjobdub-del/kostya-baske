@@ -3097,6 +3097,126 @@ html, body { overflow-x: clip; }
 
 .rules-list li + li { margin-top: 0.45rem; }
 
+.place-chart {
+  margin: 0.65rem 0 1rem;
+  padding: 0.65rem 0.55rem 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--good) 6%, var(--card));
+}
+
+.place-chart-cap {
+  margin: 0 0 0.45rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.place-chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.place-chart-context {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.place-chart-zone {
+  fill: color-mix(in srgb, var(--good) 14%, transparent);
+  stroke: none;
+}
+
+.place-chart-line {
+  stroke: var(--good);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
+.place-chart-line--dash {
+  stroke-dasharray: 4 4;
+  opacity: 0.55;
+}
+
+.place-chart-playoff {
+  stroke: color-mix(in srgb, var(--good) 55%, var(--muted));
+  stroke-width: 1.25;
+  stroke-dasharray: 5 4;
+}
+
+.place-chart-y,
+.place-chart-x {
+  fill: var(--muted);
+  font-size: 9px;
+}
+
+.place-chart-place {
+  fill: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.place-chart-node {
+  cursor: pointer;
+}
+
+.place-chart-node.is-on .place-chart-dot {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.place-chart-node.is-on .place-chart-place {
+  fill: var(--good);
+}
+
+.place-chart-readout {
+  margin: 0.45rem 0 0.35rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--ink);
+  min-height: 1.15em;
+}
+
+.place-chart-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.place-chart-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  padding: 0.35rem 0.4rem;
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.place-chart-row.is-on {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--good) 12%, var(--card));
+}
+
+.place-chart-row:focus-visible {
+  outline: 2px solid var(--good);
+  outline-offset: 2px;
+}
+
 .rules-roster {
   margin: 0 0.9rem 0.65rem;
   font-size: 0.88rem;
