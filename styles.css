@@ -3527,69 +3527,63 @@ body[data-page="profile"] .player-card.player-card--profile-hero .num {
   margin: 0 0 0.75rem;
 }
 
-.date-chip-row,
-.time-chip-row {
+.fixture-chip-grid {
   display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: flex-start;
   gap: 0.45rem;
   overflow-x: auto;
   padding-bottom: 0.15rem;
 }
 
-.date-chip,
-.time-chip {
+.fixture-chip {
   flex: 0 0 auto;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 3.25rem;
-  min-height: 3.25rem;
-  padding: 0.35rem 0.55rem;
+  width: 4.15rem;
+  min-height: 4.35rem;
+  padding: 0.4rem 0.4rem 0.45rem;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid rgba(20, 20, 20, 0.08);
   color: var(--ink);
   font-variant-numeric: tabular-nums;
+  box-sizing: border-box;
 }
 
-.date-chip b {
+.fixture-chip b {
   font-family: var(--display);
   font-size: 1.15rem;
   line-height: 1.1;
 }
 
-.date-chip small,
-.time-chip {
+.fixture-chip small {
   font-size: 0.72rem;
   color: var(--muted);
   font-weight: 600;
+  line-height: 1.2;
 }
 
-.date-chip.is-active,
-.time-chip.is-active {
+.fixture-chip-time {
+  margin-top: 0.22rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.fixture-chip.is-active {
   background: var(--teal);
   border-color: var(--teal);
   color: #fff;
 }
 
-.date-chip.is-active small {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.time-chip-row {
-  margin-top: 0.45rem;
-}
-
-.time-chip {
-  padding: 0.45rem 0.85rem;
-  min-height: var(--tap);
-  border-radius: var(--radius-pill);
-}
-
-.time-chip.is-active {
-  background: var(--teal-soft);
-  color: var(--ink);
-  border-color: rgba(95, 168, 160, 0.45);
+.fixture-chip.is-active small,
+.fixture-chip.is-active .fixture-chip-time {
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .kpi-profile-grid {
@@ -3820,8 +3814,7 @@ body[data-page="mama"] .wrap::before {
   .wrap,
   main,
   .sheet-card,
-  .date-chip-row,
-  .time-chip-row {
+  .fixture-chip-grid {
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
@@ -3833,8 +3826,7 @@ body[data-page="mama"] .wrap::before {
   .modes--pages::-webkit-scrollbar,
   main::-webkit-scrollbar,
   .wrap::-webkit-scrollbar,
-  .date-chip-row::-webkit-scrollbar,
-  .time-chip-row::-webkit-scrollbar {
+  .fixture-chip-grid::-webkit-scrollbar {
     display: none;
     width: 0;
     height: 0;
