@@ -1,6 +1,6 @@
 "use strict";
 
-const SERIES_COLORS = ["#9cb4d0", "#e8b84a", "#7bc4ff"];
+const SERIES_COLORS = ["#5fa8a0", "#f07a2a", "#8ab4c8"];
 const FONT = "Oswald, sans-serif";
 
 const state = { game: null, trend: null, news: "2014", newsShown: 5, newsReady: false, section: "", lastY: 0, chartPoints: [] };
@@ -378,9 +378,9 @@ function pointsChart(tournament) {
 
   for (let tick = 0; tick <= top + 0.001; tick += step) {
     const y = pad.top + plotH - (tick / top) * plotH;
-    const grid = tick === 0 ? "#3a3f4b" : "#2c313c";
+    const grid = tick === 0 ? "#c5c4bd" : "#e0dfda";
     shapes += `<line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="${grid}"></line>`;
-    shapes += `<text x="${pad.left - 6}" y="${y + 4}" text-anchor="end" fill="#c8c2b6" font-size="12" font-family="${FONT}">${formatTick(tick)}</text>`;
+    shapes += `<text x="${pad.left - 6}" y="${y + 4}" text-anchor="end" fill="#7a7a74" font-size="12" font-family="${FONT}">${formatTick(tick)}</text>`;
   }
 
   if (fire) {
@@ -397,27 +397,27 @@ function pointsChart(tournament) {
     const y = pad.top + plotH - barH;
     const hot = fire && index >= fire.start && index <= fire.end;
     const kind = hot ? "fire" : point.loss ? "loss" : "win";
-    const color = hot ? "url(#fire-fill)" : point.loss ? "#6b717e" : "#e8b84a";
+    const color = hot ? "url(#fire-fill)" : point.loss ? "#9aa3ad" : "#5fa8a0";
     if (barH > 0) {
       const radius = Math.min(4, barW / 2, barH);
       shapes += `<path class="bar is-${kind}" style="--d:${index * 45}ms" d="M${x} ${y + barH} V${y + radius} Q${x} ${y} ${x + radius} ${y} H${x + barW - radius} Q${x + barW} ${y} ${x + barW} ${y + radius} V${y + barH} Z" fill="${color}"></path>`;
     }
-    shapes += `<text class="bar-value" style="--d:${index * 45 + 260}ms" x="${x + barW / 2}" y="${Math.max(pad.top - 4, y - 5)}" text-anchor="middle" fill="#f4efe4" font-size="13" font-weight="700" font-family="${FONT}">${esc(point.display)}</text>`;
+    shapes += `<text class="bar-value" style="--d:${index * 45 + 260}ms" x="${x + barW / 2}" y="${Math.max(pad.top - 4, y - 5)}" text-anchor="middle" fill="#141414" font-size="13" font-weight="700" font-family="${FONT}">${esc(point.display)}</text>`;
     if (index % showEvery === 0) {
-      shapes += `<text x="${x + barW / 2}" y="${height - 10}" text-anchor="middle" fill="#c8c2b6" font-size="12" font-family="${FONT}">${esc(point.label)}</text>`;
+      shapes += `<text x="${x + barW / 2}" y="${height - 10}" text-anchor="middle" fill="#7a7a74" font-size="12" font-family="${FONT}">${esc(point.label)}</text>`;
     }
     shapes += `<rect class="bar-hit" data-bar="${index}" x="${pad.left + index * slot}" y="${pad.top}" width="${slot}" height="${plotH}" fill="transparent"></rect>`;
   });
 
   if (top > 0) {
     const meanY = pad.top + plotH - (mean / top) * plotH;
-    shapes += `<line class="mean-line" x1="${pad.left}" y1="${meanY}" x2="${width - pad.right}" y2="${meanY}" stroke="#f3d98a" stroke-width="1.5" stroke-dasharray="5 4"></line>`;
-    shapes += `<text x="${width - pad.right}" y="${meanY - 5}" text-anchor="end" fill="#f3d98a" font-size="12" font-family="${FONT}">среднее ${formatAvg(mean)}</text>`;
+    shapes += `<line class="mean-line" x1="${pad.left}" y1="${meanY}" x2="${width - pad.right}" y2="${meanY}" stroke="#f07a2a" stroke-width="1.5" stroke-dasharray="5 4"></line>`;
+    shapes += `<text x="${width - pad.right}" y="${meanY - 5}" text-anchor="end" fill="#7a7a74" font-size="12" font-family="${FONT}">среднее ${formatAvg(mean)}</text>`;
   }
 
   state.chartPoints = points;
   const summary = points.map((point) => `${point.label}: ${point.display}`).join(", ");
-  const legend = `<ul class="legend chart-key"><li><span class="swatch" style="background:#e8b84a"></span>Победа</li><li><span class="swatch" style="background:#6b717e"></span>Поражение</li><li><span class="swatch swatch-mean"></span>Пунктир — среднее за турнир</li>${
+  const legend = `<ul class="legend chart-key"><li><span class="swatch" style="background:#5fa8a0"></span>Победа</li><li><span class="swatch" style="background:#9aa3ad"></span>Поражение</li><li><span class="swatch swatch-mean"></span>Пунктир — среднее за турнир</li>${
     fire ? `<li><span class="swatch swatch-fire"></span>${term("В ОГНЕ")}</li>` : ""
   }</ul>`;
   const readout = `<p class="chart-readout" id="chart-readout" aria-live="polite">Нажмите на столбец — покажу соперника и счёт.</p>`;
@@ -479,9 +479,9 @@ function groupedChart(view) {
     const y = view.signed
       ? pad.top + plotH - ((tick - minValue) / span) * plotH
       : pad.top + plotH - (tick / top) * plotH;
-    const grid = Math.abs(tick) < 0.001 ? "#3a3f4b" : "#2c313c";
+    const grid = Math.abs(tick) < 0.001 ? "#c5c4bd" : "#e0dfda";
     shapes += `<line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="${grid}"></line>`;
-    shapes += `<text x="${pad.left - 8}" y="${y + 4}" text-anchor="end" fill="#c8c2b6" font-size="12" font-family="${FONT}">${formatTick(tick)}</text>`;
+    shapes += `<text x="${pad.left - 8}" y="${y + 4}" text-anchor="end" fill="#7a7a74" font-size="12" font-family="${FONT}">${formatTick(tick)}</text>`;
   }
 
   categories.forEach((category, categoryIndex) => {
@@ -508,9 +508,9 @@ function groupedChart(view) {
         shapes += `<path class="bar" style="--d:${delay}ms" d="M${x} ${y + barH} V${y + radius} Q${x} ${y} ${x + radius} ${y} H${x + barW - radius} Q${x + barW} ${y} ${x + barW} ${y + radius} V${y + barH} Z" fill="${color}"></path>`;
       }
       const textDelay = (categoryIndex * series.length + seriesIndex) * 60 + 260;
-      shapes += `<text class="bar-value" style="--d:${textDelay}ms" x="${x + barW / 2}" y="${Math.max(12, y - 6)}" text-anchor="middle" fill="#f4efe4" font-size="${valueSize}" font-weight="700" font-family="${FONT}">${formatAvg(safe)}</text>`;
+      shapes += `<text class="bar-value" style="--d:${textDelay}ms" x="${x + barW / 2}" y="${Math.max(12, y - 6)}" text-anchor="middle" fill="#141414" font-size="${valueSize}" font-weight="700" font-family="${FONT}">${formatAvg(safe)}</text>`;
     });
-    shapes += `<text x="${groupX + groupW / 2}" y="${height - 14}" text-anchor="middle" fill="#f4efe4" font-size="${labelSize}" font-family="${FONT}">${esc(category)}</text>`;
+    shapes += `<text x="${groupX + groupW / 2}" y="${height - 14}" text-anchor="middle" fill="#7a7a74" font-size="${labelSize}" font-family="${FONT}">${esc(category)}</text>`;
   });
 
   const summary = series
@@ -775,7 +775,7 @@ function heroSeasonHeadlineStats() {
   return `${scope}<div class="hero-stats hero-stats--headline" aria-label="Ключевые средние за сезон">${cells}</div>`;
 }
 
-const ASSET_V = "2026-11-28-07";
+const ASSET_V = "2026-11-28-08";
 const ICON_GEAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
 const ICON_REFRESH = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>`;
 const ICON_PENCIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
@@ -2918,11 +2918,7 @@ function countUp(el) {
   requestAnimationFrame(frame);
 }
 
-function animateIn() {
-  const root = document.getElementById("app");
-  if (!root) return;
-  root.querySelectorAll(COUNT).forEach(countUp);
-}
+function animateIn() {}
 
 function phoneLayout() {
   return window.matchMedia("(max-width: 720px)").matches;
